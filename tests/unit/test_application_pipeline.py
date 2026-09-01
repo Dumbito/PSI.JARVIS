@@ -126,3 +126,33 @@ def test_pipeline_reports_exclusion_reasons():
         "Topic not found: memory": 1,
         "Exclusion rule matched: animal": 1,
     }
+
+
+
+def test_pipeline_reports_failed_rule_counts():
+    papers = [
+        Paper(
+            title="Memory Animal Clinical Study",
+            doi="10.1234/a",
+        ),
+        Paper(
+            title="Memory Animal Study",
+            doi="10.1234/b",
+        ),
+        Paper(
+            title="Memory Human Study",
+            doi="10.1234/c",
+        ),
+    ]
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        exclusion=("animal", "clinical"),
+    )
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert result.audit_report.failed_rule_counts == {
+        "animal": 2,
+        "clinical": 1,
+    }

@@ -56,3 +56,59 @@ def test_engine_is_case_insensitive():
     result = engine.evaluate(paper)
 
     assert result.included is True
+
+
+
+def test_engine_records_matched_exclusion_rules():
+    paper = Paper(
+        title="Intelligence in adults",
+        abstract="Study including animal models and human participants.",
+    )
+
+    criteria = ScreeningCriteria(
+        topic="intelligence",
+        exclusion=("animal",),
+    )
+
+    result = ScreeningEngine(criteria).evaluate(paper)
+
+    assert result.included is False
+    assert result.reason == "Exclusion rule matched: animal"
+    assert result.failed_rules == ("animal",)
+
+
+def test_engine_records_all_matched_exclusion_rules():
+    paper = Paper(
+        title="Intelligence in adults",
+        abstract="Study including animal models and clinical participants.",
+    )
+
+    criteria = ScreeningCriteria(
+        topic="intelligence",
+        exclusion=("animal", "clinical"),
+    )
+
+    result = ScreeningEngine(criteria).evaluate(paper)
+
+    assert result.included is False
+    assert result.failed_rules == ("animal", "clinical")
+    assert result.reason == "Exclusion rule matched: animal"
+
+
+def test_engine_records_matched_and_failed_inclusion_rules():
+    paper = Paper(
+        title="Intelligence and memory in adults",
+        abstract="Study of intelligence and memory.",
+    )
+
+    criteria = ScreeningCriteria(
+        topic="intelligence",
+        inclusion=("adults", "children"),
+    )
+
+    result = ScreeningEngine(criteria).evaluate(paper)
+
+    assert result.included is False
+    assert result.reason == "Inclusion rule not matched: children"
+    assert result.matched_rules == ("adults",)
+    assert result.failed_rules == ("children",)
