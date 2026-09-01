@@ -11,6 +11,8 @@ class ScreeningResult:
     reason: str
     matched_rules: tuple[str, ...] = ()
     failed_rules: tuple[str, ...] = ()
+    matched_rule_ids: tuple[str, ...] = ()
+    failed_rule_ids: tuple[str, ...] = ()
 
     @property
     def status(self) -> str:

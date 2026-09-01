@@ -154,3 +154,20 @@ def test_text_rule_identity_is_normalized():
 
     assert first.id == second.id
     assert first.id == "text:intelligence"
+
+
+
+def test_screening_result_can_store_rule_ids():
+    from uuid import uuid4
+    from psi_jarvis.domain.screening.result import ScreeningResult
+
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=False,
+        reason="Exclusion rule matched: animal",
+        matched_rule_ids=("text:human",),
+        failed_rule_ids=("text:animal",),
+    )
+
+    assert result.matched_rule_ids == ("text:human",)
+    assert result.failed_rule_ids == ("text:animal",)
