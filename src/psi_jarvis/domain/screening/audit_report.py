@@ -12,6 +12,7 @@ class ScreeningAuditReport:
     total_evaluated: int
     included: int
     excluded: int
+    criteria_version: str = ""
     audits: tuple[ScreeningAudit, ...] = ()
 
     @property
@@ -62,10 +63,15 @@ class ScreeningAuditReport:
     @classmethod
     def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "ScreeningAuditReport":
         audits = tuple(audits)
+        versions = {audit.criteria_version for audit in audits if audit.criteria_version}
+        if len(versions) > 1:
+            raise ValueError("All audits must use the same screening criteria version")
+        criteria_version = next(iter(versions), "")
         return cls(
             total_evaluated=len(audits),
             included=sum(1 for audit in audits if audit.included),
             excluded=sum(1 for audit in audits if not audit.included),
+            criteria_version=criteria_version,
             audits=audits,
         )
 

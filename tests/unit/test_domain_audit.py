@@ -238,3 +238,63 @@ def test_screening_audit_report_counts_rule_ids():
         "text:human": 3,
         "text:adults": 1,
     }
+
+def test_screening_audit_preserves_criteria_version():
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=False,
+        reason="Exclusion rule matched: animal",
+        criteria_version="7c3a0e745f584912",
+    )
+
+    audit = ScreeningAudit.from_result(result)
+
+    assert audit.criteria_version == "7c3a0e745f584912"
+
+def test_screening_audit_report_preserves_criteria_version():
+    from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+
+    audits = (
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=True,
+            reason="Paper matches screening criteria",
+            criteria_version="7c3a0e745f584912",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Topic not found: memory",
+            criteria_version="7c3a0e745f584912",
+        ),
+    )
+
+    report = ScreeningAuditReport.from_audits(audits)
+
+    assert report.criteria_version == "7c3a0e745f584912"
+
+
+def test_screening_audit_report_rejects_mixed_criteria_versions():
+    from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+
+    audits = (
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=True,
+            reason="Paper matches screening criteria",
+            criteria_version="version-a",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Topic not found: memory",
+            criteria_version="version-b",
+        ),
+    )
+
+    try:
+        ScreeningAuditReport.from_audits(audits)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningAuditReport should reject mixed criteria versions")
