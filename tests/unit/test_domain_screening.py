@@ -48,3 +48,46 @@ def test_screening_criteria_is_immutable():
         pass
     else:
         raise AssertionError("ScreeningCriteria should be immutable")
+
+
+
+def test_screening_criteria_rejects_empty_topic():
+    try:
+        ScreeningCriteria(topic="")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningCriteria should reject an empty topic")
+
+
+def test_screening_criteria_rejects_whitespace_topic():
+    try:
+        ScreeningCriteria(topic="   ")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningCriteria should reject a whitespace-only topic")
+
+
+def test_screening_criteria_rejects_empty_inclusion_rule():
+    try:
+        ScreeningCriteria(
+            topic="memory",
+            inclusion=("adults", "", "human"),
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningCriteria should reject empty inclusion rules")
+
+
+def test_screening_criteria_rejects_empty_exclusion_rule():
+    try:
+        ScreeningCriteria(
+            topic="memory",
+            exclusion=("animal", "   "),
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningCriteria should reject empty exclusion rules")
