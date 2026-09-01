@@ -38,6 +38,27 @@ class ScreeningAuditReport:
     def exclusion_reason_counts(self) -> dict[str, int]:
         return dict(Counter(self.exclusion_reasons))
 
+    @property
+    def failed_rule_id_counts(self) -> dict[str, int]:
+        return dict(
+            Counter(
+                rule_id
+                for audit in self.audits
+                if not audit.included
+                for rule_id in audit.failed_rule_ids
+            )
+        )
+
+    @property
+    def matched_rule_id_counts(self) -> dict[str, int]:
+        return dict(
+            Counter(
+                rule_id
+                for audit in self.audits
+                for rule_id in audit.matched_rule_ids
+            )
+        )
+
     @classmethod
     def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "ScreeningAuditReport":
         audits = tuple(audits)

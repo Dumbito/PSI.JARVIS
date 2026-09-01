@@ -200,3 +200,41 @@ def test_screening_audit_preserves_rule_ids():
 
     assert audit.matched_rule_ids == ("text:human",)
     assert audit.failed_rule_ids == ("text:animal",)
+
+def test_screening_audit_report_counts_rule_ids():
+    from psi_jarvis.domain.screening.audit import ScreeningAudit
+    from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+
+    audits = (
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Exclusion rule matched: animal",
+            matched_rule_ids=("text:human",),
+            failed_rule_ids=("text:animal",),
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Inclusion rule not matched: adults",
+            matched_rule_ids=("text:human",),
+            failed_rule_ids=("text:adults",),
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=True,
+            reason="Paper matches screening criteria",
+            matched_rule_ids=("text:human", "text:adults"),
+        ),
+    )
+
+    report = ScreeningAuditReport.from_audits(audits)
+
+    assert report.failed_rule_id_counts == {
+        "text:animal": 1,
+        "text:adults": 1,
+    }
+    assert report.matched_rule_id_counts == {
+        "text:human": 3,
+        "text:adults": 1,
+    }
