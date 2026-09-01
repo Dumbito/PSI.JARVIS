@@ -171,3 +171,32 @@ def test_screening_result_can_store_rule_ids():
 
     assert result.matched_rule_ids == ("text:human",)
     assert result.failed_rule_ids == ("text:animal",)
+
+def test_screening_result_contains_criteria_version():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("adults",),
+        exclusion=("animal",),
+    )
+    engine = ScreeningEngine(criteria)
+    paper = Paper(
+        title="Memory in adults",
+        authors=("Author",),
+        abstract="A study about memory in adults.",
+    )
+
+    result = engine.evaluate(paper)
+
+    expected = ScreeningCriteriaVersion.from_criteria(criteria).value
+    assert result.criteria_version == expected
+
+
+def test_screening_engine_exposes_criteria_version():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    criteria = ScreeningCriteria(topic="memory")
+    engine = ScreeningEngine(criteria)
+
+    assert engine.criteria_version == ScreeningCriteriaVersion.from_criteria(criteria).value

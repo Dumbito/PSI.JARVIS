@@ -13,6 +13,7 @@ class ScreeningResult:
     failed_rules: tuple[str, ...] = ()
     matched_rule_ids: tuple[str, ...] = ()
     failed_rule_ids: tuple[str, ...] = ()
+    criteria_version: str = ""
 
     @property
     def status(self) -> str:
