@@ -1,5 +1,8 @@
 from collections import Counter
 from dataclasses import dataclass
+from typing import Iterable
+
+from psi_jarvis.domain.screening.audit import ScreeningAudit
 
 
 @dataclass(frozen=True)
@@ -9,7 +12,7 @@ class ScreeningAuditReport:
     total_evaluated: int
     included: int
     excluded: int
-    exclusion_reasons: tuple[str, ...] = ()
+    audits: tuple[ScreeningAudit, ...] = ()
 
     @property
     def inclusion_rate(self) -> float:
@@ -24,5 +27,34 @@ class ScreeningAuditReport:
         return self.excluded / self.total_evaluated
 
     @property
+    def exclusion_reasons(self) -> tuple[str, ...]:
+        return tuple(
+            audit.reason
+            for audit in self.audits
+            if not audit.included
+        )
+
+    @property
     def exclusion_reason_counts(self) -> dict[str, int]:
         return dict(Counter(self.exclusion_reasons))
+
+    @classmethod
+    def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "ScreeningAuditReport":
+        audits = tuple(audits)
+        return cls(
+            total_evaluated=len(audits),
+            included=sum(1 for audit in audits if audit.included),
+            excluded=sum(1 for audit in audits if not audit.included),
+            audits=audits,
+        )
+
+    @property
+    def failed_rule_counts(self) -> dict[str, int]:
+        return dict(
+            Counter(
+                rule
+                for audit in self.audits
+                if not audit.included
+                for rule in audit.failed_rules
+            )
+        )

@@ -59,16 +59,7 @@ class PaperPipeline:
             for result in screening_results
         )
 
-        audit_report = ScreeningAuditReport(
-            total_evaluated=len(audits),
-            included=sum(1 for audit in audits if audit.included),
-            excluded=sum(1 for audit in audits if not audit.included),
-            exclusion_reasons=tuple(
-                audit.reason
-                for audit in audits
-                if not audit.included
-            ),
-        )
+        audit_report = ScreeningAuditReport.from_audits(audits)
 
         return PipelineResult(
             papers=deduplication.papers,

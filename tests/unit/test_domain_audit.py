@@ -109,19 +109,76 @@ def test_screening_audit_report_exists():
 def test_screening_audit_report_counts_reasons():
     from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
 
-    report = ScreeningAuditReport(
-        total_evaluated=6,
-        included=2,
-        excluded=4,
-        exclusion_reasons=(
-            "Topic not found: memory",
-            "Topic not found: memory",
-            "Exclusion rule matched: animal",
-            "Exclusion rule matched: animal",
+    audits = (
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Topic not found: memory",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Topic not found: memory",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Exclusion rule matched: animal",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Exclusion rule matched: animal",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=True,
+            reason="Paper matches screening criteria",
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=True,
+            reason="Paper matches screening criteria",
         ),
     )
+
+    report = ScreeningAuditReport.from_audits(audits)
 
     assert report.exclusion_reason_counts == {
         "Topic not found: memory": 2,
         "Exclusion rule matched: animal": 2,
+    }
+
+
+def test_screening_audit_report_counts_failed_rules():
+    from psi_jarvis.domain.screening.audit import ScreeningAudit
+    from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+
+    audits = (
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Exclusion rule matched: animal",
+            failed_rules=("animal",),
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Inclusion rule not matched: adults",
+            failed_rules=("adults",),
+        ),
+        ScreeningAudit(
+            paper_id=uuid4(),
+            included=False,
+            reason="Exclusion rule matched: animal",
+            failed_rules=("animal", "clinical"),
+        ),
+    )
+
+    report = ScreeningAuditReport.from_audits(audits)
+
+    assert report.failed_rule_counts == {
+        "animal": 2,
+        "adults": 1,
+        "clinical": 1,
     }
