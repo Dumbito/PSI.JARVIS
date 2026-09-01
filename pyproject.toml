@@ -18,3 +18,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+    
+[project.scripts]
+psi = "psi_jarvis.cli:main"
