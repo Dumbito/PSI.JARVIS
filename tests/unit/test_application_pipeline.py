@@ -178,3 +178,30 @@ def test_pipeline_creates_screening_run():
     assert result.run.duplicates_removed == result.duplicates_removed
     assert result.run.screened_papers == result.screened_papers
     assert result.run.run_id is not None
+
+def test_pipeline_creates_run_for_empty_input():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    criteria = ScreeningCriteria(topic="memory")
+
+    result = PaperPipeline().process([], criteria)
+
+    expected_version = ScreeningCriteriaVersion.from_criteria(criteria).value
+
+    assert result.run.criteria_version == expected_version
+    assert result.run.total_input == 0
+    assert result.run.unique_papers == 0
+    assert result.run.duplicates_removed == 0
+    assert result.run.screened_papers == 0
+    assert result.run.run_id is not None
+
+
+def test_pipeline_empty_input_has_zero_audit_report_counts():
+    criteria = ScreeningCriteria(topic="memory")
+
+    result = PaperPipeline().process([], criteria)
+
+    assert result.audit_report.total_evaluated == 0
+    assert result.audit_report.included == 0
+    assert result.audit_report.excluded == 0
+    assert result.audit_report.criteria_version == ""
