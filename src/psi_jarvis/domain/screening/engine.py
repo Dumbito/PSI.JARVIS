@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from psi_jarvis.domain.paper import Paper
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.rules.text_rule import TextRule
 
 
 @dataclass(frozen=True)
@@ -12,7 +13,9 @@ class ScreeningEngine:
     def evaluate(self, paper: Paper) -> ScreeningResult:
         text = (paper.title + " " + (paper.abstract or "")).lower()
 
-        if self.criteria.topic.lower() not in text:
+        topic_rule = TextRule(self.criteria.topic)
+
+        if not topic_rule.matches(text):
             return ScreeningResult(
                 paper_id=paper.id,
                 included=False,
@@ -24,7 +27,7 @@ class ScreeningEngine:
         failed_rules = []
 
         for rule in self.criteria.exclusion:
-            if rule.lower() in text:
+            if TextRule(rule).matches(text):
                 failed_rules.append(rule)
 
         if failed_rules:
@@ -36,7 +39,7 @@ class ScreeningEngine:
             )
 
         for rule in self.criteria.inclusion:
-            if rule.lower() in text:
+            if TextRule(rule).matches(text):
                 matched_rules.append(rule)
             else:
                 failed_rules.append(rule)

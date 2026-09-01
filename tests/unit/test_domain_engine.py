@@ -112,3 +112,24 @@ def test_engine_records_matched_and_failed_inclusion_rules():
     assert result.reason == "Inclusion rule not matched: children"
     assert result.matched_rules == ("adults",)
     assert result.failed_rules == ("children",)
+
+
+
+def test_text_rule_matches_case_insensitively():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    rule = TextRule("Intelligence")
+
+    assert rule.matches("Study of intelligence and memory") is True
+    assert rule.matches("Study of sleep") is False
+
+
+def test_text_rule_rejects_empty_value():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    try:
+        TextRule("   ")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("TextRule should reject an empty value")
