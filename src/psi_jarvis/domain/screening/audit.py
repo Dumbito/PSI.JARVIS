@@ -13,6 +13,8 @@ class ScreeningAudit:
     reason: str
     matched_rules: tuple[str, ...] = ()
     failed_rules: tuple[str, ...] = ()
+    matched_rule_ids: tuple[str, ...] = ()
+    failed_rule_ids: tuple[str, ...] = ()
 
     @classmethod
     def from_result(cls, result: ScreeningResult) -> "ScreeningAudit":
@@ -23,4 +25,6 @@ class ScreeningAudit:
             reason=result.reason,
             matched_rules=result.matched_rules,
             failed_rules=result.failed_rules,
+            matched_rule_ids=result.matched_rule_ids,
+            failed_rule_ids=result.failed_rule_ids,
         )

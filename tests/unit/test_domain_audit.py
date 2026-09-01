@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
+from psi_jarvis.domain.screening.result import ScreeningResult
 
 
 def test_screening_audit_exists():
@@ -182,3 +183,20 @@ def test_screening_audit_report_counts_failed_rules():
         "adults": 1,
         "clinical": 1,
     }
+
+
+def test_screening_audit_preserves_rule_ids():
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=False,
+        reason="Exclusion rule matched: animal",
+        matched_rules=("human",),
+        failed_rules=("animal",),
+        matched_rule_ids=("text:human",),
+        failed_rule_ids=("text:animal",),
+    )
+
+    audit = ScreeningAudit.from_result(result)
+
+    assert audit.matched_rule_ids == ("text:human",)
+    assert audit.failed_rule_ids == ("text:animal",)
