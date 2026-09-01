@@ -15,6 +15,7 @@ class ScreeningAudit:
     failed_rules: tuple[str, ...] = ()
     matched_rule_ids: tuple[str, ...] = ()
     failed_rule_ids: tuple[str, ...] = ()
+    criteria_version: str = ""
 
     @classmethod
     def from_result(cls, result: ScreeningResult) -> "ScreeningAudit":
@@ -27,4 +28,5 @@ class ScreeningAudit:
             failed_rules=result.failed_rules,
             matched_rule_ids=result.matched_rule_ids,
             failed_rule_ids=result.failed_rule_ids,
+            criteria_version=result.criteria_version,
         )
