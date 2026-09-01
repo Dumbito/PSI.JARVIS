@@ -11,5 +11,13 @@ class TextRule:
         if not self.value.strip():
             raise ValueError("TextRule value cannot be empty")
 
+    @property
+    def kind(self) -> str:
+        return "text"
+
+    @property
+    def id(self) -> str:
+        return f"text:{self.value.strip().lower()}"
+
     def matches(self, text: str) -> bool:
         return self.value.lower() in text.lower()

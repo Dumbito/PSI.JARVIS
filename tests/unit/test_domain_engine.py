@@ -133,3 +133,24 @@ def test_text_rule_rejects_empty_value():
         pass
     else:
         raise AssertionError("TextRule should reject an empty value")
+
+
+
+def test_text_rule_has_stable_identity():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    rule = TextRule("Intelligence")
+
+    assert rule.id == "text:intelligence"
+    assert rule.kind == "text"
+    assert rule.value == "Intelligence"
+
+
+def test_text_rule_identity_is_normalized():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    first = TextRule("  Intelligence  ")
+    second = TextRule("intelligence")
+
+    assert first.id == second.id
+    assert first.id == "text:intelligence"
