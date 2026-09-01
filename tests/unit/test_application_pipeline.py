@@ -74,3 +74,35 @@ def test_pipeline_preserves_processing_order():
         "Brain Study",
         "Cognition Study",
     ]
+
+
+def test_pipeline_returns_screening_audits():
+    papers = [
+        Paper(title="Memory and Intelligence", doi="10.1234/a"),
+        Paper(title="Unrelated Topic", doi="10.1234/b"),
+    ]
+
+    criteria = ScreeningCriteria(topic="memory")
+    result = PaperPipeline().process(papers, criteria)
+
+    assert len(result.audits) == 2
+    assert result.audits[0].paper_id == result.screening_results[0].paper_id
+    assert result.audits[0].included is True
+    assert result.audits[1].included is False
+
+
+def test_pipeline_returns_screening_audit_report():
+    papers = [
+        Paper(title="Memory and Intelligence", doi="10.1234/a"),
+        Paper(title="Memory Research", doi="10.1234/b"),
+        Paper(title="Unrelated Topic", doi="10.1234/c"),
+    ]
+
+    criteria = ScreeningCriteria(topic="memory")
+    result = PaperPipeline().process(papers, criteria)
+
+    assert result.audit_report.total_evaluated == 3
+    assert result.audit_report.included == 2
+    assert result.audit_report.excluded == 1
+    assert result.audit_report.inclusion_rate == 2 / 3
+    assert result.audit_report.exclusion_rate == 1 / 3

@@ -4,6 +4,8 @@ from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.normalization.normalizer import PaperNormalizer
 from psi_jarvis.domain.paper import Paper
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+from psi_jarvis.domain.screening.audit import ScreeningAudit
+from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.domain.screening.result import ScreeningResult
 
@@ -12,6 +14,8 @@ from psi_jarvis.domain.screening.result import ScreeningResult
 class PipelineResult:
     papers: tuple[Paper, ...]
     screening_results: tuple[ScreeningResult, ...]
+    audits: tuple[ScreeningAudit, ...]
+    audit_report: ScreeningAuditReport
     total_input: int
     unique_papers: int
     duplicates_removed: int
@@ -50,9 +54,22 @@ class PaperPipeline:
             for paper in deduplication.papers
         )
 
+        audits = tuple(
+            ScreeningAudit.from_result(result)
+            for result in screening_results
+        )
+
+        audit_report = ScreeningAuditReport(
+            total_evaluated=len(audits),
+            included=sum(1 for audit in audits if audit.included),
+            excluded=sum(1 for audit in audits if not audit.included),
+        )
+
         return PipelineResult(
             papers=deduplication.papers,
             screening_results=screening_results,
+            audits=audits,
+            audit_report=audit_report,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
