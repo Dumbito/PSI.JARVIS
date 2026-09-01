@@ -91,3 +91,42 @@ def test_screening_criteria_rejects_empty_exclusion_rule():
         pass
     else:
         raise AssertionError("ScreeningCriteria should reject empty exclusion rules")
+
+
+
+def test_screening_criteria_exposes_topic_rule():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    criteria = ScreeningCriteria(topic="working memory")
+
+    assert isinstance(criteria.topic_rule, TextRule)
+    assert criteria.topic_rule.value == "working memory"
+    assert criteria.topic_rule.id == "text:working memory"
+
+
+def test_screening_criteria_exposes_inclusion_rules():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("Adults", "Human participants"),
+    )
+
+    assert criteria.inclusion_rules == (
+        TextRule("Adults"),
+        TextRule("Human participants"),
+    )
+
+
+def test_screening_criteria_exposes_exclusion_rules():
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        exclusion=("Animal studies", "Case reports"),
+    )
+
+    assert criteria.exclusion_rules == (
+        TextRule("Animal studies"),
+        TextRule("Case reports"),
+    )
