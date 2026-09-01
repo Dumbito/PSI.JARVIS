@@ -106,3 +106,23 @@ def test_pipeline_returns_screening_audit_report():
     assert result.audit_report.excluded == 1
     assert result.audit_report.inclusion_rate == 2 / 3
     assert result.audit_report.exclusion_rate == 1 / 3
+
+
+def test_pipeline_reports_exclusion_reasons():
+    papers = [
+        Paper(title="Memory Study", doi="10.1234/a"),
+        Paper(title="Brain Study", doi="10.1234/b"),
+        Paper(title="Memory Animal Study", doi="10.1234/c"),
+    ]
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        exclusion=("animal",),
+    )
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert result.audit_report.exclusion_reason_counts == {
+        "Topic not found: memory": 1,
+        "Exclusion rule matched: animal": 1,
+    }

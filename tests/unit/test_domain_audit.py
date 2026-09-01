@@ -104,3 +104,24 @@ def test_screening_audit_report_exists():
     assert report.excluded == 6
     assert report.inclusion_rate == 0.4
     assert report.exclusion_rate == 0.6
+
+
+def test_screening_audit_report_counts_reasons():
+    from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+
+    report = ScreeningAuditReport(
+        total_evaluated=6,
+        included=2,
+        excluded=4,
+        exclusion_reasons=(
+            "Topic not found: memory",
+            "Topic not found: memory",
+            "Exclusion rule matched: animal",
+            "Exclusion rule matched: animal",
+        ),
+    )
+
+    assert report.exclusion_reason_counts == {
+        "Topic not found: memory": 2,
+        "Exclusion rule matched: animal": 2,
+    }

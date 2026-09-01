@@ -63,6 +63,11 @@ class PaperPipeline:
             total_evaluated=len(audits),
             included=sum(1 for audit in audits if audit.included),
             excluded=sum(1 for audit in audits if not audit.included),
+            exclusion_reasons=tuple(
+                audit.reason
+                for audit in audits
+                if not audit.included
+            ),
         )
 
         return PipelineResult(
