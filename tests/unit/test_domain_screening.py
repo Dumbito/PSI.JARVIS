@@ -130,3 +130,46 @@ def test_screening_criteria_exposes_exclusion_rules():
         TextRule("Animal studies"),
         TextRule("Case reports"),
     )
+
+def test_screening_criteria_version_is_stable():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("adults", "human"),
+        exclusion=("animal",),
+    )
+
+    version_a = ScreeningCriteriaVersion.from_criteria(criteria)
+    version_b = ScreeningCriteriaVersion.from_criteria(criteria)
+
+    assert version_a == version_b
+    assert len(version_a.value) == 16
+
+
+def test_screening_criteria_version_changes_when_criteria_change():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    criteria_a = ScreeningCriteria(
+        topic="memory",
+        inclusion=("adults",),
+    )
+    criteria_b = ScreeningCriteria(
+        topic="memory",
+        inclusion=("children",),
+    )
+
+    assert ScreeningCriteriaVersion.from_criteria(criteria_a) != ScreeningCriteriaVersion.from_criteria(criteria_b)
+
+
+def test_screening_criteria_version_is_immutable():
+    from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
+
+    version = ScreeningCriteriaVersion("abc123")
+
+    try:
+        version.value = "changed"
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError("ScreeningCriteriaVersion should be immutable")
