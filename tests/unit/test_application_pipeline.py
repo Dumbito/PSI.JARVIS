@@ -156,3 +156,25 @@ def test_pipeline_reports_failed_rule_counts():
         "animal": 2,
         "clinical": 1,
     }
+
+def test_pipeline_creates_screening_run():
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("adults",),
+    )
+    papers = [
+        Paper(
+            title="Memory in adults",
+            authors=("Author",),
+            abstract="A study about memory in adults.",
+        )
+    ]
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert result.run.criteria_version == result.audit_report.criteria_version
+    assert result.run.total_input == result.total_input
+    assert result.run.unique_papers == result.unique_papers
+    assert result.run.duplicates_removed == result.duplicates_removed
+    assert result.run.screened_papers == result.screened_papers
+    assert result.run.run_id is not None

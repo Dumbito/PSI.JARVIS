@@ -8,6 +8,7 @@ from psi_jarvis.domain.screening.audit import ScreeningAudit
 from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.run import ScreeningRun
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class PipelineResult:
     unique_papers: int
     duplicates_removed: int
     screened_papers: int
+    run: ScreeningRun
 
 
 class PaperPipeline:
@@ -61,6 +63,14 @@ class PaperPipeline:
 
         audit_report = ScreeningAuditReport.from_audits(audits)
 
+        run = ScreeningRun.create(
+            criteria_version=engine.criteria_version,
+            total_input=total_input,
+            unique_papers=deduplication.unique_papers,
+            duplicates_removed=deduplication.duplicates_removed,
+            screened_papers=len(screening_results),
+        )
+
         return PipelineResult(
             papers=deduplication.papers,
             screening_results=screening_results,
@@ -70,4 +80,5 @@ class PaperPipeline:
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
             screened_papers=len(screening_results),
+            run=run,
         )
