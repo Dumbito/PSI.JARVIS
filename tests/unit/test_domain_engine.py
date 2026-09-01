@@ -200,3 +200,58 @@ def test_screening_engine_exposes_criteria_version():
     engine = ScreeningEngine(criteria)
 
     assert engine.criteria_version == ScreeningCriteriaVersion.from_criteria(criteria).value
+
+def test_screening_run_can_be_created():
+    from psi_jarvis.domain.screening.run import ScreeningRun
+
+    run = ScreeningRun.create(
+        criteria_version="7c3a0e745f584912",
+        total_input=100,
+        unique_papers=90,
+        duplicates_removed=10,
+        screened_papers=90,
+    )
+
+    assert run.criteria_version == "7c3a0e745f584912"
+    assert run.total_input == 100
+    assert run.unique_papers == 90
+    assert run.duplicates_removed == 10
+    assert run.screened_papers == 90
+    assert run.run_id is not None
+    assert run.started_at.tzinfo is not None
+
+
+def test_screening_run_is_immutable():
+    from psi_jarvis.domain.screening.run import ScreeningRun
+
+    run = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=10,
+        unique_papers=10,
+        duplicates_removed=0,
+        screened_papers=10,
+    )
+
+    try:
+        run.total_input = 20
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError("ScreeningRun should be immutable")
+
+
+def test_screening_run_rejects_invalid_counts():
+    from psi_jarvis.domain.screening.run import ScreeningRun
+
+    try:
+        ScreeningRun.create(
+            criteria_version="version-a",
+            total_input=-1,
+            unique_papers=0,
+            duplicates_removed=0,
+            screened_papers=0,
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("ScreeningRun should reject negative counts")
