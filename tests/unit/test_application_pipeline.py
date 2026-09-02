@@ -311,6 +311,45 @@ def test_pipeline_persists_audits_with_sqlite_repository(tmp_path):
     assert stored == result.audits[0]
 
 
+
+
+def test_pipeline_persists_complete_execution_in_sqlite(tmp_path):
+    from psi_jarvis.infrastructure.sqlite_screening_execution_repository import SQLiteScreeningExecutionRepository
+
+    database_path = str(tmp_path / "screening.db")
+    repository = SQLiteScreeningExecutionRepository(database_path)
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [
+        Paper(title="Memory Study", doi="10.1234/sqlite-execution-a"),
+        Paper(title="Other Study", doi="10.1234/sqlite-execution-b"),
+    ]
+
+    result = PaperPipeline(execution_repository=repository).process(papers, criteria)
+    stored = repository.get(result.run.run_id)
+
+    assert stored is not None
+    assert stored.run == result.run
+    assert stored.results == result.screening_results
+    assert stored.audits == result.audits
+
+
+def test_pipeline_sqlite_execution_survives_reinstantiation(tmp_path):
+    from psi_jarvis.infrastructure.sqlite_screening_execution_repository import SQLiteScreeningExecutionRepository
+
+    database_path = str(tmp_path / "screening.db")
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/sqlite-execution-c")]
+
+    repository = SQLiteScreeningExecutionRepository(database_path)
+    result = PaperPipeline(execution_repository=repository).process(papers, criteria)
+
+    reopened = SQLiteScreeningExecutionRepository(database_path)
+    stored = reopened.get(result.run.run_id)
+
+    assert stored is not None
+    assert stored == repository.get(result.run.run_id)
+
+
 def test_pipeline_persists_complete_screening_execution():
     from psi_jarvis.infrastructure.screening_execution_repository import InMemoryScreeningExecutionRepository
 
