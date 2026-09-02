@@ -11,6 +11,7 @@ class ScreeningAudit:
     paper_id: UUID
     included: bool
     reason: str
+    run_id: UUID | None = None
     matched_rules: tuple[str, ...] = ()
     failed_rules: tuple[str, ...] = ()
     matched_rule_ids: tuple[str, ...] = ()
@@ -22,6 +23,7 @@ class ScreeningAudit:
         "Crea una auditoría a partir de un resultado de cribado."
         return cls(
             paper_id=result.paper_id,
+            run_id=result.run_id,
             included=result.included,
             reason=result.reason,
             matched_rules=result.matched_rules,

@@ -255,3 +255,150 @@ def test_screening_run_rejects_invalid_counts():
         pass
     else:
         raise AssertionError("ScreeningRun should reject negative counts")
+
+def test_screening_run_repository_saves_and_gets_run():
+    from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
+    from psi_jarvis.domain.screening.run import ScreeningRun
+
+    repository = InMemoryScreeningRunRepository()
+    run = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=10,
+        unique_papers=9,
+        duplicates_removed=1,
+        screened_papers=9,
+    )
+
+    repository.save(run)
+
+    assert repository.get(run.run_id) == run
+
+
+def test_screening_run_repository_returns_none_for_unknown_run():
+    from uuid import uuid4
+    from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
+
+    repository = InMemoryScreeningRunRepository()
+
+    assert repository.get(uuid4()) is None
+
+
+def test_screening_run_repository_lists_runs():
+    from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
+    from psi_jarvis.domain.screening.run import ScreeningRun
+
+    repository = InMemoryScreeningRunRepository()
+    run_a = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=10,
+        unique_papers=10,
+        duplicates_removed=0,
+        screened_papers=10,
+    )
+    run_b = ScreeningRun.create(
+        criteria_version="version-b",
+        total_input=20,
+        unique_papers=18,
+        duplicates_removed=2,
+        screened_papers=18,
+    )
+
+    repository.save(run_a)
+    repository.save(run_b)
+
+    assert repository.list_all() == (run_a, run_b)
+
+def test_sqlite_screening_run_repository_persists_run(tmp_path):
+    from psi_jarvis.domain.screening.run import ScreeningRun
+    from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
+
+    database_path = tmp_path / "screening_runs.db"
+    repository = SQLiteScreeningRunRepository(str(database_path))
+    run = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=10,
+        unique_papers=9,
+        duplicates_removed=1,
+        screened_papers=9,
+    )
+
+    repository.save(run)
+
+    assert repository.get(run.run_id) == run
+
+
+def test_sqlite_screening_run_repository_survives_reinstantiation(tmp_path):
+    from psi_jarvis.domain.screening.run import ScreeningRun
+    from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
+
+    database_path = tmp_path / "screening_runs.db"
+    run = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=20,
+        unique_papers=18,
+        duplicates_removed=2,
+        screened_papers=18,
+    )
+
+    SQLiteScreeningRunRepository(str(database_path)).save(run)
+    reopened = SQLiteScreeningRunRepository(str(database_path))
+
+    assert reopened.get(run.run_id) == run
+
+
+def test_sqlite_screening_run_repository_lists_runs(tmp_path):
+    from psi_jarvis.domain.screening.run import ScreeningRun
+    from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
+
+    database_path = tmp_path / "screening_runs.db"
+    repository = SQLiteScreeningRunRepository(str(database_path))
+    run_a = ScreeningRun.create(
+        criteria_version="version-a",
+        total_input=10,
+        unique_papers=10,
+        duplicates_removed=0,
+        screened_papers=10,
+    )
+    run_b = ScreeningRun.create(
+        criteria_version="version-b",
+        total_input=20,
+        unique_papers=18,
+        duplicates_removed=2,
+        screened_papers=18,
+    )
+
+    repository.save(run_a)
+    repository.save(run_b)
+
+    assert repository.list_all() == (run_a, run_b)
+
+def test_screening_result_can_store_run_id():
+    from uuid import uuid4
+
+    run_id = uuid4()
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        run_id=run_id,
+        included=True,
+        reason="Paper matches screening criteria",
+    )
+
+    assert result.run_id == run_id
+
+def test_screening_result_can_create_copy_with_run_id():
+    from uuid import uuid4
+
+    run_id = uuid4()
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=True,
+        reason="Paper matches screening criteria",
+        criteria_version="version-a",
+    )
+
+    linked = result.with_run_id(run_id)
+
+    assert linked.run_id == run_id
+    assert linked.paper_id == result.paper_id
+    assert linked.criteria_version == result.criteria_version
+    assert linked is not result

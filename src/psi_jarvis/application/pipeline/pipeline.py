@@ -1,14 +1,20 @@
 from dataclasses import dataclass
 
+from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.normalization.normalizer import PaperNormalizer
 from psi_jarvis.domain.paper import Paper
-from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.screening.audit import ScreeningAudit
+from psi_jarvis.domain.screening.audit_repository import ScreeningAuditRepository
 from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.result_repository import ScreeningResultRepository
 from psi_jarvis.domain.screening.run import ScreeningRun
+from psi_jarvis.domain.screening.run_repository import ScreeningRunRepository
+from psi_jarvis.infrastructure.screening_audit_repository import InMemoryScreeningAuditRepository
+from psi_jarvis.infrastructure.screening_result_repository import InMemoryScreeningResultRepository
+from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
 
 
 @dataclass(frozen=True)
@@ -30,10 +36,16 @@ class PaperPipeline:
         normalizer: PaperNormalizer | None = None,
         deduplicator: PaperDeduplicator | None = None,
         screening_engine: ScreeningEngine | None = None,
+        run_repository: ScreeningRunRepository | None = None,
+        result_repository: ScreeningResultRepository | None = None,
+        audit_repository: ScreeningAuditRepository | None = None,
     ) -> None:
         self.normalizer = normalizer or PaperNormalizer()
         self.deduplicator = deduplicator or PaperDeduplicator()
         self.screening_engine = screening_engine
+        self.run_repository = run_repository or InMemoryScreeningRunRepository()
+        self.result_repository = result_repository or InMemoryScreeningResultRepository()
+        self.audit_repository = audit_repository or InMemoryScreeningAuditRepository()
 
     def process(
         self,
@@ -51,8 +63,16 @@ class PaperPipeline:
 
         engine = self.screening_engine or ScreeningEngine(criteria)
 
+        run = ScreeningRun.create(
+            criteria_version=engine.criteria_version,
+            total_input=total_input,
+            unique_papers=deduplication.unique_papers,
+            duplicates_removed=deduplication.duplicates_removed,
+            screened_papers=len(deduplication.papers),
+        )
+
         screening_results = tuple(
-            engine.evaluate(paper)
+            engine.evaluate(paper).with_run_id(run.run_id)
             for paper in deduplication.papers
         )
 
@@ -61,15 +81,15 @@ class PaperPipeline:
             for result in screening_results
         )
 
+        for result in screening_results:
+            self.result_repository.save(result)
+
+        for audit in audits:
+            self.audit_repository.save(audit)
+
         audit_report = ScreeningAuditReport.from_audits(audits)
 
-        run = ScreeningRun.create(
-            criteria_version=engine.criteria_version,
-            total_input=total_input,
-            unique_papers=deduplication.unique_papers,
-            duplicates_removed=deduplication.duplicates_removed,
-            screened_papers=len(screening_results),
-        )
+        self.run_repository.save(run)
 
         return PipelineResult(
             papers=deduplication.papers,

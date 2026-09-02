@@ -205,3 +205,107 @@ def test_pipeline_empty_input_has_zero_audit_report_counts():
     assert result.audit_report.included == 0
     assert result.audit_report.excluded == 0
     assert result.audit_report.criteria_version == ""
+
+def test_pipeline_persists_screening_run():
+    from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
+
+    repository = InMemoryScreeningRunRepository()
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline(run_repository=repository).process(papers, criteria)
+
+    assert repository.get(result.run.run_id) == result.run
+    assert repository.list_all() == (result.run,)
+
+def test_pipeline_persists_screening_run_in_sqlite(tmp_path):
+    from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
+
+    repository = SQLiteScreeningRunRepository(str(tmp_path / "screening_runs.db"))
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline(run_repository=repository).process(papers, criteria)
+
+    reopened = SQLiteScreeningRunRepository(str(tmp_path / "screening_runs.db"))
+
+    assert reopened.get(result.run.run_id) == result.run
+
+def test_pipeline_links_screening_results_to_run():
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [
+        Paper(title="Memory Study", doi="10.1234/a"),
+        Paper(title="Memory Research", doi="10.1234/b"),
+    ]
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert all(screening_result.run_id == result.run.run_id for screening_result in result.screening_results)
+
+
+def test_pipeline_results_preserve_criteria_version():
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert all(
+        screening_result.criteria_version == result.run.criteria_version
+        for screening_result in result.screening_results
+    )
+
+def test_pipeline_links_audits_to_run():
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [
+        Paper(title="Memory Study", doi="10.1234/a"),
+        Paper(title="Memory Research", doi="10.1234/b"),
+    ]
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert all(audit.run_id == result.run.run_id for audit in result.audits)
+
+
+def test_pipeline_preserves_run_id_across_results_and_audits():
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline().process(papers, criteria)
+
+    assert result.screening_results[0].run_id == result.run.run_id
+    assert result.audits[0].run_id == result.run.run_id
+    assert result.audits[0].criteria_version == result.run.criteria_version
+
+def test_pipeline_persists_results_with_sqlite_repository(tmp_path):
+    from psi_jarvis.infrastructure.sqlite_screening_result_repository import (
+        SQLiteScreeningResultRepository,
+    )
+
+    database_path = tmp_path / "screening.db"
+    repository = SQLiteScreeningResultRepository(str(database_path))
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline(result_repository=repository).process(papers, criteria)
+
+    stored = repository.get(result.papers[0].id, result.run.run_id)
+
+    assert stored is not None
+    assert stored == result.screening_results[0]
+
+def test_pipeline_persists_audits_with_sqlite_repository(tmp_path):
+    from psi_jarvis.infrastructure.sqlite_screening_audit_repository import (
+        SQLiteScreeningAuditRepository,
+    )
+
+    database_path = tmp_path / "screening.db"
+    repository = SQLiteScreeningAuditRepository(str(database_path))
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/a")]
+
+    result = PaperPipeline(audit_repository=repository).process(papers, criteria)
+
+    stored = repository.get(result.papers[0].id, result.run.run_id)
+
+    assert stored is not None
+    assert stored == result.audits[0]

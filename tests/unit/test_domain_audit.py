@@ -298,3 +298,19 @@ def test_screening_audit_report_rejects_mixed_criteria_versions():
         pass
     else:
         raise AssertionError("ScreeningAuditReport should reject mixed criteria versions")
+
+def test_screening_audit_preserves_run_id():
+    from uuid import uuid4
+
+    run_id = uuid4()
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=True,
+        reason="Paper matches screening criteria",
+        run_id=run_id,
+        criteria_version="version-a",
+    )
+
+    audit = ScreeningAudit.from_result(result)
+
+    assert audit.run_id == run_id
