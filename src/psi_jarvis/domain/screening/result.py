@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from psi_jarvis.domain.screening.rules.trace import RuleTrace
+
 
 @dataclass(frozen=True)
 class ScreeningResult:
@@ -15,6 +17,7 @@ class ScreeningResult:
     matched_rule_ids: tuple[str, ...] = ()
     failed_rule_ids: tuple[str, ...] = ()
     criteria_version: str = ""
+    rule_traces: tuple[RuleTrace, ...] = ()
 
     def with_run_id(self, run_id: UUID) -> "ScreeningResult":
         """Devuelve una copia del resultado asociada a una ejecución."""
@@ -28,6 +31,7 @@ class ScreeningResult:
             matched_rule_ids=self.matched_rule_ids,
             failed_rule_ids=self.failed_rule_ids,
             criteria_version=self.criteria_version,
+            rule_traces=self.rule_traces,
         )
 
     @property

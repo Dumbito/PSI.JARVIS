@@ -4,6 +4,7 @@ from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.criteria.version import ScreeningCriteriaVersion
 from psi_jarvis.domain.paper import Paper
 from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.rules.evaluation import evaluate_rule
 
 
 @dataclass(frozen=True)
@@ -30,43 +31,68 @@ class ScreeningEngine:
                 criteria_version=criteria_version,
             )
 
-        matched_rules = []
-        failed_rules = []
-        matched_rule_ids = []
-        failed_rule_ids = []
-
-        for rule in self.criteria.exclusion_rules:
-            if rule.matches(text):
-                failed_rules.append(rule.value)
-                failed_rule_ids.append(rule.id)
-
-        if failed_rules:
-            return ScreeningResult(
-                paper_id=paper.id,
-                included=False,
-                reason=f"Exclusion rule matched: {failed_rules[0]}",
-                failed_rules=tuple(failed_rules),
-                failed_rule_ids=tuple(failed_rule_ids),
+        if self.criteria.has_custom_logic:
+            return self._evaluate_custom_logic(
+                paper=paper,
+                text=text,
                 criteria_version=criteria_version,
             )
 
-        for rule in self.criteria.inclusion_rules:
-            if rule.matches(text):
-                matched_rules.append(rule.value)
-                matched_rule_ids.append(rule.id)
-            else:
-                failed_rules.append(rule.value)
-                failed_rule_ids.append(rule.id)
+        matched_exclusions = tuple(
+            rule.value
+            for rule in self.criteria.exclusion_rules
+            if rule.matches(text)
+        )
 
-        if failed_rules:
+        matched_exclusion_ids = tuple(
+            rule.id
+            for rule in self.criteria.exclusion_rules
+            if rule.matches(text)
+        )
+
+        if matched_exclusions:
             return ScreeningResult(
                 paper_id=paper.id,
                 included=False,
-                reason=f"Inclusion rule not matched: {failed_rules[0]}",
-                matched_rules=tuple(matched_rules),
-                failed_rules=tuple(failed_rules),
-                matched_rule_ids=tuple(matched_rule_ids),
-                failed_rule_ids=tuple(failed_rule_ids),
+                reason=f"Exclusion rule matched: {matched_exclusions[0]}",
+                failed_rules=matched_exclusions,
+                failed_rule_ids=matched_exclusion_ids,
+                criteria_version=criteria_version,
+            )
+
+        matched_inclusions = tuple(
+            rule.value
+            for rule in self.criteria.inclusion_rules
+            if rule.matches(text)
+        )
+
+        failed_inclusions = tuple(
+            rule.value
+            for rule in self.criteria.inclusion_rules
+            if not rule.matches(text)
+        )
+
+        matched_inclusion_ids = tuple(
+            rule.id
+            for rule in self.criteria.inclusion_rules
+            if rule.matches(text)
+        )
+
+        failed_inclusion_ids = tuple(
+            rule.id
+            for rule in self.criteria.inclusion_rules
+            if not rule.matches(text)
+        )
+
+        if failed_inclusions:
+            return ScreeningResult(
+                paper_id=paper.id,
+                included=False,
+                reason=f"Inclusion rule not matched: {failed_inclusions[0]}",
+                matched_rules=matched_inclusions,
+                failed_rules=failed_inclusions,
+                matched_rule_ids=matched_inclusion_ids,
+                failed_rule_ids=failed_inclusion_ids,
                 criteria_version=criteria_version,
             )
 
@@ -74,7 +100,55 @@ class ScreeningEngine:
             paper_id=paper.id,
             included=True,
             reason="Paper matches screening criteria",
-            matched_rules=tuple(matched_rules),
-            matched_rule_ids=tuple(matched_rule_ids),
+            matched_rules=matched_inclusions,
+            matched_rule_ids=matched_inclusion_ids,
             criteria_version=criteria_version,
+        )
+
+    def _evaluate_custom_logic(
+        self,
+        paper: Paper,
+        text: str,
+        criteria_version: str,
+    ) -> ScreeningResult:
+        exclusion = evaluate_rule(self.criteria.exclusion_rule, text)
+
+        if exclusion.matched:
+            return ScreeningResult(
+                paper_id=paper.id,
+                included=False,
+                reason=f"Exclusion expression matched: {self.criteria.exclusion_rule.id}",
+                failed_rules=(self.criteria.exclusion_rule.id,),
+                failed_rule_ids=exclusion.matched_rule_ids
+                or (self.criteria.exclusion_rule.id,),
+                matched_rule_ids=exclusion.matched_rule_ids,
+                criteria_version=criteria_version,
+            )
+
+        inclusion = evaluate_rule(self.criteria.inclusion_rule, text)
+
+        if not inclusion.matched:
+            return ScreeningResult(
+                paper_id=paper.id,
+                included=False,
+                reason=f"Inclusion expression not matched: {self.criteria.inclusion_rule.id}",
+                failed_rules=(self.criteria.inclusion_rule.id,),
+                failed_rule_ids=inclusion.failed_rule_ids
+                or (self.criteria.inclusion_rule.id,),
+                matched_rule_ids=inclusion.matched_rule_ids,
+                criteria_version=criteria_version,
+                rule_traces=(
+                    inclusion.trace,
+                ) if inclusion.trace is not None else (),
+            )
+
+        return ScreeningResult(
+            paper_id=paper.id,
+            included=True,
+            reason="Paper matches screening criteria",
+            matched_rules=(self.criteria.inclusion_rule.id,),
+            matched_rule_ids=inclusion.matched_rule_ids
+            or (self.criteria.inclusion_rule.id,),
+            criteria_version=criteria_version,
+            rule_traces=(inclusion.trace,) if inclusion.trace is not None else (),
         )

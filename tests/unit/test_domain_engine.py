@@ -402,3 +402,53 @@ def test_screening_result_can_create_copy_with_run_id():
     assert linked.paper_id == result.paper_id
     assert linked.criteria_version == result.criteria_version
     assert linked is not result
+
+def test_engine_requires_all_inclusion_rules():
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("hippocampus", "cognition"),
+    )
+    engine = ScreeningEngine(criteria)
+
+    included = engine.evaluate(
+        Paper(title="Memory hippocampus cognition study")
+    )
+    excluded = engine.evaluate(
+        Paper(title="Memory hippocampus study")
+    )
+
+    assert included.included is True
+    assert excluded.included is False
+
+
+def test_engine_excludes_when_any_exclusion_rule_matches():
+    criteria = ScreeningCriteria(
+        topic="memory",
+        exclusion=("animal", "pediatric"),
+    )
+    engine = ScreeningEngine(criteria)
+
+    animal = engine.evaluate(Paper(title="Animal memory study"))
+    pediatric = engine.evaluate(Paper(title="Pediatric memory study"))
+    adult = engine.evaluate(Paper(title="Adult human memory study"))
+
+    assert animal.included is False
+    assert pediatric.included is False
+    assert adult.included is True
+
+
+def test_engine_preserves_multiple_failed_inclusion_rules():
+    criteria = ScreeningCriteria(
+        topic="memory",
+        inclusion=("hippocampus", "cognition"),
+    )
+    result = ScreeningEngine(criteria).evaluate(
+        Paper(title="Memory study")
+    )
+
+    assert result.included is False
+    assert result.failed_rules == ("hippocampus", "cognition")
+    assert result.failed_rule_ids == (
+        "text:hippocampus",
+        "text:cognition",
+    )
