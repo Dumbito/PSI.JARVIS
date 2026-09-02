@@ -56,6 +56,7 @@ class PaperPipeline:
         self,
         papers: list[Paper] | tuple[Paper, ...],
         criteria: ScreeningCriteria,
+        project_id: UUID | None = None,
     ) -> PipelineResult:
         total_input = len(papers)
 
@@ -70,6 +71,7 @@ class PaperPipeline:
 
         run = ScreeningRun.create(
             criteria_version=engine.criteria_version,
+            project_id=project_id,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
