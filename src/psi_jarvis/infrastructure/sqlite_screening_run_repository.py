@@ -25,6 +25,7 @@ class SQLiteScreeningRunRepository:
                 """
                 CREATE TABLE IF NOT EXISTS screening_runs (
                     run_id TEXT PRIMARY KEY,
+                    project_id TEXT,
                     criteria_version TEXT NOT NULL,
                     started_at TEXT NOT NULL,
                     total_input INTEGER NOT NULL,
@@ -41,16 +42,18 @@ class SQLiteScreeningRunRepository:
                 """
                 INSERT OR REPLACE INTO screening_runs (
                     run_id,
+                    project_id,
                     criteria_version,
                     started_at,
                     total_input,
                     unique_papers,
                     duplicates_removed,
                     screened_papers
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(run.run_id),
+                    str(run.project_id) if run.project_id is not None else None,
                     run.criteria_version,
                     run.started_at.isoformat(),
                     run.total_input,
@@ -72,6 +75,7 @@ class SQLiteScreeningRunRepository:
 
         return ScreeningRun(
             run_id=UUID(row["run_id"]),
+            project_id=UUID(row["project_id"]) if row["project_id"] else None,
             criteria_version=row["criteria_version"],
             started_at=datetime.fromisoformat(row["started_at"]),
             total_input=row["total_input"],
@@ -89,6 +93,7 @@ class SQLiteScreeningRunRepository:
         return tuple(
             ScreeningRun(
                 run_id=UUID(row["run_id"]),
+                project_id=UUID(row["project_id"]) if row["project_id"] else None,
                 criteria_version=row["criteria_version"],
                 started_at=datetime.fromisoformat(row["started_at"]),
                 total_input=row["total_input"],

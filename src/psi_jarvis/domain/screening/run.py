@@ -8,6 +8,7 @@ class ScreeningRun:
     """Representa una ejecución completa e inmutable del cribado."""
 
     run_id: UUID
+    project_id: UUID | None
     criteria_version: str
     started_at: datetime
     total_input: int
@@ -23,6 +24,7 @@ class ScreeningRun:
         unique_papers: int,
         duplicates_removed: int,
         screened_papers: int,
+        project_id: UUID | None = None,
     ) -> "ScreeningRun":
         if not criteria_version.strip():
             raise ValueError("Screening run criteria version cannot be empty")
@@ -37,6 +39,7 @@ class ScreeningRun:
 
         return cls(
             run_id=uuid4(),
+            project_id=project_id,
             criteria_version=criteria_version,
             started_at=datetime.now(timezone.utc),
             total_input=total_input,
