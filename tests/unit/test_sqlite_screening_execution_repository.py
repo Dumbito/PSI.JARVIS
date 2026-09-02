@@ -53,3 +53,41 @@ def test_execution_survives_repository_reinstantiation(tmp_path):
     reopened = SQLiteScreeningExecutionRepository(database_path)
 
     assert reopened.get(execution.run.run_id) == execution
+
+
+import pytest
+from uuid import uuid4
+
+from psi_jarvis.domain.screening.audit import ScreeningAudit
+from psi_jarvis.domain.screening.execution import ScreeningExecution
+from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.run import ScreeningRun
+from psi_jarvis.infrastructure.sqlite_screening_execution_repository import SQLiteScreeningExecutionRepository
+
+def make_execution_with_data() -> ScreeningExecution:
+    run = ScreeningRun.create(criteria_version="criteria-v1", total_input=1, unique_papers=1, duplicates_removed=0, screened_papers=1)
+    paper_id = uuid4()
+    result = ScreeningResult(paper_id=paper_id, included=True, reason="included", run_id=run.run_id, criteria_version="criteria-v1")
+    audit = ScreeningAudit.from_result(result)
+    return ScreeningExecution(run=run, results=(result,), audits=(audit,))
+
+def test_save_rolls_back_entire_execution_on_failure(tmp_path, monkeypatch):
+    import sqlite3
+    from psi_jarvis.infrastructure import sqlite_screening_persistence as persistence
+
+    database_path = str(tmp_path / "screening.db")
+    repository = SQLiteScreeningExecutionRepository(database_path)
+    execution = make_execution_with_data()
+
+    def failing_save_result(connection, result):
+        raise RuntimeError("forced failure")
+
+    monkeypatch.setattr(persistence, "save_result", failing_save_result)
+
+    with pytest.raises(RuntimeError, match="forced failure"):
+        repository.save(execution)
+
+    with sqlite3.connect(database_path) as connection:
+        for table in ("screening_runs", "screening_results", "screening_audits", "screening_executions"):
+            count = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            assert count == 0, f"{table} still contains {count} rows"
