@@ -309,3 +309,38 @@ def test_pipeline_persists_audits_with_sqlite_repository(tmp_path):
 
     assert stored is not None
     assert stored == result.audits[0]
+
+
+def test_pipeline_persists_complete_screening_execution():
+    from psi_jarvis.infrastructure.screening_execution_repository import InMemoryScreeningExecutionRepository
+
+    repository = InMemoryScreeningExecutionRepository()
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [Paper(title="Memory Study", doi="10.1234/execution")]
+
+    result = PaperPipeline(execution_repository=repository).process(papers, criteria)
+    stored = repository.get(result.run.run_id)
+
+    assert stored is not None
+    assert stored.run == result.run
+    assert stored.results == result.screening_results
+    assert stored.audits == result.audits
+
+
+def test_pipeline_execution_contains_consistent_counts():
+    from psi_jarvis.infrastructure.screening_execution_repository import InMemoryScreeningExecutionRepository
+
+    repository = InMemoryScreeningExecutionRepository()
+    criteria = ScreeningCriteria(topic="memory")
+    papers = [
+        Paper(title="Memory Study", doi="10.1234/execution-a"),
+        Paper(title="Other Study", doi="10.1234/execution-b"),
+    ]
+
+    result = PaperPipeline(execution_repository=repository).process(papers, criteria)
+    execution = repository.get(result.run.run_id)
+
+    assert execution is not None
+    assert execution.screened_papers == len(result.screening_results)
+    assert execution.included + execution.excluded == execution.screened_papers
+    assert execution.run.screened_papers == execution.screened_papers
