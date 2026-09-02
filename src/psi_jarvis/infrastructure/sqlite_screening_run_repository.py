@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from psi_jarvis.domain.screening.run import ScreeningRun
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 class SQLiteScreeningRunRepository:
@@ -19,6 +20,7 @@ class SQLiteScreeningRunRepository:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            initialize_schema(connection)
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS screening_runs (

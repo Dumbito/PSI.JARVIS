@@ -100,3 +100,34 @@ def test_result_without_run_id_is_persisted(tmp_path):
     repository.save(result)
 
     assert repository.get(result.paper_id) == result
+
+def test_rule_trace_survives_sqlite_round_trip(tmp_path):
+    from psi_jarvis.domain.screening.rules.logical import AllOfRule, AnyOfRule, NotRule
+    from psi_jarvis.domain.screening.rules.evaluation import evaluate_rule
+    from psi_jarvis.domain.screening.rules.text_rule import TextRule
+
+    database_path = tmp_path / "screening.db"
+    repository = SQLiteScreeningResultRepository(str(database_path))
+
+    rule = AnyOfRule((
+        AllOfRule((TextRule("memory"), TextRule("hippocampus"))),
+        NotRule(TextRule("animal")),
+    ))
+    evaluation = evaluate_rule(rule, "memory hippocampus study")
+
+    result = ScreeningResult(
+        paper_id=uuid4(),
+        included=True,
+        reason="Included",
+        run_id=uuid4(),
+        rule_traces=(evaluation.trace,) if evaluation.trace is not None else (),
+    )
+
+    repository.save(result)
+    stored = repository.get(result.paper_id, result.run_id)
+
+    assert stored is not None
+    assert stored.rule_traces == result.rule_traces
+    assert stored.rule_traces[0].children[0].children[0].rule_id == "text:memory"
+    assert stored.rule_traces[0].children[0].children[1].rule_id == "text:hippocampus"
+    assert stored.rule_traces[0].children[1].children[0].rule_id == "text:animal"

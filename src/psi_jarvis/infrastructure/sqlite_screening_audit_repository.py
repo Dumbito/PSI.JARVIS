@@ -3,6 +3,7 @@ import sqlite3
 from uuid import UUID
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 class SQLiteScreeningAuditRepository:
@@ -24,6 +25,7 @@ class SQLiteScreeningAuditRepository:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            initialize_schema(connection)
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS screening_audits ("
                 "audit_key TEXT PRIMARY KEY,"

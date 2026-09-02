@@ -3,6 +3,8 @@ import sqlite3
 from uuid import UUID
 
 from psi_jarvis.domain.screening.result import ScreeningResult
+from psi_jarvis.domain.screening.rules.trace import RuleTrace
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 class SQLiteScreeningResultRepository:
@@ -24,6 +26,7 @@ class SQLiteScreeningResultRepository:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            initialize_schema(connection)
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS screening_results (
@@ -36,7 +39,8 @@ class SQLiteScreeningResultRepository:
                     failed_rules TEXT NOT NULL,
                     matched_rule_ids TEXT NOT NULL,
                     failed_rule_ids TEXT NOT NULL,
-                    criteria_version TEXT NOT NULL
+                    criteria_version TEXT NOT NULL,
+                    rule_traces TEXT NOT NULL DEFAULT "[]"
                 )
                 """
             )
@@ -55,8 +59,9 @@ class SQLiteScreeningResultRepository:
                     failed_rules,
                     matched_rule_ids,
                     failed_rule_ids,
-                    criteria_version
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    criteria_version,
+                    rule_traces
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self._key(result),
@@ -69,8 +74,36 @@ class SQLiteScreeningResultRepository:
                     json.dumps(result.matched_rule_ids),
                     json.dumps(result.failed_rule_ids),
                     result.criteria_version,
+                    json.dumps([
+                        self._trace_to_dict(trace)
+                        for trace in result.rule_traces
+                    ]),
                 ),
             )
+
+    @staticmethod
+    def _trace_to_dict(trace: RuleTrace) -> dict:
+        return {
+            "rule_id": trace.rule_id,
+            "kind": trace.kind,
+            "matched": trace.matched,
+            "children": [
+                SQLiteScreeningResultRepository._trace_to_dict(child)
+                for child in trace.children
+            ],
+        }
+
+    @staticmethod
+    def _trace_from_dict(data: dict) -> RuleTrace:
+        return RuleTrace(
+            rule_id=data["rule_id"],
+            kind=data["kind"],
+            matched=bool(data["matched"]),
+            children=tuple(
+                SQLiteScreeningResultRepository._trace_from_dict(child)
+                for child in data.get("children", [])
+            ),
+        )
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> ScreeningResult:
@@ -84,6 +117,10 @@ class SQLiteScreeningResultRepository:
             matched_rule_ids=tuple(json.loads(row["matched_rule_ids"])),
             failed_rule_ids=tuple(json.loads(row["failed_rule_ids"])),
             criteria_version=row["criteria_version"],
+            rule_traces=tuple(
+                SQLiteScreeningResultRepository._trace_from_dict(item)
+                for item in json.loads(row["rule_traces"] or "[]")
+            ),
         )
 
     def get(
