@@ -1,7 +1,7 @@
 import sqlite3
 
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 4
 
 
 def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> bool:
@@ -49,6 +49,56 @@ def _migration_2(connection: sqlite3.Connection) -> None:
     if _table_exists(connection, "screening_runs"):
         connection.execute("CREATE INDEX IF NOT EXISTS idx_screening_runs_project_id ON screening_runs(project_id)")
 
+def _migration_3(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS papers (
+            paper_id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            authors TEXT NOT NULL,
+            abstract TEXT,
+            doi TEXT,
+            pmid TEXT,
+            publication_year INTEGER,
+            journal TEXT
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_papers_doi ON papers(doi)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_papers_pmid ON papers(pmid)"
+    )
+
+def _migration_4(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS corpora (
+            corpus_id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS corpus_papers (
+            corpus_id TEXT NOT NULL,
+            paper_id TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            PRIMARY KEY (corpus_id, paper_id),
+            FOREIGN KEY (corpus_id) REFERENCES corpora(corpus_id),
+            FOREIGN KEY (paper_id) REFERENCES papers(paper_id)
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_corpora_project_id ON corpora(project_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_corpus_papers_paper_id ON corpus_papers(paper_id)"
+    )
+
 
 def initialize_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
@@ -83,4 +133,18 @@ def initialize_schema(connection: sqlite3.Connection) -> None:
         _migration_2(connection)
         connection.execute(
             "UPDATE schema_version SET version = 2"
+        )
+        current_version = 2
+
+    if current_version < 3:
+        _migration_3(connection)
+        connection.execute(
+            "UPDATE schema_version SET version = 3"
+        )
+        current_version = 3
+
+    if current_version < 4:
+        _migration_4(connection)
+        connection.execute(
+            "UPDATE schema_version SET version = 4"
         )

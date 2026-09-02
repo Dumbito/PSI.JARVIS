@@ -7,7 +7,7 @@ from psi_jarvis.domain.screening.run import ScreeningRun
 from psi_jarvis.domain.screening.rules.trace import RuleTrace
 
 def save_run(connection: sqlite3.Connection, run: ScreeningRun) -> None:
-    connection.execute("INSERT OR REPLACE INTO screening_runs (run_id, criteria_version, started_at, total_input, unique_papers, duplicates_removed, screened_papers) VALUES (?, ?, ?, ?, ?, ?, ?)",(str(run.run_id),run.criteria_version,run.started_at.isoformat(),run.total_input,run.unique_papers,run.duplicates_removed,run.screened_papers))
+    connection.execute("INSERT OR REPLACE INTO screening_runs (run_id, project_id, criteria_version, started_at, total_input, unique_papers, duplicates_removed, screened_papers) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",(str(run.run_id),str(run.project_id) if run.project_id is not None else None,run.criteria_version,run.started_at.isoformat(),run.total_input,run.unique_papers,run.duplicates_removed,run.screened_papers))
 
 def result_key(result: ScreeningResult) -> str:
     run_key=str(result.run_id) if result.run_id is not None else "none"
