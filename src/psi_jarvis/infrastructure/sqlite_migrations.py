@@ -1,7 +1,7 @@
 import sqlite3
 
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 
 
 def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> bool:
@@ -100,6 +100,61 @@ def _migration_4(connection: sqlite3.Connection) -> None:
     )
 
 
+def _migration_5(connection: sqlite3.Connection) -> None:
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS screening_runs (
+            run_id TEXT PRIMARY KEY,
+            project_id TEXT,
+            criteria_version TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            total_input INTEGER NOT NULL,
+            unique_papers INTEGER NOT NULL,
+            duplicates_removed INTEGER NOT NULL,
+            screened_papers INTEGER NOT NULL
+        )
+        """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS screening_results (
+            result_key TEXT PRIMARY KEY,
+            paper_id TEXT NOT NULL,
+            included INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            run_id TEXT,
+            matched_rules TEXT NOT NULL,
+            failed_rules TEXT NOT NULL,
+            matched_rule_ids TEXT NOT NULL,
+            failed_rule_ids TEXT NOT NULL,
+            criteria_version TEXT NOT NULL,
+            rule_traces TEXT NOT NULL DEFAULT "[]"
+        )
+        """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS screening_audits (
+            audit_key TEXT PRIMARY KEY,
+            paper_id TEXT NOT NULL,
+            included INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            run_id TEXT,
+            matched_rules TEXT NOT NULL,
+            failed_rules TEXT NOT NULL,
+            matched_rule_ids TEXT NOT NULL,
+            failed_rule_ids TEXT NOT NULL,
+            criteria_version TEXT NOT NULL
+        )
+        """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS screening_executions (
+            run_id TEXT PRIMARY KEY
+        )
+        """)
+
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_screening_results_run_id ON screening_results(run_id)")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_screening_audits_run_id ON screening_audits(run_id)")
+
+
 def initialize_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
         "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
@@ -148,3 +203,11 @@ def initialize_schema(connection: sqlite3.Connection) -> None:
         connection.execute(
             "UPDATE schema_version SET version = 4"
         )
+        current_version = 4
+
+    if current_version < 5:
+        _migration_5(connection)
+        connection.execute(
+            "UPDATE schema_version SET version = 5"
+        )
+        current_version = 5

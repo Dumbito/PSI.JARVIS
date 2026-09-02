@@ -27,23 +27,6 @@ class SQLiteScreeningResultRepository:
     def _initialize(self) -> None:
         with self._connect() as connection:
             initialize_schema(connection)
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS screening_results (
-                    result_key TEXT PRIMARY KEY,
-                    paper_id TEXT NOT NULL,
-                    included INTEGER NOT NULL,
-                    reason TEXT NOT NULL,
-                    run_id TEXT,
-                    matched_rules TEXT NOT NULL,
-                    failed_rules TEXT NOT NULL,
-                    matched_rule_ids TEXT NOT NULL,
-                    failed_rule_ids TEXT NOT NULL,
-                    criteria_version TEXT NOT NULL,
-                    rule_traces TEXT NOT NULL DEFAULT "[]"
-                )
-                """
-            )
 
     def save(self, result: ScreeningResult) -> None:
         with self._connect() as connection:

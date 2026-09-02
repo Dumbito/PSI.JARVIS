@@ -4,6 +4,7 @@ from uuid import UUID
 
 from psi_jarvis.domain.project import ReviewProject
 from psi_jarvis.domain.project_repository import ProjectRepository
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 class SQLiteProjectRepository:
@@ -20,19 +21,7 @@ class SQLiteProjectRepository:
 
     def _initialize_schema(self) -> None:
         with self._connect() as connection:
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS review_projects (
-                    project_id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    research_question TEXT NOT NULL,
-                    topic TEXT NOT NULL,
-                    inclusion_rules TEXT NOT NULL,
-                    exclusion_rules TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                )
-                """
-            )
+            initialize_schema(connection)
 
     def save(self, project: ReviewProject) -> None:
         import json

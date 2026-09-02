@@ -21,20 +21,6 @@ class SQLiteScreeningRunRepository:
     def _initialize(self) -> None:
         with self._connect() as connection:
             initialize_schema(connection)
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS screening_runs (
-                    run_id TEXT PRIMARY KEY,
-                    project_id TEXT,
-                    criteria_version TEXT NOT NULL,
-                    started_at TEXT NOT NULL,
-                    total_input INTEGER NOT NULL,
-                    unique_papers INTEGER NOT NULL,
-                    duplicates_removed INTEGER NOT NULL,
-                    screened_papers INTEGER NOT NULL
-                )
-                """
-            )
 
     def save(self, run: ScreeningRun) -> None:
         with self._connect() as connection:
