@@ -52,3 +52,20 @@ def test_initialize_schema_is_idempotent(tmp_path):
     row = connection.execute("SELECT version FROM schema_version").fetchone()
 
     assert row[0] == CURRENT_SCHEMA_VERSION
+
+def test_initialize_schema_migrates_all_previous_versions_to_current(tmp_path):
+    for starting_version in range(5):
+        database = tmp_path / ("schema_v" + str(starting_version) + ".db")
+        connection = sqlite3.connect(database)
+
+def test_initialize_schema_migrates_all_previous_versions_to_current(tmp_path):
+    for starting_version in range(5):
+        database = tmp_path / ("schema_v" + str(starting_version) + ".db")
+        connection = sqlite3.connect(database)
+        if starting_version:
+            connection.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)")
+            connection.execute("INSERT INTO schema_version (version) VALUES (?)", (starting_version,))
+        initialize_schema(connection)
+        connection.commit()
+        version = connection.execute("SELECT version FROM schema_version").fetchone()[0]
+        assert version == CURRENT_SCHEMA_VERSION
