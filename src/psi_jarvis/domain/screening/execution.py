@@ -15,10 +15,10 @@ class ScreeningExecution:
         run_id = self.run.run_id
         for result in self.results:
             if result.run_id != run_id:
-                raise ValueError("Screening result belongs to a different run")
+                raise ValueError("Screening results belong to a different run")
         for audit in self.audits:
             if audit.run_id != run_id:
-                raise ValueError("Screening audit belongs to a different run")
+                raise ValueError("Screening audits belong to a different run")
 
     @property
     def included(self) -> int:
