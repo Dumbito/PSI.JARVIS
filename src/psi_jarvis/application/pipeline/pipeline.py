@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+from psi_jarvis.domain.analysis.statistics import StatisticalSummary
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.normalization.normalizer import PaperNormalizer
 from psi_jarvis.domain.paper import Paper
@@ -31,6 +32,7 @@ class PipelineResult:
     duplicates_removed: int
     screened_papers: int
     run: ScreeningRun
+    statistics: StatisticalSummary
 
 
 class PaperPipeline:
@@ -102,6 +104,15 @@ class PaperPipeline:
 
         audit_report = ScreeningAuditReport.from_audits(audits)
 
+        statistics = StatisticalSummary(
+            total_input=total_input,
+            unique_papers=deduplication.unique_papers,
+            duplicates_removed=deduplication.duplicates_removed,
+            screened_papers=len(screening_results),
+            included_papers=sum(1 for result in screening_results if result.included),
+            excluded_papers=sum(1 for result in screening_results if not result.included),
+        )
+
         self.run_repository.save(run)
         self.execution_repository.save(execution)
 
@@ -110,6 +121,7 @@ class PaperPipeline:
             screening_results=screening_results,
             audits=audits,
             audit_report=audit_report,
+            statistics=statistics,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
