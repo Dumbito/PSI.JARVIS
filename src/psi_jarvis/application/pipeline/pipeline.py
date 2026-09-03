@@ -4,6 +4,7 @@ from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
 from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
+from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
 from psi_jarvis.domain.analysis.statistics import StatisticalSummary
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.normalization.normalizer import PaperNormalizer
@@ -39,6 +40,7 @@ class PipelineResult:
     rule_analysis: RuleAnalysis
     decision_distribution: DecisionDistribution
     exclusion_reason_analysis: ExclusionReasonAnalysis
+    screening_metrics: ScreeningMetrics
 
 
 class PaperPipeline:
@@ -126,6 +128,14 @@ class PaperPipeline:
             excluded=sum(1 for result in screening_results if not result.included),
         )
         exclusion_reason_analysis = ExclusionReasonAnalysis.from_audits(audits)
+        screening_metrics = ScreeningMetrics.from_audits(
+            total_input=total_input,
+            screened_papers=len(screening_results),
+            included_papers=sum(1 for result in screening_results if result.included),
+            excluded_papers=sum(1 for result in screening_results if not result.included),
+            duplicates_removed=deduplication.duplicates_removed,
+            audits=audits,
+        )
 
         self.run_repository.save(run)
         self.execution_repository.save(execution)
@@ -139,6 +149,7 @@ class PaperPipeline:
             rule_analysis=rule_analysis,
             decision_distribution=decision_distribution,
             exclusion_reason_analysis=exclusion_reason_analysis,
+            screening_metrics=screening_metrics,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
