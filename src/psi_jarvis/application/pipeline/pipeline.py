@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
 from psi_jarvis.domain.analysis.statistics import StatisticalSummary
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
@@ -35,6 +36,7 @@ class PipelineResult:
     run: ScreeningRun
     statistics: StatisticalSummary
     rule_analysis: RuleAnalysis
+    decision_distribution: DecisionDistribution
 
 
 class PaperPipeline:
@@ -116,6 +118,11 @@ class PaperPipeline:
         )
 
         rule_analysis = RuleAnalysis.from_audits(audits)
+        decision_distribution = DecisionDistribution(
+            total=len(screening_results),
+            included=sum(1 for result in screening_results if result.included),
+            excluded=sum(1 for result in screening_results if not result.included),
+        )
 
         self.run_repository.save(run)
         self.execution_repository.save(execution)
@@ -127,6 +134,7 @@ class PaperPipeline:
             audit_report=audit_report,
             statistics=statistics,
             rule_analysis=rule_analysis,
+            decision_distribution=decision_distribution,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
