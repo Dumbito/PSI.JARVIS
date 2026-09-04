@@ -12,6 +12,7 @@ from psi_jarvis.domain.analysis.metadata_quality import MetadataFieldStatistics,
 from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
 from psi_jarvis.domain.analysis.sensitivity_analysis import SensitivityAnalysis
+from psi_jarvis.domain.analysis.rule_consistency import RuleConsistency, RuleStatistics
 
 __all__ = [
     "AuthorAnalysis",
@@ -28,4 +29,6 @@ __all__ = [
     "PublicationYearAnalysis",
     "ScreeningMetrics",
     "SensitivityAnalysis",
+    "RuleConsistency",
+    "RuleStatistics",
 ]
