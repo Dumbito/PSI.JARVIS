@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
 from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
 from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
@@ -38,6 +39,7 @@ class PipelineResult:
     run: ScreeningRun
     statistics: StatisticalSummary
     rule_analysis: RuleAnalysis
+    criteria_analysis: CriteriaAnalysis
     decision_distribution: DecisionDistribution
     exclusion_reason_analysis: ExclusionReasonAnalysis
     screening_metrics: ScreeningMetrics
@@ -122,6 +124,7 @@ class PaperPipeline:
         )
 
         rule_analysis = RuleAnalysis.from_audits(audits)
+        criteria_analysis = CriteriaAnalysis.from_audits(audits)
         decision_distribution = DecisionDistribution(
             total=len(screening_results),
             included=sum(1 for result in screening_results if result.included),
@@ -147,6 +150,7 @@ class PaperPipeline:
             audit_report=audit_report,
             statistics=statistics,
             rule_analysis=rule_analysis,
+            criteria_analysis=criteria_analysis,
             decision_distribution=decision_distribution,
             exclusion_reason_analysis=exclusion_reason_analysis,
             screening_metrics=screening_metrics,
