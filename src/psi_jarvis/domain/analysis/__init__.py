@@ -1,3 +1,4 @@
+from psi_jarvis.domain.analysis.deduplication_analysis import DeduplicationAnalysis
 from psi_jarvis.domain.analysis.criteria_analysis import (
     CriteriaAnalysis,
     CriterionStatistics,
