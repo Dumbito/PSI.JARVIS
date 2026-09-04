@@ -5,6 +5,7 @@ from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
 from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
 from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
 from psi_jarvis.domain.analysis.metadata_quality import MetadataQuality
+from psi_jarvis.domain.analysis.author_analysis import AuthorAnalysis
 from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
 from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
@@ -47,6 +48,7 @@ class PipelineResult:
     exclusion_reason_analysis: ExclusionReasonAnalysis
     screening_metrics: ScreeningMetrics
     metadata_quality: MetadataQuality
+    author_analysis: AuthorAnalysis
     journal_analysis: JournalAnalysis
     publication_year_analysis: PublicationYearAnalysis
 
@@ -146,6 +148,7 @@ class PaperPipeline:
             audits=audits,
         )
         metadata_quality = MetadataQuality.from_papers(deduplication.papers)
+        author_analysis = AuthorAnalysis.from_papers(deduplication.papers)
         journal_analysis = JournalAnalysis.from_papers(deduplication.papers)
         publication_year_analysis = PublicationYearAnalysis.from_papers(deduplication.papers)
 
@@ -164,6 +167,7 @@ class PaperPipeline:
             exclusion_reason_analysis=exclusion_reason_analysis,
             screening_metrics=screening_metrics,
             metadata_quality=metadata_quality,
+            author_analysis=author_analysis,
             journal_analysis=journal_analysis,
             publication_year_analysis=publication_year_analysis,
             total_input=total_input,
