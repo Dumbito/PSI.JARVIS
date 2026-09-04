@@ -10,3 +10,19 @@ from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
 from psi_jarvis.domain.analysis.metadata_quality import MetadataFieldStatistics, MetadataQuality
 from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
+from psi_jarvis.domain.analysis.sensitivity_analysis import SensitivityAnalysis
+
+__all__ = [
+    "AuthorAnalysis",
+    "CriteriaAnalysis",
+    "CriterionStatistics",
+    "DeduplicationAnalysis",
+    "DecisionDistribution",
+    "ExclusionReasonAnalysis",
+    "JournalAnalysis",
+    "MetadataFieldStatistics",
+    "MetadataQuality",
+    "PublicationYearAnalysis",
+    "ScreeningMetrics",
+    "SensitivityAnalysis",
+]
