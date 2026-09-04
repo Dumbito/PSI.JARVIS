@@ -5,6 +5,7 @@ from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
 from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
 from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
 from psi_jarvis.domain.analysis.metadata_quality import MetadataQuality
+from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
 from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
 from psi_jarvis.domain.analysis.statistics import StatisticalSummary
@@ -45,6 +46,7 @@ class PipelineResult:
     exclusion_reason_analysis: ExclusionReasonAnalysis
     screening_metrics: ScreeningMetrics
     metadata_quality: MetadataQuality
+    publication_year_analysis: PublicationYearAnalysis
 
 
 class PaperPipeline:
@@ -142,6 +144,7 @@ class PaperPipeline:
             audits=audits,
         )
         metadata_quality = MetadataQuality.from_papers(deduplication.papers)
+        publication_year_analysis = PublicationYearAnalysis.from_papers(deduplication.papers)
 
         self.run_repository.save(run)
         self.execution_repository.save(execution)
@@ -158,6 +161,7 @@ class PaperPipeline:
             exclusion_reason_analysis=exclusion_reason_analysis,
             screening_metrics=screening_metrics,
             metadata_quality=metadata_quality,
+            publication_year_analysis=publication_year_analysis,
             total_input=total_input,
             unique_papers=deduplication.unique_papers,
             duplicates_removed=deduplication.duplicates_removed,
