@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 from pathlib import Path
 
 from psi_jarvis.application.reporting import JSONRenderer, MarkdownRenderer, ReportBuilder
@@ -57,6 +58,17 @@ class ReportPackageExporter:
             ("screening_flow.svg", package.screening_flow),
             ("criteria_analysis.svg", package.criteria_analysis),
         )
+        filenames = tuple(filename for filename, _ in files)
+        manifest = json.dumps(
+            {
+                "format": "psi-jarvis-report-package",
+                "version": 1,
+                "files": filenames,
+            },
+            indent=2,
+            sort_keys=True,
+        ) + chr(10)
+        files = (*files, ("report_manifest.json", manifest))
         paths = tuple(self.output_dir / filename for filename, _ in files)
         for path, (_, content) in zip(paths, files):
             if not content.strip():

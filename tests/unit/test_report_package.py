@@ -50,6 +50,7 @@ def test_report_package_export_writes_expected_files(tmp_path: Path):
         "exclusion_reasons.svg",
         "screening_flow.svg",
             "criteria_analysis.svg",
+            "report_manifest.json",
     )
     assert all(path.exists() for path in paths)
 
