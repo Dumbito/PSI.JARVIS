@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from psi_jarvis.application.pipeline.pipeline import PipelineResult
 from psi_jarvis.application.visualization.chart import SVGChartRenderer
+from psi_jarvis.application.visualization.screening_flow import ScreeningFlow, ScreeningFlowBuilder
 
 
 @dataclass(frozen=True)
@@ -9,13 +10,16 @@ class VisualizationBundle:
     decision_distribution: str
     publication_year: str
     exclusion_reasons: str
+    screening_flow: str
 
 
 @dataclass(frozen=True)
 class VisualizationBuilder:
     renderer: SVGChartRenderer
+    screening_flow_builder: ScreeningFlowBuilder = ScreeningFlowBuilder()
 
     def execute(self, result: PipelineResult) -> VisualizationBundle:
+        flow = self.screening_flow_builder.execute(result)
         return VisualizationBundle(
             decision_distribution=self.renderer.render_decision_distribution(
                 result.decision_distribution
@@ -26,4 +30,5 @@ class VisualizationBuilder:
             exclusion_reasons=self.renderer.render_exclusion_reasons(
                 result.exclusion_reason_analysis
             ),
+            screening_flow=self.renderer.render_screening_flow(flow),
         )

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from psi_jarvis.application.visualization.screening_flow import ScreeningFlow
 from psi_jarvis.domain.analysis import (
     DecisionDistribution,
     ExclusionReasonAnalysis,
@@ -45,6 +46,46 @@ class SVGChartRenderer:
             tuple(item.reason for item in analysis.reasons),
             tuple(item.count for item in analysis.reasons),
         )
+
+    def render_screening_flow(self, flow: ScreeningFlow) -> str:
+        stages = (
+            ("Identified", flow.identified),
+            ("Duplicates removed", flow.duplicates_removed),
+            ("Screened", flow.screened),
+            ("Excluded", flow.excluded),
+            ("Included", flow.included),
+        )
+
+        parts = [
+            f"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{self.width}\" height=\"{self.height}\" viewBox=\"0 0 {self.width} {self.height}\">",
+            f"<text x=\"{self.width / 2:.2f}\" y=\"35\" text-anchor=\"middle\" font-size=\"24\">Screening Flow</text>",
+        ]
+
+        box_width = self.width - 240
+        box_height = 52
+        x = 120
+        start_y = 70
+        gap = 22
+
+        for index, (label, value) in enumerate(stages):
+            y = start_y + index * (box_height + gap)
+            parts.append(
+                f"<rect x=\"{x}\" y=\"{y}\" width=\"{box_width}\" height=\"{box_height}\" fill=\"white\" stroke=\"black\"/>"
+            )
+            parts.append(
+                f"<text x=\"{self.width / 2:.2f}\" y=\"{y + 22}\" text-anchor=\"middle\" font-size=\"14\">{_escape(label)}</text>"
+            )
+            parts.append(
+                f"<text x=\"{self.width / 2:.2f}\" y=\"{y + 42}\" text-anchor=\"middle\" font-size=\"13\">{value}</text>"
+            )
+            if index < len(stages) - 1:
+                arrow_y = y + box_height
+                parts.append(
+                    f"<line x1=\"{self.width / 2:.2f}\" y1=\"{arrow_y}\" x2=\"{self.width / 2:.2f}\" y2=\"{arrow_y + gap}\" stroke=\"black\"/>"
+                )
+
+        parts.append("</svg>")
+        return "".join(parts)
 
     def _render_bar_chart(
         self,

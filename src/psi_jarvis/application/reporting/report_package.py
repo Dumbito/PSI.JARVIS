@@ -13,6 +13,7 @@ class ReproducibleReportPackage:
     decision_distribution: str
     publication_year: str
     exclusion_reasons: str
+    screening_flow: str
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class ReportPackageBuilder:
             decision_distribution=visualizations.decision_distribution,
             publication_year=visualizations.publication_year,
             exclusion_reasons=visualizations.exclusion_reasons,
+            screening_flow=visualizations.screening_flow,
         )
 
 
@@ -50,6 +52,7 @@ class ReportPackageExporter:
             ("decision_distribution.svg", package.decision_distribution),
             ("publication_year.svg", package.publication_year),
             ("exclusion_reasons.svg", package.exclusion_reasons),
+            ("screening_flow.svg", package.screening_flow),
         )
         paths = tuple(self.output_dir / filename for filename, _ in files)
         for path, (_, content) in zip(paths, files):
