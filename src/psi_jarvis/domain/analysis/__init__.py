@@ -4,7 +4,7 @@ from psi_jarvis.domain.analysis.criteria_analysis import (
     CriterionStatistics,
 )
 from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
-from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
+from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis, ExclusionReasonStatistics
 from psi_jarvis.domain.analysis.author_analysis import AuthorAnalysis
 from psi_jarvis.domain.analysis.configuration_comparison import ConfigurationComparison, ConfigurationProfile
 from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
@@ -23,6 +23,7 @@ __all__ = [
     "DeduplicationAnalysis",
     "DecisionDistribution",
     "ExclusionReasonAnalysis",
+    "ExclusionReasonStatistics",
     "JournalAnalysis",
     "MetadataFieldStatistics",
     "MetadataQuality",
