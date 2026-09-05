@@ -26,6 +26,8 @@ def test_visualization_builder_uses_pipeline_analyses():
     assert "<svg" in bundle.decision_distribution
     assert "<svg" in bundle.publication_year
     assert "<svg" in bundle.exclusion_reasons
+    assert "<svg" in bundle.screening_flow
+    assert "<svg" in bundle.criteria_analysis
 
 
 def test_visualization_builder_is_deterministic():

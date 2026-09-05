@@ -11,6 +11,7 @@ class VisualizationBundle:
     publication_year: str
     exclusion_reasons: str
     screening_flow: str
+    criteria_analysis: str
 
 
 @dataclass(frozen=True)
@@ -31,4 +32,5 @@ class VisualizationBuilder:
                 result.exclusion_reason_analysis
             ),
             screening_flow=self.renderer.render_screening_flow(flow),
+            criteria_analysis=self.renderer.render_criteria_analysis(result.criteria_analysis),
         )

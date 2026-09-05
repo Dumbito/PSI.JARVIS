@@ -5,6 +5,7 @@ from psi_jarvis.domain.analysis import (
     DecisionDistribution,
     ExclusionReasonAnalysis,
     PublicationYearAnalysis,
+    CriteriaAnalysis,
 )
 
 
@@ -46,6 +47,82 @@ class SVGChartRenderer:
             tuple(item.reason for item in analysis.reasons),
             tuple(item.count for item in analysis.reasons),
         )
+
+    def render_criteria_analysis(self, analysis: CriteriaAnalysis) -> str:
+        labels = tuple(item.criterion_id for item in analysis.criteria)
+        matched = tuple(item.matched for item in analysis.criteria)
+        failed = tuple(item.failed for item in analysis.criteria)
+
+        maximum = max((*matched, *failed), default=0)
+        baseline = self.height - 60
+        plot_height = self.height - 120
+        plot_width = self.width - 120
+        group_width = (
+            plot_width / len(labels)
+            if labels
+            else plot_width
+        )
+        bar_width = group_width * 0.3
+
+        parts = [
+            (
+                f'<svg xmlns="http://www.w3.org/2000/svg" '
+                f'width="{self.width}" '
+                f'height="{self.height}" '
+                f'viewBox="0 0 {self.width} {self.height}">'
+            ),
+            (
+                f'<text x="{self.width / 2:.2f}" y="35" '
+                f'text-anchor="middle" font-size="24">'
+                f'Criteria Analysis</text>'
+            ),
+            (
+                f'<line x1="60" y1="{baseline}" '
+                f'x2="{self.width - 60}" '
+                f'y2="{baseline}" stroke="black"/>'
+            ),
+        ]
+
+        for index, label in enumerate(labels):
+            group_x = 60 + index * group_width
+            values = (matched[index], failed[index])
+            offsets = (group_width * 0.15, group_width * 0.55)
+
+            for value, offset in zip(values, offsets):
+                x = group_x + offset
+                bar_height = (
+                    0
+                    if maximum == 0
+                    else value / maximum * plot_height
+                )
+                y = baseline - bar_height
+                parts.append(
+                    (
+                        f'<rect x="{x:.2f}" y="{y:.2f}" '
+                        f'width="{bar_width:.2f}" '
+                        f'height="{bar_height:.2f}"/>'
+                    )
+                )
+                parts.append(
+                    (
+                        f'<text x="{x + bar_width / 2:.2f}" '
+                        f'y="{max(y - 6, 50):.2f}" '
+                        f'text-anchor="middle" font-size="12">'
+                        f'{value}</text>'
+                    )
+                )
+
+            parts.append(
+                (
+                    f'<text x="{group_x + group_width / 2:.2f}" '
+                    f'y="{baseline + 20}" '
+                    f'text-anchor="middle" font-size="12">'
+                    f'{_escape(label)}</text>'
+                )
+            )
+
+        parts.append('</svg>')
+        return ''.join(parts)
 
     def render_screening_flow(self, flow: ScreeningFlow) -> str:
         stages = (

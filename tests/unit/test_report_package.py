@@ -32,6 +32,7 @@ def test_report_package_contains_report_and_visualizations():
     assert package.publication_year.startswith("<svg")
     assert package.exclusion_reasons.startswith("<svg")
     assert package.screening_flow.startswith("<svg")
+    assert package.criteria_analysis.startswith("<svg")
 
 
 def test_report_package_export_writes_expected_files(tmp_path: Path):
@@ -48,6 +49,7 @@ def test_report_package_export_writes_expected_files(tmp_path: Path):
         "publication_year.svg",
         "exclusion_reasons.svg",
         "screening_flow.svg",
+            "criteria_analysis.svg",
     )
     assert all(path.exists() for path in paths)
 
@@ -65,6 +67,7 @@ def test_report_package_export_rejects_empty_content(tmp_path: Path):
         publication_year=package.publication_year,
         exclusion_reasons=package.exclusion_reasons,
         screening_flow=package.screening_flow,
+                criteria_analysis=package.criteria_analysis,
     )
     try:
         ReportPackageExporter(tmp_path).export(broken)
