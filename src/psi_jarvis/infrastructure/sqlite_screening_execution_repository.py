@@ -19,6 +19,7 @@ class SQLiteScreeningExecutionRepository:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     def _initialize(self) -> None:
@@ -32,7 +33,7 @@ class SQLiteScreeningExecutionRepository:
                 persistence.save_result(connection, result)
             for audit in execution.audits:
                 persistence.save_audit(connection, audit)
-            connection.execute("INSERT OR REPLACE INTO screening_executions (run_id) VALUES (?)", (str(execution.run.run_id),))
+            connection.execute("INSERT INTO screening_executions (run_id) VALUES (?) ON CONFLICT(run_id) DO NOTHING", (str(execution.run.run_id),))
 
     def get(self, run_id: UUID) -> ScreeningExecution | None:
         with self._connect() as connection:

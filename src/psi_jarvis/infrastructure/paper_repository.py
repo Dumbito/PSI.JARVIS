@@ -17,3 +17,6 @@ class InMemoryPaperRepository:
 
     def list_all(self) -> tuple[Paper, ...]:
         return tuple(self._papers.values())
+
+    def delete(self, paper_id: UUID) -> None:
+        self._papers.pop(paper_id, None)

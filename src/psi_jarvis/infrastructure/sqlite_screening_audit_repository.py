@@ -16,6 +16,7 @@ class SQLiteScreeningAuditRepository:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     @staticmethod
@@ -30,11 +31,21 @@ class SQLiteScreeningAuditRepository:
     def save(self, audit: ScreeningAudit) -> None:
         with self._connect() as connection:
             connection.execute(
-                "INSERT OR REPLACE INTO screening_audits ("
+                "INSERT INTO screening_audits ("
                 "audit_key, paper_id, included, reason, run_id, "
                 "matched_rules, failed_rules, matched_rule_ids, "
                 "failed_rule_ids, criteria_version"
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(audit_key) DO UPDATE SET "
+                "paper_id = excluded.paper_id, "
+                "included = excluded.included, "
+                "reason = excluded.reason, "
+                "run_id = excluded.run_id, "
+                "matched_rules = excluded.matched_rules, "
+                "failed_rules = excluded.failed_rules, "
+                "matched_rule_ids = excluded.matched_rule_ids, "
+                "failed_rule_ids = excluded.failed_rule_ids, "
+                "criteria_version = excluded.criteria_version",
                 (
                     self._key(audit),
                     str(audit.paper_id),

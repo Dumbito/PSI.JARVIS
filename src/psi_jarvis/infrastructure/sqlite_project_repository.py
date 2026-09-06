@@ -17,6 +17,7 @@ class SQLiteProjectRepository:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     def _initialize_schema(self) -> None:
@@ -29,7 +30,7 @@ class SQLiteProjectRepository:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT OR REPLACE INTO review_projects (
+                INSERT INTO review_projects (
                     project_id,
                     name,
                     research_question,
@@ -38,6 +39,13 @@ class SQLiteProjectRepository:
                     exclusion_rules,
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(project_id) DO UPDATE SET
+                    name = excluded.name,
+                    research_question = excluded.research_question,
+                    topic = excluded.topic,
+                    inclusion_rules = excluded.inclusion_rules,
+                    exclusion_rules = excluded.exclusion_rules,
+                    created_at = excluded.created_at
                 """,
                 (
                     str(project.project_id),

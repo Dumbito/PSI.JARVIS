@@ -29,8 +29,10 @@ class SQLiteCorpusRepository:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT OR REPLACE INTO corpora (corpus_id, project_id)
+                INSERT INTO corpora (corpus_id, project_id)
                 VALUES (?, ?)
+                ON CONFLICT(corpus_id) DO UPDATE SET
+                    project_id = excluded.project_id
                 """,
                 (str(corpus.corpus_id), str(corpus.project_id)),
             )

@@ -16,6 +16,7 @@ class SQLiteScreeningRunRepository:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     def _initialize(self) -> None:
@@ -26,7 +27,7 @@ class SQLiteScreeningRunRepository:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT OR REPLACE INTO screening_runs (
+                INSERT INTO screening_runs (
                     run_id,
                     project_id,
                     criteria_version,
@@ -36,6 +37,14 @@ class SQLiteScreeningRunRepository:
                     duplicates_removed,
                     screened_papers
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    project_id = excluded.project_id,
+                    criteria_version = excluded.criteria_version,
+                    started_at = excluded.started_at,
+                    total_input = excluded.total_input,
+                    unique_papers = excluded.unique_papers,
+                    duplicates_removed = excluded.duplicates_removed,
+                    screened_papers = excluded.screened_papers
                 """,
                 (
                     str(run.run_id),
