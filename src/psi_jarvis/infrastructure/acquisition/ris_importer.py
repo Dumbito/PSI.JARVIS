@@ -70,12 +70,13 @@ class RISImporter:
         current: dict[str, list[str]] | None = None
         raw_lines: list[str] = []
         ordinal = 0
-        for line in content.splitlines():
+        normalized_content = content.lstrip(chr(0xFEFF))
+        for line in normalized_content.splitlines():
             if not line.strip():
                 continue
             if len(line) < 5 or line[2:5] != "  -":
                 return (), f"Malformed RIS line: {line}"
-            tag = line[:2]
+            tag = line[:2].upper()
             value = line[5:].strip()
             if tag == "TY":
                 if current is not None:

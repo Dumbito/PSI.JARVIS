@@ -52,3 +52,22 @@ def test_ris_importer_reports_missing_source_without_network_access(tmp_path):
 
     assert result.success is False
     assert result.issues[0].code == "source_unavailable"
+
+
+def test_ris_importer_accepts_bom_and_lowercase_tags(tmp_path):
+    content = chr(0xFEFF) + "ty  - JOUR" + chr(10) + "ti  - Robust RIS input" + chr(10) + "au  - Doe, Jane" + chr(10) + "do  - 10.1000/ROBUST-1" + chr(10) + "er  - " + chr(10)
+    source = tmp_path / "normalized.ris"
+    source.write_text(content, encoding="utf-8")
+
+    result = RISImporter().acquire(
+        AcquisitionRequest(
+            location=str(source),
+            acquired_at=FIXED_TIME,
+        )
+    )
+
+    assert result.success is True
+    assert len(result.papers) == 1
+    assert result.papers[0].title == "Robust RIS input"
+    assert result.papers[0].authors == ("Doe, Jane",)
+    assert result.papers[0].doi == "10.1000/ROBUST-1"
