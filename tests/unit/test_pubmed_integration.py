@@ -68,10 +68,7 @@ def test_build_pubmed_adapter_composes_transport_and_mapper_without_network():
     assert result.receipt.adapter_key == "pubmed-efetch"
     assert result.receipt.adapter_version == "1"
     assert result.receipt.acquired_at == FIXED_TIME
-    assert result.receipt.request_payload == {
-        "text": "working memory",
-        "parameters": {},
-    }
+    assert result.receipt.request_json == '{"parameters":{},"text":"working memory"}'
     assert result.receipt.source_locator is not None
     assert "efetch.fcgi" in result.receipt.source_locator
     assert "api_key" not in result.receipt.source_locator
