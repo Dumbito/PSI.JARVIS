@@ -98,12 +98,54 @@ def test_pubmed_transport_runs_esearch_then_efetch_with_expected_parameters():
     assert "12345678%2C87654321" in result.source_locator
 
 
+def test_pubmed_transport_supports_an_explicit_second_search_page():
+    calls = []
+    search_page = """
+    <eSearchResult>
+      <Count>4</Count>
+      <RetMax>2</RetMax>
+      <RetStart>2</RetStart>
+      <IdList>
+        <Id>33333333</Id>
+        <Id>44444444</Id>
+      </IdList>
+    </eSearchResult>
+    """.strip()
+
+    def opener(request, timeout):
+        calls.append((request, timeout))
+        endpoint = urlsplit(request.full_url).path.rsplit("/", 1)[-1]
+        return FakeResponse(search_page if endpoint == "esearch.fcgi" else FETCH_XML)
+
+    result = PubMedEUtilsTransport(
+        PubMedTransportConfig(tool="psi_jarvis", email="researcher@example.org", retmax=2),
+        opener=opener,
+    ).fetch(BibliographicQuery(text="memory", parameters=(("retstart", "2"),)))
+
+    (search_request, _), (fetch_request, _) = calls
+    search_params = parse_qs(search_request.data.decode("utf-8"))
+    fetch_params = parse_qs(fetch_request.data.decode("utf-8"))
+
+    assert search_params["retstart"] == ["2"]
+    assert fetch_params["id"] == ["33333333,44444444"]
+    assert result.raw_content == FETCH_XML
+
+
 def test_pubmed_transport_does_not_call_efetch_when_esearch_returns_no_pmids():
     calls = []
 
     def opener(request, timeout):
         calls.append(request)
-        return FakeResponse("<eSearchResult><IdList /></eSearchResult>")
+        return FakeResponse(
+            """
+            <eSearchResult>
+              <Count>0</Count>
+              <RetMax>20</RetMax>
+              <RetStart>0</RetStart>
+              <IdList />
+            </eSearchResult>
+            """.strip()
+        )
 
     result = PubMedEUtilsTransport(
         PubMedTransportConfig(tool="psi_jarvis", email="researcher@example.org"),
@@ -133,6 +175,49 @@ def test_pubmed_transport_rejects_invalid_esearch_xml():
 
     with pytest.raises(RuntimeError, match="Invalid NCBI ESearch XML"):
         transport.fetch(BibliographicQuery(text="memory"))
+
+
+def test_pubmed_transport_rejects_incoherent_esearch_metadata():
+    transport = PubMedEUtilsTransport(
+        PubMedTransportConfig(tool="psi_jarvis", email="researcher@example.org", retmax=2),
+        opener=lambda request, timeout: FakeResponse(
+            """
+            <eSearchResult>
+              <Count>4</Count>
+              <RetMax>2</RetMax>
+              <RetStart>1</RetStart>
+              <IdList><Id>12345678</Id></IdList>
+            </eSearchResult>
+            """.strip()
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="retstart does not match"):
+        transport.fetch(BibliographicQuery(text="memory"))
+
+
+def test_pubmed_transport_rejects_retstart_window_over_10000():
+    transport = PubMedEUtilsTransport(
+        PubMedTransportConfig(tool="psi_jarvis", email="researcher@example.org", retmax=20),
+        opener=lambda request, timeout: pytest.fail("transport must not be called"),
+    )
+
+    with pytest.raises(ValueError, match="retstart plus retmax cannot exceed 10000"):
+        transport.fetch(BibliographicQuery(text="memory", parameters=(("retstart", "9999"),)))
+
+
+def test_pubmed_transport_rejects_invalid_retstart_values():
+    transport = PubMedEUtilsTransport(
+        PubMedTransportConfig(tool="psi_jarvis", email="researcher@example.org"),
+        opener=lambda request, timeout: pytest.fail("transport must not be called"),
+    )
+
+    with pytest.raises(ValueError, match="non-negative integer"):
+        transport.fetch(BibliographicQuery(text="memory", parameters=(("retstart", "invalid"),)))
+
+    with pytest.raises(ValueError, match="non-negative integer"):
+        transport.fetch(BibliographicQuery(text="memory", parameters=(("retstart", "-1"),)))
+
 
 
 def test_pubmed_transport_config_validates_ncbi_identification_and_limits():
