@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>12345678</PMID>
+      <Article>
+        <ArticleTitle>Working Memory and Intelligence</ArticleTitle>
+        <Abstract>
+          <AbstractText Label="BACKGROUND">Working memory is related to several cognitive functions.</AbstractText>
+          <AbstractText Label="METHODS">Participants completed standardized cognitive tasks.</AbstractText>
+        </Abstract>
+        <AuthorList>
+          <Author><LastName>Doe</LastName><Initials>J</Initials></Author>
+          <Author><LastName>Smith</LastName><Initials>A</Initials></Author>
+          <Author><CollectiveName>Cognitive Research Group</CollectiveName></Author>
+        </AuthorList>
+        <Journal>
+          <Title>Journal of Cognitive Research</Title>
+          <JournalIssue>
+            <PubDate><Year>2024</Year></PubDate>
+          </JournalIssue>
+        </Journal>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">12345678</ArticleId>
+        <ArticleId IdType="doi">10.1000/example.pubmed.1</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>87654321</PMID>
+      <Article>
+        <ArticleTitle>Incomplete Cognitive Study</ArticleTitle>
+        <AuthorList>
+          <Author><LastName>Jones</LastName></Author>
+        </AuthorList>
+        <Journal>
+          <Title>Clinical Cognition</Title>
+          <JournalIssue>
+            <PubDate><MedlineDate>2023 Jan-Feb</MedlineDate></PubDate>
+          </JournalIssue>
+        </Journal>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">87654321</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>
