@@ -121,4 +121,6 @@ class PubMedEUtilsTransport:
     def _source_locator(self, endpoint: str, params: Mapping[str, str]) -> str:
         safe_params = dict(params)
         safe_params.pop("api_key", None)
+        safe_params.pop("email", None)
+        safe_params.pop("tool", None)
         return f"{self._config.base_url.rstrip('/')}/{endpoint}?{urlencode(safe_params)}"
