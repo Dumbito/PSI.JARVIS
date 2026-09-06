@@ -1,3 +1,4 @@
+from psi_jarvis.infrastructure.acquisition.bootstrap import build_default_bibliographic_registry
 from psi_jarvis.infrastructure.acquisition.pubmed import PubMedAdapter, PubMedXmlMapper, build_pubmed_adapter
 from psi_jarvis.infrastructure.acquisition.pubmed_transport import (
     DEFAULT_EUTILS_BASE_URL,
@@ -16,5 +17,6 @@ __all__ = [
     "RISImporter",
     "RemoteAcquisitionResponse",
     "RemoteBibliographicAdapter",
+    "build_default_bibliographic_registry",
     "build_pubmed_adapter",
 ]
