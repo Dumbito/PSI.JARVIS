@@ -5,6 +5,7 @@ from psi_jarvis.application.acquisition.contracts import (
     AcquisitionRequest,
     AcquisitionResult,
     BibliographicAcquisitionPort,
+    BibliographicSourceResolver,
 )
 from psi_jarvis.application.acquisition.service import AcquisitionService
 
@@ -16,4 +17,5 @@ __all__ = [
     "AcquisitionResult",
     "AcquisitionService",
     "BibliographicAcquisitionPort",
+    "BibliographicSourceResolver",
 ]
