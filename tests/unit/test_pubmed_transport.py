@@ -76,7 +76,7 @@ def test_pubmed_transport_runs_esearch_then_efetch_with_expected_parameters():
     assert all(request.method == "POST" for request, _ in calls)
     assert all(timeout == 20.0 for _, timeout in calls)
 
-    search_request, fetch_request = calls
+    (search_request, _), (fetch_request, _) = calls
     search_params = parse_qs(search_request.data.decode("utf-8"))
     fetch_params = parse_qs(fetch_request.data.decode("utf-8"))
 
