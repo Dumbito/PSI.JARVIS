@@ -38,3 +38,48 @@ def test_sqlite_paper_repository_lists_all(tmp_path):
     repository.save(paper_b)
 
     assert repository.list_all() == (paper_a, paper_b)
+
+
+def test_sqlite_paper_repository_delete_removes_paper_and_provenance(tmp_path):
+    from datetime import datetime, timezone
+    import sqlite3
+
+    from psi_jarvis.domain.bibliography.provenance import BibliographicProvenance, AcquisitionReceipt
+    from psi_jarvis.domain.bibliography.provenance import sha256_text
+
+    repository = SQLitePaperRepository(tmp_path / "jarvis.db")
+    receipt = AcquisitionReceipt.create(
+        source_key="ris",
+        adapter_key="local-ris",
+        adapter_version="1",
+        acquired_at=datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc),
+        request_payload={"location": "fixture.ris"},
+        input_content="TY  - JOUR",
+        source_locator="fixture.ris",
+    )
+    paper = Paper(
+        title="Deletable paper",
+        provenances=(
+            BibliographicProvenance(
+                receipt=receipt,
+                record_ordinal=1,
+                format_name="RIS",
+                format_version="1",
+                mapping_version="1",
+                raw_record_sha256=sha256_text("raw-record"),
+            ),
+        ),
+    )
+
+    repository.save(paper)
+
+    repository.delete(paper.id)
+
+    assert repository.get(paper.id) is None
+    assert repository.list_all() == ()
+
+    with sqlite3.connect(tmp_path / "jarvis.db") as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM paper_provenances WHERE paper_id = ?",
+            (str(paper.id),),
+        ).fetchone()[0] == 0

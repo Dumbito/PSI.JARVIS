@@ -103,6 +103,21 @@ class SQLitePaperRepository:
         with self._connect() as connection:
             return paper_from_row(connection, row)
 
+    def delete(self, paper_id: UUID) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM paper_provenances WHERE paper_id = ?",
+                (str(paper_id),),
+            )
+            connection.execute(
+                "DELETE FROM corpus_papers WHERE paper_id = ?",
+                (str(paper_id),),
+            )
+            connection.execute(
+                "DELETE FROM papers WHERE paper_id = ?",
+                (str(paper_id),),
+            )
+
     def list_all(self) -> tuple[Paper, ...]:
         with self._connect() as connection:
             rows = connection.execute(
