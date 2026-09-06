@@ -1,4 +1,4 @@
-from psi_jarvis.infrastructure.acquisition.pubmed import PubMedAdapter, PubMedXmlMapper
+from psi_jarvis.infrastructure.acquisition.pubmed import PubMedAdapter, PubMedXmlMapper, build_pubmed_adapter
 from psi_jarvis.infrastructure.acquisition.pubmed_transport import (
     DEFAULT_EUTILS_BASE_URL,
     PubMedEUtilsTransport,
@@ -16,4 +16,5 @@ __all__ = [
     "RISImporter",
     "RemoteAcquisitionResponse",
     "RemoteBibliographicAdapter",
+    "build_pubmed_adapter",
 ]
