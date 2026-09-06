@@ -148,7 +148,7 @@ class PubMedXmlMapper:
 
     @classmethod
     def _doi(cls, article: ElementTree.Element) -> str | None:
-        for identifier in article.findall("../../PubmedData/ArticleIdList/ArticleId"):
+        for identifier in article.findall("PubmedData/ArticleIdList/ArticleId"):
             if identifier.attrib.get("IdType", "").lower() == "doi":
                 return cls._text(identifier)
         return None
