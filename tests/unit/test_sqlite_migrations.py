@@ -53,6 +53,19 @@ def test_initialize_schema_is_idempotent(tmp_path):
 
     assert row[0] == CURRENT_SCHEMA_VERSION
 
+
+def test_initialize_schema_creates_provenance_tables(tmp_path):
+    database = tmp_path / "schema.db"
+    connection = sqlite3.connect(database)
+
+    initialize_schema(connection)
+
+    tables = {
+        row[0]
+        for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
+    assert {"acquisition_batches", "paper_provenances"} <= tables
+
 def test_initialize_schema_migrates_all_previous_versions_to_current(tmp_path):
     for starting_version in range(5):
         database = tmp_path / ("schema_v" + str(starting_version) + ".db")

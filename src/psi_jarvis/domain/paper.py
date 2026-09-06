@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
+from psi_jarvis.domain.bibliography.provenance import BibliographicProvenance
+
 
 @dataclass(frozen=True)
 class Paper:
@@ -14,3 +16,4 @@ class Paper:
     pmid: str | None = None
     publication_year: int | None = None
     journal: str | None = None
+    provenances: tuple[BibliographicProvenance, ...] = ()

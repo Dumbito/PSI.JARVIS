@@ -1,7 +1,9 @@
 from pathlib import Path
 
+from psi_jarvis.application.acquisition import AcquisitionRequest, AcquisitionService
 from psi_jarvis.application.pipeline.pipeline import PaperPipeline, PipelineResult
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+from psi_jarvis.infrastructure.acquisition import RISImporter
 from psi_jarvis.infrastructure.importers.csv_importer import CSVImporter
 from psi_jarvis.infrastructure.importers.excel_importer import ExcelImporter
 
@@ -18,6 +20,15 @@ class ImportAndScreenService:
         criteria: ScreeningCriteria,
     ) -> PipelineResult:
         path = Path(file_path)
+
+        if path.suffix.lower() == ".ris":
+            acquisition = AcquisitionService(RISImporter()).execute(
+                AcquisitionRequest(location=str(path))
+            )
+            if not acquisition.success:
+                message = acquisition.issues[0].message if acquisition.issues else "Paper acquisition failed"
+                raise ValueError(message)
+            return self.pipeline.process(acquisition.papers, criteria)
 
         importer = self._select_importer(path)
         import_result = importer.import_file(path)

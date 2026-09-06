@@ -3,9 +3,9 @@ from pathlib import Path
 from uuid import UUID
 
 from psi_jarvis.domain.corpus import Corpus
-from psi_jarvis.domain.paper import Paper
 from psi_jarvis.domain.corpus_repository import CorpusRepository
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
+from psi_jarvis.infrastructure.sqlite_paper_mapper import paper_from_row
 
 
 class SQLiteCorpusRepository:
@@ -70,19 +70,8 @@ class SQLiteCorpusRepository:
                 (str(corpus_id),),
             ).fetchall()
 
-        papers = tuple(
-            Paper(
-                id=UUID(row["paper_id"]),
-                title=row["title"],
-                authors=tuple(__import__("json").loads(row["authors"] or "[]")),
-                abstract=row["abstract"],
-                doi=row["doi"],
-                pmid=row["pmid"],
-                publication_year=row["publication_year"],
-                journal=row["journal"],
-            )
-            for row in paper_rows
-        )
+        with self._connect() as connection:
+            papers = tuple(paper_from_row(connection, row) for row in paper_rows)
 
         return Corpus(
             corpus_id=UUID(corpus_row["corpus_id"]),

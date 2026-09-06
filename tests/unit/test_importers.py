@@ -26,6 +26,7 @@ def test_csv_importer_returns_papers(tmp_path):
     assert len(result.data) == 1
     assert isinstance(result.data[0], Paper)
     assert result.data[0].title == "Memory and Intelligence"
+    assert result.data[0].provenances[0].source_key == "csv"
 
 
 def test_excel_importer_returns_papers(tmp_path):
@@ -49,6 +50,7 @@ def test_excel_importer_returns_papers(tmp_path):
     assert len(result.data) == 1
     assert isinstance(result.data[0], Paper)
     assert result.data[0].title == "Brain Development"
+    assert result.data[0].provenances[0].source_key == "excel"
 
 
 def test_csv_importer_supports_multiple_papers(tmp_path):

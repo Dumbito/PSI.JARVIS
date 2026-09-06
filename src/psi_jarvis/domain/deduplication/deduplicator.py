@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from psi_jarvis.domain.paper import Paper
 
@@ -14,15 +14,23 @@ class DeduplicationResult:
 class PaperDeduplicator:
     def deduplicate(self, papers: list[Paper] | tuple[Paper, ...]) -> DeduplicationResult:
         unique: list[Paper] = []
-        seen: set[str] = set()
+        positions: dict[str, int] = {}
 
         for paper in papers:
             key = self._identity_key(paper)
 
-            if key in seen:
+            if key in positions:
+                position = positions[key]
+                unique[position] = replace(
+                    unique[position],
+                    provenances=self._merged_provenances(
+                        unique[position].provenances,
+                        paper.provenances,
+                    ),
+                )
                 continue
 
-            seen.add(key)
+            positions[key] = len(unique)
             unique.append(paper)
 
         total_input = len(papers)
@@ -46,3 +54,11 @@ class PaperDeduplicator:
         title = " ".join(paper.title.lower().split())
 
         return f"title:{title}"
+
+    @staticmethod
+    def _merged_provenances(first, second):
+        by_key = {provenance.key: provenance for provenance in (*first, *second)}
+        return tuple(
+            by_key[key]
+            for key in sorted(by_key)
+        )

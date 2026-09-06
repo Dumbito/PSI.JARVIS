@@ -28,3 +28,20 @@ def test_import_and_screen_csv(tmp_path: Path):
     assert result.screened_papers == 2
     assert result.screening_results[0].included is True
     assert result.screening_results[1].included is False
+
+
+def test_import_and_screen_ris_routes_acquisition_before_pipeline(tmp_path: Path):
+    ris_file = tmp_path / "papers.ris"
+    ris_file.write_text(
+        "TY  - JOUR\nTI  - Memory and Cognition\nDO  - 10.1000/ris\nER  -\n",
+        encoding="utf-8",
+    )
+
+    result = ImportAndScreenService().execute(
+        file_path=ris_file,
+        criteria=ScreeningCriteria(topic="memory"),
+    )
+
+    assert result.screened_papers == 1
+    assert result.papers[0].provenances[0].source_key == "ris"
+    assert result.screening_results[0].included is True

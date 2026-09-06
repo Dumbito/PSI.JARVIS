@@ -1,5 +1,28 @@
+from datetime import datetime, timezone
+
+from psi_jarvis.domain.bibliography import AcquisitionReceipt, BibliographicProvenance
+from psi_jarvis.domain.bibliography.provenance import sha256_text
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.paper import Paper
+
+
+def provenance(source_key="ris"):
+    receipt = AcquisitionReceipt.create(
+        source_key=source_key,
+        adapter_key=f"local-{source_key}",
+        adapter_version="1",
+        acquired_at=datetime(2026, 9, 5, tzinfo=timezone.utc),
+        request_payload={"location": f"fixture.{source_key}"},
+        input_content=f"fixture-{source_key}",
+    )
+    return BibliographicProvenance(
+        receipt=receipt,
+        record_ordinal=1,
+        format_name="RIS",
+        format_version="1",
+        mapping_version="1",
+        raw_record_sha256=sha256_text("record"),
+    )
 
 
 def test_deduplicator_exists():
@@ -78,3 +101,26 @@ def test_deduplication_statistics():
     assert result.total_input == 3
     assert result.unique_papers == 2
     assert result.duplicates_removed == 1
+
+
+def test_deduplication_merges_provenance_without_changing_identity_or_representative():
+    first_provenance = provenance()
+    second_provenance = type(first_provenance)(
+        receipt=provenance("csv").receipt,
+        record_ordinal=2,
+        format_name="RIS",
+        format_version="1",
+        mapping_version="1",
+        raw_record_sha256="b" * 64,
+    )
+    result = PaperDeduplicator().deduplicate(
+        (
+            Paper(title="First representative", doi="10.1000/same", provenances=(first_provenance,)),
+            Paper(title="Second duplicate", doi="10.1000/same", provenances=(second_provenance,)),
+        )
+    )
+
+    assert result.papers[0].title == "First representative"
+    assert result.papers[0].doi == "10.1000/same"
+    assert result.papers[0].provenances == tuple(sorted((first_provenance, second_provenance), key=lambda item: item.key))
+    assert {item.source_key for item in result.papers[0].provenances} == {"ris", "csv"}

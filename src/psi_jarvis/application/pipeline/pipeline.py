@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from uuid import UUID
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis

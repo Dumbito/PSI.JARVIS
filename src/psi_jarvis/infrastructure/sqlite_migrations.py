@@ -1,7 +1,7 @@
 import sqlite3
 
 
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 
 
 def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> bool:
@@ -155,6 +155,48 @@ def _migration_5(connection: sqlite3.Connection) -> None:
     connection.execute("CREATE INDEX IF NOT EXISTS idx_screening_audits_run_id ON screening_audits(run_id)")
 
 
+def _migration_6(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS acquisition_batches (
+            batch_id TEXT PRIMARY KEY,
+            source_key TEXT NOT NULL,
+            adapter_key TEXT NOT NULL,
+            adapter_version TEXT NOT NULL,
+            acquired_at TEXT NOT NULL,
+            request_json TEXT NOT NULL,
+            request_sha256 TEXT NOT NULL,
+            input_sha256 TEXT NOT NULL,
+            source_locator TEXT
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS paper_provenances (
+            provenance_key TEXT PRIMARY KEY,
+            paper_id TEXT NOT NULL,
+            batch_id TEXT NOT NULL,
+            record_ordinal INTEGER NOT NULL,
+            format_name TEXT NOT NULL,
+            format_version TEXT NOT NULL,
+            mapping_version TEXT NOT NULL,
+            raw_record_sha256 TEXT NOT NULL,
+            source_record_id TEXT,
+            FOREIGN KEY (paper_id) REFERENCES papers(paper_id),
+            FOREIGN KEY (batch_id) REFERENCES acquisition_batches(batch_id),
+            UNIQUE (paper_id, batch_id, record_ordinal, raw_record_sha256)
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_paper_provenances_paper_id ON paper_provenances(paper_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_paper_provenances_batch_id ON paper_provenances(batch_id)"
+    )
+
+
 def initialize_schema(connection: sqlite3.Connection) -> None:
     connection.execute(
         "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
@@ -211,3 +253,10 @@ def initialize_schema(connection: sqlite3.Connection) -> None:
             "UPDATE schema_version SET version = 5"
         )
         current_version = 5
+
+    if current_version < 6:
+        _migration_6(connection)
+        connection.execute(
+            "UPDATE schema_version SET version = 6"
+        )
+        current_version = 6
