@@ -7,6 +7,7 @@ from psi_jarvis.application.pipeline.pipeline import PaperPipeline
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.infrastructure.acquisition import RISImporter
+from psi_jarvis.infrastructure.sqlite_paper_repository import SQLitePaperRepository
 
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -46,6 +47,21 @@ def test_same_ris_fixture_and_criteria_have_same_decisions_audits_and_metrics():
     assert first_decisions == second_decisions
     assert first_audits == second_audits
     assert first.screening_metrics == second.screening_metrics
+
+
+def test_ris_acquisition_persists_provenance_through_sqlite(tmp_path):
+    acquisition = acquire()
+    repository = SQLitePaperRepository(tmp_path / "ris.db")
+
+    for paper in acquisition.papers:
+        repository.save(paper)
+
+    reloaded = repository.list_all()
+
+    assert len(reloaded) == len(acquisition.papers)
+    assert [paper.id for paper in reloaded] == [paper.id for paper in acquisition.papers]
+    assert [paper.provenances for paper in reloaded] == [paper.provenances for paper in acquisition.papers]
+    assert all(paper.provenances[0].source_key == "ris" for paper in reloaded)
 
 
 def test_provenance_does_not_change_screening_engine_decision():
