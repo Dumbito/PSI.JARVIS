@@ -11,6 +11,7 @@ from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionR
 
 
 DEFAULT_EUTILS_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+MAX_PUBMED_ESEARCH_RESULTS = 10_000
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,7 @@ class PubMedTransportConfig:
             raise ValueError("NCBI API key cannot be empty")
         if self.timeout_seconds <= 0:
             raise ValueError("NCBI timeout must be positive")
-        if not 1 <= self.retmax <= 10000:
+        if not 1 <= self.retmax <= MAX_PUBMED_ESEARCH_RESULTS:
             raise ValueError("NCBI PubMed retmax must be between 1 and 10000")
 
 
@@ -57,7 +58,9 @@ class PubMedEUtilsTransport:
         search_params["retmax"] = str(self._config.retmax)
 
         search_xml = self._request("esearch.fcgi", search_params)
-        pmids = self._parse_pmids(search_xml)
+        count, retstart, retmax, pmids = self._parse_search_result(search_xml)
+        self._validate_search_result(search_params, count, retstart, retmax, pmids)
+
         if not pmids:
             return RemoteAcquisitionResponse(
                 raw_content="<PubmedArticleSet />",
@@ -96,27 +99,74 @@ class PubMedEUtilsTransport:
             params["api_key"] = self._config.api_key
         return params
 
-    @staticmethod
-    def _query_parameters(query: BibliographicQuery) -> dict[str, str]:
+    def _query_parameters(self, query: BibliographicQuery) -> dict[str, str]:
         allowed = {"retstart", "sort", "datetype", "reldate", "mindate", "maxdate", "field"}
         parameters: dict[str, str] = {}
         for name, value in query.parameters:
             if name not in allowed:
                 raise ValueError(f"Unsupported PubMed E-utilities parameter: {name}")
             parameters[name] = value
+
+        raw_retstart = parameters.get("retstart")
+        if raw_retstart is not None:
+            try:
+                retstart = int(raw_retstart)
+            except ValueError as exc:
+                raise ValueError("PubMed retstart must be a non-negative integer") from exc
+            if retstart < 0:
+                raise ValueError("PubMed retstart must be a non-negative integer")
+            if retstart >= MAX_PUBMED_ESEARCH_RESULTS:
+                raise ValueError("PubMed retstart cannot exceed 9999")
+            if retstart + self._config.retmax > MAX_PUBMED_ESEARCH_RESULTS:
+                raise ValueError("PubMed retstart plus retmax cannot exceed 10000")
+            parameters["retstart"] = str(retstart)
+
         return parameters
 
     @staticmethod
-    def _parse_pmids(xml_content: str) -> tuple[str, ...]:
+    def _parse_search_result(xml_content: str) -> tuple[int, int, int, tuple[str, ...]]:
         try:
             root = ElementTree.fromstring(xml_content)
         except ElementTree.ParseError as exc:
             raise RuntimeError(f"Invalid NCBI ESearch XML: {exc}") from exc
-        return tuple(
+
+        values: dict[str, int] = {}
+        for name in ("Count", "RetStart", "RetMax"):
+            value = root.findtext(name)
+            if value is None or not value.strip().isdigit():
+                raise RuntimeError(f"Invalid NCBI ESearch XML: invalid {name}")
+            values[name] = int(value)
+
+        pmids = tuple(
             value.strip()
             for element in root.findall(".//Id")
             if (value := element.text or "").strip()
         )
+        return values["Count"], values["RetStart"], values["RetMax"], pmids
+
+    @staticmethod
+    def _validate_search_result(
+        search_params: Mapping[str, str],
+        count: int,
+        retstart: int,
+        retmax: int,
+        pmids: tuple[str, ...],
+    ) -> None:
+        requested_retstart = int(search_params.get("retstart", "0"))
+        requested_retmax = int(search_params["retmax"])
+
+        if retstart != requested_retstart:
+            raise RuntimeError("NCBI ESearch response retstart does not match request")
+        if retmax > requested_retmax:
+            raise RuntimeError("NCBI ESearch response retmax exceeds requested retmax")
+        if len(pmids) > retmax:
+            raise RuntimeError("NCBI ESearch response contains more PMIDs than retmax")
+        if retstart + requested_retmax > MAX_PUBMED_ESEARCH_RESULTS:
+            raise RuntimeError("NCBI ESearch request exceeds the 10000-record PubMed window")
+        if count < retstart:
+            raise RuntimeError("NCBI ESearch response count is smaller than retstart")
+        if count > retstart and not pmids:
+            raise RuntimeError("NCBI ESearch response is partial without PMIDs")
 
     def _source_locator(self, endpoint: str, params: Mapping[str, str]) -> str:
         safe_params = dict(params)
