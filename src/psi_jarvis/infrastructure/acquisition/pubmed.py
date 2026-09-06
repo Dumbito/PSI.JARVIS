@@ -21,6 +21,10 @@ from psi_jarvis.infrastructure.acquisition.remote_base import (
     RemoteAcquisitionResponse,
     RemoteBibliographicAdapter,
 )
+from psi_jarvis.infrastructure.acquisition.pubmed_transport import (
+    PubMedEUtilsTransport,
+    PubMedTransportConfig,
+)
 
 
 _PAPER_ID_NAMESPACE = UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
@@ -201,3 +205,14 @@ class PubMedAdapter(RemoteBibliographicAdapter):
         receipt: AcquisitionReceipt,
     ) -> AcquisitionResult:
         return self._mapper.map(response, receipt)
+
+
+def build_pubmed_adapter(
+    config: PubMedTransportConfig,
+    clock=None,
+    opener: Callable[..., object] | None = None,
+) -> PubMedAdapter:
+    """Compone el adapter PubMed con su transporte E-utilities."""
+
+    transport = PubMedEUtilsTransport(config=config, opener=opener)
+    return PubMedAdapter(fetcher=transport.fetch, clock=clock)
