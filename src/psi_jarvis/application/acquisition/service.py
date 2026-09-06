@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from psi_jarvis.application.acquisition.contracts import (
     AcquisitionRequest,
+    BibliographicQuery,
     AcquisitionResult,
     BibliographicAcquisitionPort,
 )
@@ -15,3 +16,6 @@ class AcquisitionService:
 
     def execute(self, request: AcquisitionRequest) -> AcquisitionResult:
         return self.port.acquire(request)
+
+    def execute_query(self, query: BibliographicQuery) -> AcquisitionResult:
+        return self.port.acquire(query)

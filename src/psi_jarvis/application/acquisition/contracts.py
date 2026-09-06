@@ -1,6 +1,28 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Protocol
+from typing import Protocol, runtime_checkable
+
+
+@dataclass(frozen=True)
+class BibliographicQuery:
+    """Consulta bibliográfica agnóstica del proveedor."""
+
+    text: str = ""
+    parameters: tuple[tuple[str, str], ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.text.strip() and not self.parameters:
+            raise ValueError("Bibliographic query text cannot be empty")
+        if any(not name.strip() for name, _ in self.parameters):
+            raise ValueError("Bibliographic query parameter names cannot be empty")
+        if len({name for name, _ in self.parameters}) != len(self.parameters):
+            raise ValueError("Bibliographic query parameter names must be unique")
+
+        object.__setattr__(self, "text", self.text.strip())
+        object.__setattr__(self, "parameters", tuple((name.strip(), str(value).strip()) for name, value in self.parameters))
+
+    def payload(self) -> dict[str, object]:
+        return {"text": self.text, "parameters": dict(self.parameters)}
 
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
 from psi_jarvis.domain.paper import Paper
@@ -54,6 +76,18 @@ class AcquisitionResult:
         return not any(issue.severity == "error" for issue in self.issues)
 
 
+@runtime_checkable
+class BibliographicRemoteAcquisitionPort(Protocol):
+    """Puerto para adaptadores bibliográficos remotos, independiente del proveedor."""
+
+    source_key: str
+    adapter_key: str
+    adapter_version: str
+
+    def acquire(self, query: BibliographicQuery) -> AcquisitionResult: ...
+
+
+@runtime_checkable
 class BibliographicAcquisitionPort(Protocol):
     """Puerto para adaptadores bibliográficos sin dependencia de proveedor."""
 
