@@ -19,10 +19,15 @@ class BibliographicQuery:
             raise ValueError("Bibliographic query parameter names must be unique")
 
         object.__setattr__(self, "text", self.text.strip())
-        object.__setattr__(self, "parameters", tuple((name.strip(), str(value).strip()) for name, value in self.parameters))
+        object.__setattr__(
+            self,
+            "parameters",
+            tuple((name.strip(), str(value).strip()) for name, value in self.parameters),
+        )
 
     def payload(self) -> dict[str, object]:
         return {"text": self.text, "parameters": dict(self.parameters)}
+
 
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
 from psi_jarvis.domain.paper import Paper
@@ -92,3 +97,10 @@ class BibliographicAcquisitionPort(Protocol):
     """Puerto para adaptadores bibliográficos sin dependencia de proveedor."""
 
     def acquire(self, request: AcquisitionRequest) -> AcquisitionResult: ...
+
+
+@runtime_checkable
+class BibliographicSourceResolver(Protocol):
+    """Puerto de aplicación para resolver un adaptador remoto por fuente."""
+
+    def resolve(self, source_key: str) -> BibliographicRemoteAcquisitionPort: ...
