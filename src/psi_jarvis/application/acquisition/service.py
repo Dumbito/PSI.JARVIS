@@ -2,9 +2,10 @@ from dataclasses import dataclass
 
 from psi_jarvis.application.acquisition.contracts import (
     AcquisitionRequest,
-    BibliographicQuery,
     AcquisitionResult,
     BibliographicAcquisitionPort,
+    BibliographicQuery,
+    BibliographicSourceResolver,
 )
 
 
@@ -19,3 +20,13 @@ class AcquisitionService:
 
     def execute_query(self, query: BibliographicQuery) -> AcquisitionResult:
         return self.port.acquire(query)
+
+    def execute_remote_query(
+        self,
+        source_key: str,
+        query: BibliographicQuery,
+        resolver: BibliographicSourceResolver,
+    ) -> AcquisitionResult:
+        """Resuelve una fuente remota mediante un puerto y ejecuta la consulta."""
+        adapter = resolver.resolve(source_key)
+        return adapter.acquire(query)
