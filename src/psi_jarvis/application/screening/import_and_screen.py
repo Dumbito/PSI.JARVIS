@@ -20,31 +20,20 @@ class ImportAndScreenService:
         criteria: ScreeningCriteria,
     ) -> PipelineResult:
         path = Path(file_path)
-
-        if path.suffix.lower() == ".ris":
-            acquisition = AcquisitionService(RISImporter()).execute(
-                AcquisitionRequest(location=str(path))
-            )
-            if not acquisition.success:
-                message = acquisition.issues[0].message if acquisition.issues else "Paper acquisition failed"
-                raise ValueError(message)
-            return self.pipeline.process(acquisition.papers, criteria)
-
-        importer = self._select_importer(path)
-        import_result = importer.import_file(path)
-
-        if not import_result.success:
-            raise ValueError(
-                import_result.message or "Paper import failed"
-            )
-
-        papers = import_result.data or []
-
-        return self.pipeline.process(papers, criteria)
+        acquisition = AcquisitionService(self._select_acquisition_port(path)).execute(
+            AcquisitionRequest(location=str(path))
+        )
+        if not acquisition.success:
+            message = acquisition.issues[0].message if acquisition.issues else "Paper acquisition failed"
+            raise ValueError(message)
+        return self.pipeline.process(acquisition.papers, criteria)
 
     @staticmethod
-    def _select_importer(path: Path):
+    def _select_acquisition_port(path: Path):
         suffix = path.suffix.lower()
+
+        if suffix == ".ris":
+            return RISImporter()
 
         if suffix == ".csv":
             return CSVImporter()

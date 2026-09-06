@@ -1,4 +1,8 @@
+from datetime import datetime, timezone
+
 import pandas as pd
+
+from psi_jarvis.application.acquisition import AcquisitionRequest
 
 from psi_jarvis.domain.paper import Paper
 from psi_jarvis.infrastructure.importers.csv_importer import CSVImporter
@@ -81,3 +85,35 @@ def test_excel_importer_supports_multiple_papers(tmp_path):
 
     assert result.success is True
     assert len(result.data) == 3
+
+
+def test_csv_acquire_returns_new_acquisition_contract(tmp_path):
+    path = tmp_path / "papers.csv"
+    pd.DataFrame([{"title": "Memory Study"}]).to_csv(path, index=False)
+
+    result = CSVImporter(clock=lambda: datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)).acquire(
+        AcquisitionRequest(location=str(path))
+    )
+
+    assert result.success is True
+    assert result.receipt is not None
+    assert result.receipt.source_key == "csv"
+    assert result.receipt.acquired_at == datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    assert len(result.papers) == 1
+    assert result.papers[0].provenances[0].source_key == "csv"
+
+
+def test_excel_acquire_returns_new_acquisition_contract(tmp_path):
+    path = tmp_path / "papers.xlsx"
+    pd.DataFrame([{"title": "Brain Study"}]).to_excel(path, index=False)
+
+    result = ExcelImporter(clock=lambda: datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)).acquire(
+        AcquisitionRequest(location=str(path))
+    )
+
+    assert result.success is True
+    assert result.receipt is not None
+    assert result.receipt.source_key == "excel"
+    assert result.receipt.acquired_at == datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    assert len(result.papers) == 1
+    assert result.papers[0].provenances[0].source_key == "excel"
