@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from psi_jarvis.application.acquisition import AcquisitionResult, BibliographicQuery
 from psi_jarvis.domain.bibliography import AcquisitionReceipt
 
@@ -32,14 +34,12 @@ def test_empty_remote_result_is_a_valid_acquisition_result():
     assert result.issues == ()
 
 
-
 def test_remote_adapter_base_contract_exposes_acquire_workflow():
     from psi_jarvis.infrastructure.acquisition.remote_base import RemoteBibliographicAdapter
 
     assert hasattr(RemoteBibliographicAdapter, "acquire")
     assert hasattr(RemoteBibliographicAdapter, "fetch")
     assert hasattr(RemoteBibliographicAdapter, "map_response")
-
 
 
 def test_remote_acquisition_response_is_immutable_and_preserves_raw_payload():
@@ -57,6 +57,33 @@ def test_remote_acquisition_response_is_immutable_and_preserves_raw_payload():
     else:
         raise AssertionError("RemoteAcquisitionResponse should be immutable")
 
+
+def test_remote_response_reader_enforces_memory_limit():
+    from psi_jarvis.infrastructure.acquisition.remote_base import read_remote_response
+
+    class FakeResponse:
+        headers = {}
+
+        def read(self, size=-1):
+            payload = b"abcdefgh"
+            return payload if size < 0 else payload[:size]
+
+    assert read_remote_response(FakeResponse(), max_bytes=8) == b"abcdefgh"
+    with pytest.raises(RuntimeError, match="exceeds"):
+        read_remote_response(FakeResponse(), max_bytes=7)
+
+
+def test_remote_response_reader_rejects_excess_content_length_before_reading():
+    from psi_jarvis.infrastructure.acquisition.remote_base import read_remote_response
+
+    class FakeResponse:
+        headers = {"Content-Length": "99"}
+
+        def read(self, size=-1):
+            raise AssertionError("response body must not be read after a rejected Content-Length")
+
+    with pytest.raises(RuntimeError, match="exceeds"):
+        read_remote_response(FakeResponse(), max_bytes=8)
 
 
 def test_remote_adapter_converts_transport_failure_into_acquisition_issue():
@@ -83,7 +110,6 @@ def test_remote_adapter_converts_transport_failure_into_acquisition_issue():
         assert str(exc) == "transport unavailable"
     else:
         raise AssertionError("Transport failures must not be silently ignored")
-
 
 
 def test_remote_adapter_acquire_builds_receipt_and_delegates_mapping():
