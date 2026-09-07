@@ -7,6 +7,7 @@ from typing import Callable
 
 class SourceConnectionStatus(StrEnum):
     AVAILABLE = "available"
+    CONFIGURED = "configured"
     UNAVAILABLE = "unavailable"
     AUTH_REQUIRED = "auth_required"
     AUTH_EXPIRED = "auth_expired"
