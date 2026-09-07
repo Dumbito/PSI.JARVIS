@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
     "pydantic-settings>=2.14.2",
+    "PySide6>=6.8,<7",
 ]
 
 authors = [
@@ -27,3 +28,4 @@ pythonpath = ["src"]
 
 [project.scripts]
 psi = "psi_jarvis.cli:main"
+psi-gui = "psi_jarvis.gui:main"
