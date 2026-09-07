@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import json
-from typing import Protocol
+from typing import Callable, Protocol
 
 from psi_jarvis.application.synchronization.contracts import (
     MetadataChange,
@@ -29,7 +29,7 @@ class BibliographicSynchronizationService:
 
     repository: PaperRepository
     history_repository: MetadataHistoryRepository
-    clock: callable | None = None
+    clock: Callable[[], datetime] | None = None
 
     def synchronize(self, incoming: tuple[Paper, ...] | list[Paper]) -> SynchronizationResult:
         now = (self.clock or (lambda: datetime.now(timezone.utc)))()
