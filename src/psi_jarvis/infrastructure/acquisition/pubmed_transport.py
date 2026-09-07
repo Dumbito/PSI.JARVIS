@@ -7,7 +7,10 @@ from urllib.request import Request, urlopen
 from xml.etree import ElementTree
 
 from psi_jarvis.application.acquisition.contracts import BibliographicQuery
-from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionResponse
+from psi_jarvis.infrastructure.acquisition.remote_base import (
+    RemoteAcquisitionResponse,
+    read_remote_response,
+)
 
 
 DEFAULT_EUTILS_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
@@ -90,7 +93,7 @@ class PubMedEUtilsTransport:
             status = getattr(response, "status", 200)
             if status != 200:
                 raise RuntimeError(f"NCBI E-utilities returned HTTP {status}")
-            content = response.read()
+            content = read_remote_response(response)
         return content.decode("utf-8")
 
     def _common_params(self) -> dict[str, str]:
