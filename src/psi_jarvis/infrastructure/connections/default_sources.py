@@ -56,10 +56,7 @@ def build_default_source_connection_registry(
             detail="Fuente pública sin autenticación.",
         ),
     )
-    registry.register(
-        SCOPUS_SOURCE,
-        lambda: _scopus_state(scopus_manager),
-    )
+    registry.register(SCOPUS_SOURCE, lambda: _scopus_state(scopus_manager))
     registry.register(
         WOS_SOURCE,
         lambda: SourceConnectionState(
@@ -82,12 +79,23 @@ def build_default_source_connection_registry(
 def _scopus_state(manager: ScopusConnectionManager) -> SourceConnectionState:
     connection = manager.inspect()
     if connection.status is ScopusConnectionStatus.CONNECTED:
-        method = CredentialMethod.OAUTH
         return SourceConnectionState(
             source=SCOPUS_SOURCE,
             status=SourceConnectionStatus.AVAILABLE,
-            credential_method=method,
+            credential_method=CredentialMethod.OAUTH,
             detail="OAuth conectado; acceso API sujeto a los permisos de Elsevier.",
+        )
+    if connection.status is ScopusConnectionStatus.CONFIGURED:
+        method = (
+            CredentialMethod.INSTITUTIONAL_TOKEN
+            if connection.transport_config is not None and connection.transport_config.insttoken
+            else CredentialMethod.API_KEY
+        )
+        return SourceConnectionState(
+            source=SCOPUS_SOURCE,
+            status=SourceConnectionStatus.CONFIGURED,
+            credential_method=method,
+            detail="Credencial configurada; falta verificar el acceso efectivo a la API.",
         )
     if connection.status is ScopusConnectionStatus.EXPIRED:
         return SourceConnectionState(
