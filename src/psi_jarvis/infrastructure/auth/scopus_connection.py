@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from psi_jarvis.infrastructure.acquisition.scopus_transport import (
-    ScopusTransportConfig,
-)
+from psi_jarvis.infrastructure.acquisition.scopus_transport import ScopusTransportConfig
 from psi_jarvis.infrastructure.auth.scopus_oauth import (
     JsonTokenStore,
     ScopusOAuthClient,
@@ -62,12 +60,31 @@ class ScopusConnectionManager:
     def logout(self) -> None:
         self._token_store.delete()
 
+    def ensure_connected(self) -> ScopusConnection:
+        connection = self.inspect()
+        if connection.status is ScopusConnectionStatus.CONNECTED:
+            return connection
+        if connection.status is ScopusConnectionStatus.EXPIRED and connection.token is not None:
+            if not connection.token.refresh_token or self._oauth_client is None:
+                raise RuntimeError("Scopus OAuth token is expired and cannot be refreshed")
+            refreshed = self._oauth_client.refresh_token(connection.token.refresh_token)
+            if refreshed.refresh_token is None:
+                refreshed = ScopusOAuthToken(
+                    access_token=refreshed.access_token,
+                    token_type=refreshed.token_type,
+                    expires_at=refreshed.expires_at,
+                    refresh_token=connection.token.refresh_token,
+                    scope=refreshed.scope,
+                )
+            self._token_store.save(refreshed)
+            return ScopusConnection(ScopusConnectionStatus.CONNECTED, refreshed)
+        raise RuntimeError(f"Scopus is not connected: {connection.status.value}")
+
     def apply_token(self, transport_config: ScopusTransportConfig) -> ScopusTransportConfig:
-        token = self._token_store.load()
+        connection = self.ensure_connected()
+        token = connection.token
         if token is None:
-            raise RuntimeError("Scopus is not connected")
-        if token.is_expired:
-            raise RuntimeError("Scopus OAuth token is expired")
+            raise RuntimeError("Scopus connection has no OAuth token")
         return ScopusTransportConfig(
             api_key=transport_config.api_key,
             insttoken=transport_config.insttoken,
