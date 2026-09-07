@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 import json
 
+from psi_jarvis.application.acquisition.contracts import AcquisitionResult
 from psi_jarvis.domain.bibliography.provenance import sha256_text
 
 
@@ -81,3 +82,17 @@ class SynchronizationResult:
     @property
     def success(self) -> bool:
         return self.conflict_count == 0
+
+
+@dataclass(frozen=True)
+class ExternalSynchronizationResult:
+    """Resultado combinado de adquisición remota y sincronización local."""
+
+    acquisition: AcquisitionResult
+    synchronization: SynchronizationResult | None = None
+
+    @property
+    def success(self) -> bool:
+        if not self.acquisition.success:
+            return False
+        return self.synchronization is None or self.synchronization.success
