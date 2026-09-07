@@ -49,15 +49,17 @@ class SQLiteMetadataHistoryRepository:
             )
 
     def list_all(self) -> tuple[MetadataChange, ...]:
+        return self._list("SELECT paper_id, batch_id, source_key, source_record_id, changed_at, changed_fields, before_json, after_json FROM metadata_change_history ORDER BY changed_at, change_key")
+
+    def list_for_paper(self, paper_id: UUID) -> tuple[MetadataChange, ...]:
+        return self._list(
+            "SELECT paper_id, batch_id, source_key, source_record_id, changed_at, changed_fields, before_json, after_json FROM metadata_change_history WHERE paper_id = ? ORDER BY changed_at, change_key",
+            (str(paper_id),),
+        )
+
+    def _list(self, query: str, parameters: tuple[object, ...] = ()) -> tuple[MetadataChange, ...]:
         with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT paper_id, batch_id, source_key, source_record_id,
-                       changed_at, changed_fields, before_json, after_json
-                FROM metadata_change_history
-                ORDER BY changed_at, change_key
-                """
-            ).fetchall()
+            rows = connection.execute(query, parameters).fetchall()
 
         return tuple(
             MetadataChange(
