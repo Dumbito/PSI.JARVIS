@@ -7,8 +7,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QDialogButtonBox, QFrame, QGridLayout,
     QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
-    QProgressBar, QStackedWidget, QStatusBar, QTableWidget, QTableWidgetItem,
-    QTextEdit, QVBoxLayout, QWidget,
+    QProgressBar, QPushButton, QStackedWidget, QStatusBar, QTableWidget,
+    QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget,
 )
 
 from psi_jarvis.gui.data import GuiDataService
@@ -109,8 +109,7 @@ class PapersPage(QWidget):
     def populate(self) -> None:
         self.table.setRowCount(len(self.rows))
         for row, paper in enumerate(self.rows):
-            values = [paper.title, paper.publication_year or "—", paper.journal or "—", paper.doi or "—", paper.pmid or "—"]
-            for col, value in enumerate(values): self.table.setItem(row, col, QTableWidgetItem(str(value)))
+            for col, value in enumerate((paper.title, paper.publication_year or "—", paper.journal or "—", paper.doi or "—", paper.pmid or "—")): self.table.setItem(row, col, QTableWidgetItem(str(value)))
             self.table.item(row, 0).setData(Qt.UserRole, str(paper.id))
 
     def filter_rows(self, text: str) -> None:
@@ -164,14 +163,11 @@ class AnalysisPage(QWidget):
         self.root.addLayout(page_header("Analysis", "Read-only analytical views derived from persisted corpus state."))
         quality = self.data.metadata_quality(); total = quality.total_papers
         frame, layout = card("Metadata quality")
-        fields = (("Abstract", quality.with_abstract), ("Authors", quality.with_authors), ("DOI", quality.with_doi), ("PMID", quality.with_pmid), ("Journal", quality.with_journal), ("Publication year", quality.with_year))
-        for label, count in fields:
+        for label, count in (("Abstract", quality.with_abstract), ("Authors", quality.with_authors), ("DOI", quality.with_doi), ("PMID", quality.with_pmid), ("Journal", quality.with_journal), ("Publication year", quality.with_year)):
             rate = int(count / total * 100) if total else 0; layout.addWidget(QLabel(f"{label}: {count:,}/{total:,} · {rate}% complete"))
         self.root.addWidget(frame)
-        snap = self.data.snapshot(); decisions, decision_layout = card("Decision distribution")
-        decision_layout.addWidget(QLabel(f"Included: {snap.included:,}")); decision_layout.addWidget(QLabel(f"Excluded: {snap.excluded:,}")); decision_layout.addWidget(QLabel(f"Screened: {snap.screened:,}")); self.root.addWidget(decisions)
-        runs, runs_layout = card("Persisted screening runs")
-        snapshots = self.data.screening_runs()
+        snap = self.data.snapshot(); decisions, decision_layout = card("Decision distribution"); decision_layout.addWidget(QLabel(f"Included: {snap.included:,}")); decision_layout.addWidget(QLabel(f"Excluded: {snap.excluded:,}")); decision_layout.addWidget(QLabel(f"Screened: {snap.screened:,}")); self.root.addWidget(decisions)
+        runs, runs_layout = card("Persisted screening runs"); snapshots = self.data.screening_runs()
         if snapshots:
             for run in snapshots[:8]: runs_layout.addWidget(QLabel(f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened · {run.duplicates_removed:,} duplicates removed"))
         else: runs_layout.addWidget(QLabel("No persisted screening runs recorded."))
@@ -180,14 +176,12 @@ class AnalysisPage(QWidget):
 
 class ReportsPage(QWidget):
     def __init__(self, data: GuiDataService) -> None:
-        super().__init__(); self.data = data; root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Reports", "Reproducible reporting backed by the existing application reporting layer."))
-        frame, layout = card("Persisted screening runs available as report provenance")
-        runs = data.screening_runs()
+        super().__init__(); root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Reports", "Reproducible reporting backed by the existing application reporting layer."))
+        frame, layout = card("Persisted screening runs available as report provenance"); runs = data.screening_runs()
         if runs:
             for run in runs: layout.addWidget(QLabel(f"{run.started_at} · {run.criteria_version} · input {run.total_input:,} · unique {run.unique_papers:,} · screened {run.screened_papers:,}"))
         else: layout.addWidget(QLabel("No persisted screening runs recorded yet."))
-        root.addWidget(frame)
-        root.addWidget(QLabel("Report rendering/export remains owned by ReportBuilder, renderers and ReportPackageBuilder. The GUI does not reimplement reporting logic or silently rerun screening.")); root.addStretch()
+        root.addWidget(frame); root.addWidget(QLabel("Report rendering/export remains owned by ReportBuilder, renderers and ReportPackageBuilder. The GUI does not reimplement reporting logic or silently rerun screening.")); root.addStretch()
 
 
 class AuditPage(QWidget):
@@ -220,8 +214,7 @@ class MainWindow(QMainWindow):
             button = QPushButton(f"  {icon}   {label}"); button.setObjectName("nav"); button.setProperty("active", index == 0); button.clicked.connect(lambda checked=False, i=index: self._select_page(i)); self.nav_buttons.append(button); side.addWidget(button)
         side.addStretch(); footer = QLabel("Human methodological authority\n\nDeterministic · Traceable\nReproducible"); footer.setObjectName("tagline"); side.addWidget(footer); root_layout.addWidget(sidebar)
         content = QWidget(); content_layout = QVBoxLayout(content); content_layout.setContentsMargins(0,0,0,0)
-        pages = (DashboardPage(self.data, self.refresh_dashboard), ProjectsPage(self.data), PapersPage(self.data), SourcesPage(self.data), ScreeningPage(self.data), AnalysisPage(self.data), ReportsPage(self.data), AuditPage(self.data), SettingsPage(self.data))
-        for page in pages: self.pages.addWidget(page)
+        for page in (DashboardPage(self.data, self.refresh_dashboard), ProjectsPage(self.data), PapersPage(self.data), SourcesPage(self.data), ScreeningPage(self.data), AnalysisPage(self.data), ReportsPage(self.data), AuditPage(self.data), SettingsPage(self.data)): self.pages.addWidget(page)
         content_layout.addWidget(self.pages); root_layout.addWidget(content,1); self.setCentralWidget(root); self.setStatusBar(QStatusBar())
 
     def _select_page(self, index: int) -> None:
