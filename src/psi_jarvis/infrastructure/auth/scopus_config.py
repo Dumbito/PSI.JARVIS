@@ -46,6 +46,9 @@ def load_scopus_environment() -> ScopusEnvironmentConfig:
     if config is None:
         return ScopusEnvironmentConfig(api_key=None, transport=None, oauth=None)
 
+    if not config.api_key:
+        raise ValueError("Scopus API key is required when local Scopus configuration exists")
+
     transport = ScopusTransportConfig(
         api_key=config.api_key,
         insttoken=config.insttoken,
