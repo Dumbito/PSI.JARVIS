@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -6,6 +7,68 @@ from pathlib import Path
 def run_command(command: list[str]) -> int:
     """Ejecuta un comando y devuelve su código de salida."""
     return subprocess.run(command).returncode
+
+
+def _scopus_manager_from_environment():
+    from psi_jarvis.infrastructure.auth import (
+        ScopusConnectionManager,
+        ScopusOAuthClient,
+        ScopusOAuthConfig,
+        default_scopus_token_store,
+    )
+
+    client_id = os.environ.get("PSI_SCOPUS_CLIENT_ID", "").strip()
+    authorization_endpoint = os.environ.get("PSI_SCOPUS_AUTHORIZATION_ENDPOINT", "").strip()
+    token_endpoint = os.environ.get("PSI_SCOPUS_TOKEN_ENDPOINT", "").strip()
+    if not client_id or not authorization_endpoint or not token_endpoint:
+        return ScopusConnectionManager(None, default_scopus_token_store())
+
+    raw_scopes = os.environ.get("PSI_SCOPUS_SCOPES", "").strip()
+    scopes = tuple(scope for scope in raw_scopes.split() if scope)
+    config = ScopusOAuthConfig(
+        client_id=client_id,
+        client_secret=os.environ.get("PSI_SCOPUS_CLIENT_SECRET") or None,
+        authorization_endpoint=authorization_endpoint,
+        token_endpoint=token_endpoint,
+        scopes=scopes,
+        redirect_port=int(os.environ.get("PSI_SCOPUS_REDIRECT_PORT", "0")),
+    )
+    return ScopusConnectionManager(
+        config,
+        default_scopus_token_store(),
+        oauth_client=ScopusOAuthClient(config),
+    )
+
+
+def scopus_status() -> int:
+    manager = _scopus_manager_from_environment()
+    connection = manager.inspect()
+    labels = {
+        "unconfigured": "No configurado",
+        "disconnected": "Desconectado",
+        "connected": "Conectado",
+        "expired": "Sesión expirada",
+    }
+    print(f"Scopus: {labels[connection.status.value]}")
+    return 0
+
+
+def scopus_login() -> int:
+    manager = _scopus_manager_from_environment()
+    try:
+        connection = manager.login()
+    except Exception as exc:
+        print(f"No se pudo conectar con Scopus: {exc}")
+        return 1
+    print(f"Scopus: {connection.status.value}")
+    return 0
+
+
+def scopus_logout() -> int:
+    manager = _scopus_manager_from_environment()
+    manager.logout()
+    print("Scopus: sesión local eliminada")
+    return 0
 
 
 def doctor() -> int:
@@ -115,6 +178,9 @@ def main() -> int:
         print("  psi status")
         print("  psi check")
         print("  psi doctor")
+        print("  psi scopus status")
+        print("  psi scopus login")
+        print("  psi scopus logout")
         return 0
 
     command = sys.argv[1]
@@ -141,6 +207,18 @@ def main() -> int:
 
     if command == "doctor":
         return doctor()
+
+    if command == "scopus":
+        if len(sys.argv) < 3:
+            print("Uso: psi scopus {status|login|logout}")
+            return 1
+        subcommand = sys.argv[2]
+        if subcommand == "status":
+            return scopus_status()
+        if subcommand == "login":
+            return scopus_login()
+        if subcommand == "logout":
+            return scopus_logout()
 
     print(f"Comando desconocido: {command}")
     return 1
