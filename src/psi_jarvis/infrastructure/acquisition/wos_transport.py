@@ -7,7 +7,10 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from psi_jarvis.application.acquisition.contracts import BibliographicQuery
-from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionResponse
+from psi_jarvis.infrastructure.acquisition.remote_base import (
+    RemoteAcquisitionResponse,
+    read_remote_response,
+)
 
 
 DEFAULT_WOS_STARTER_BASE_URL = "https://api.clarivate.com/apis/wos-starter/v1"
@@ -56,7 +59,7 @@ class WebOfScienceStarterTransport:
             status = getattr(response, "status", 200)
             if status != 200:
                 raise RuntimeError(f"Web of Science Starter API returned HTTP {status}")
-            content = response.read()
+            content = read_remote_response(response)
         raw_content = content.decode("utf-8")
         try:
             json.loads(raw_content)
@@ -77,11 +80,18 @@ class WebOfScienceStarterTransport:
                 raise ValueError(f"Unsupported Web of Science parameter: {name}")
             params[name] = value
         if "limit" in params:
-            limit = int(params["limit"])
+            try:
+                limit = int(params["limit"])
+            except ValueError as exc:
+                raise ValueError("Web of Science limit must be an integer") from exc
             if not 1 <= limit <= 50:
                 raise ValueError("Web of Science limit must be between 1 and 50")
             params["limit"] = str(limit)
-        page = int(params.get("page", "1"))
+        try:
+            page = int(params.get("page", "1"))
+        except ValueError as exc:
+            raise ValueError("Web of Science page must be an integer") from exc
         if page < 1:
             raise ValueError("Web of Science page must be positive")
+        params["page"] = str(page)
         return params
