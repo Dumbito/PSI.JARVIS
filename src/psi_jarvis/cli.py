@@ -21,7 +21,14 @@ def _scopus_manager_from_environment():
         config.oauth,
         default_scopus_token_store(),
         oauth_client=ScopusOAuthClient(config.oauth) if config.oauth is not None else None,
+        transport_config=config.transport,
     )
+
+
+def _source_registry_from_environment():
+    from psi_jarvis.infrastructure.connections import build_default_source_connection_registry
+
+    return build_default_source_connection_registry(_scopus_manager_from_environment())
 
 
 def scopus_configure() -> int:
@@ -41,15 +48,37 @@ def scopus_configure() -> int:
 
 
 def scopus_status() -> int:
-    manager = _scopus_manager_from_environment()
-    connection = manager.inspect()
+    state = _source_registry_from_environment().inspect("scopus")
     labels = {
-        "unconfigured": "No configurado",
-        "disconnected": "Desconectado",
-        "connected": "Conectado",
-        "expired": "Sesión expirada",
+        "unavailable": "No disponible",
+        "configured": "Configurado (sin verificar acceso)",
+        "auth_required": "Requiere autenticación",
+        "auth_expired": "Sesión expirada",
+        "access_limited": "Acceso limitado",
+        "available": "Disponible",
+        "error": "Error",
     }
-    print(f"Scopus: {labels[connection.status.value]}")
+    print(f"Scopus: {labels[state.status.value]}")
+    if state.credential_method.value != "none":
+        print(f"Método: {state.credential_method.value}")
+    if state.detail:
+        print(f"Detalle: {state.detail}")
+    return 0
+
+
+def sources_status() -> int:
+    registry = _source_registry_from_environment()
+    for state in registry.inspect_all():
+        labels = {
+            "unavailable": "NO DISPONIBLE",
+            "configured": "CONFIGURADO",
+            "auth_required": "REQUIERE AUTENTICACIÓN",
+            "auth_expired": "SESIÓN EXPIRADA",
+            "access_limited": "ACCESO LIMITADO",
+            "available": "DISPONIBLE",
+            "error": "ERROR",
+        }
+        print(f"{state.source.display_name}: {labels[state.status.value]}")
     return 0
 
 
@@ -161,6 +190,7 @@ def main() -> int:
         print("  psi status")
         print("  psi check")
         print("  psi doctor")
+        print("  psi sources status")
         print("  psi scopus configure")
         print("  psi scopus status")
         print("  psi scopus login")
@@ -185,6 +215,12 @@ def main() -> int:
 
     if command == "doctor":
         return doctor()
+
+    if command == "sources":
+        if len(sys.argv) < 3 or sys.argv[2] != "status":
+            print("Uso: psi sources status")
+            return 1
+        return sources_status()
 
     if command == "scopus":
         if len(sys.argv) < 3:
