@@ -101,5 +101,6 @@ def test_schema_version_five_migrates_without_inventing_historical_provenance(tm
     assert loaded is not None
     assert loaded.provenances == ()
     with sqlite3.connect(database) as migrated:
-        assert migrated.execute("SELECT version FROM schema_version").fetchone()[0] == 6
+        assert migrated.execute("SELECT version FROM schema_version").fetchone()[0] == 7
         assert migrated.execute("SELECT COUNT(*) FROM acquisition_batches").fetchone()[0] == 0
+        assert migrated.execute("SELECT COUNT(*) FROM metadata_change_history").fetchone()[0] == 0
