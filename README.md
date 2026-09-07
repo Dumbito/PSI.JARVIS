@@ -21,7 +21,28 @@ PSI.JARVIS is a modular, reproducible and auditable platform for scientific lite
 
 ## Status
 
-Development — foundation, acquisition and external synchronization layers implemented. GUI/dashboard and AI/NLP assistance remain planned roadmap phases.
+Development — foundation, acquisition, external synchronization and professional desktop GUI layers implemented. AI/NLP assistance remains the planned roadmap phase.
+
+## Desktop GUI
+
+PSI.JARVIS includes a PySide6 desktop workspace with a read-only presentation layer over persisted application state. It exposes:
+
+- Dashboard metrics for projects, papers and screening progress
+- Project and paper inspection
+- Paper search and metadata/abstract/provenance details
+- Bibliographic source connection visibility
+- Persisted screening decisions and filters
+- Metadata-change audit history
+- Analysis and reporting capability surfaces without duplicating domain logic
+- Runtime settings and methodological safeguards
+
+The GUI does not replace the deterministic screening engine, resolve synchronization conflicts, or silently alter audited scientific decisions.
+
+Launch locally with:
+
+```text
+psi-gui
+```
 
 ## Bibliographic sources
 
