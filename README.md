@@ -21,7 +21,27 @@ PSI.JARVIS is a modular, reproducible and auditable platform for scientific lite
 
 ## Status
 
-Development — Foundation phase.
+Development — foundation, acquisition and external synchronization layers implemented. GUI/dashboard and AI/NLP assistance remain planned roadmap phases.
+
+## Bibliographic sources
+
+PSI.JARVIS supports remote bibliographic acquisition through adapters for PubMed, Scopus, Web of Science and Zotero. Provider-specific transports remain isolated from the application and screening layers.
+
+Remote acquisitions produce immutable acquisition receipts and per-record provenance. Provenance records include the source key, source record identifier when available, adapter/version metadata, request and input hashes, mapping versions and the raw-record hash.
+
+## External synchronization
+
+The synchronization layer is deliberately conservative:
+
+- New external records are inserted with their provenance.
+- Existing records are matched by DOI, then PMID, then normalized title.
+- Incoming metadata can fill local fields that are empty.
+- Non-empty metadata discrepancies become explicit conflicts and are not overwritten automatically.
+- New provenance can be appended without replacing prior provenance.
+- Metadata changes are stored in `metadata_change_history` and are idempotent by deterministic change key.
+- Screening results and screening audits are outside the synchronization write path and are not modified by metadata synchronization.
+
+SQLite schema migrations now include the synchronization history layer as schema version 7.
 
 ## Scopus connection
 
