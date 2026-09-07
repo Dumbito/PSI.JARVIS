@@ -7,7 +7,10 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from psi_jarvis.application.acquisition.contracts import BibliographicQuery
-from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionResponse
+from psi_jarvis.infrastructure.acquisition.remote_base import (
+    RemoteAcquisitionResponse,
+    read_remote_response,
+)
 
 
 DEFAULT_ZOTERO_BASE_URL = "https://api.zotero.org"
@@ -58,7 +61,7 @@ class ZoteroWebApiTransport:
             status = getattr(response, "status", 200)
             if status != 200:
                 raise RuntimeError(f"Zotero Web API returned HTTP {status}")
-            content = response.read()
+            content = read_remote_response(response)
         raw_content = content.decode("utf-8")
         try:
             json.loads(raw_content)
@@ -79,11 +82,18 @@ class ZoteroWebApiTransport:
             if name not in allowed:
                 raise ValueError(f"Unsupported Zotero parameter: {name}")
             params[name] = value
-        limit = int(params["limit"])
+        try:
+            limit = int(params["limit"])
+        except ValueError as exc:
+            raise ValueError("Zotero limit must be an integer") from exc
         if not 1 <= limit <= 100:
             raise ValueError("Zotero limit must be between 1 and 100")
+        params["limit"] = str(limit)
         if "start" in params:
-            start = int(params["start"])
+            try:
+                start = int(params["start"])
+            except ValueError as exc:
+                raise ValueError("Zotero start must be an integer") from exc
             if start < 0:
                 raise ValueError("Zotero start must be non-negative")
             params["start"] = str(start)
