@@ -31,20 +31,26 @@ def _local_or_environment() -> ScopusLocalConfig | None:
         "PSI_SCOPUS_SCOPES",
         "PSI_SCOPUS_REDIRECT_PORT",
     )
-    has_environment_oauth = any(os.environ.get(key, "").strip() for key in environment_oauth_keys)
+    has_environment_oauth = any(
+        os.environ.get(key, "").strip() for key in environment_oauth_keys
+    )
 
     if environment_key or has_environment_oauth:
         return ScopusLocalConfig(
             api_key=environment_key or (local.api_key if local is not None else ""),
-            insttoken=os.environ.get("PSI_SCOPUS_INSTTOKEN") or (local.insttoken if local else None),
+            insttoken=os.environ.get("PSI_SCOPUS_INSTTOKEN")
+            or (local.insttoken if local else None),
             client_id=os.environ.get("PSI_SCOPUS_CLIENT_ID") or None,
             client_secret=os.environ.get("PSI_SCOPUS_CLIENT_SECRET") or None,
-            authorization_endpoint=os.environ.get("PSI_SCOPUS_AUTHORIZATION_ENDPOINT") or None,
+            authorization_endpoint=os.environ.get("PSI_SCOPUS_AUTHORIZATION_ENDPOINT")
+            or None,
             token_endpoint=os.environ.get("PSI_SCOPUS_TOKEN_ENDPOINT") or None,
             scopes=tuple(os.environ.get("PSI_SCOPUS_SCOPES", "").split()),
             base_url=os.environ.get(
                 "PSI_SCOPUS_BASE_URL",
-                local.base_url if local is not None else "https://api.elsevier.com/content/search/scopus",
+                local.base_url
+                if local is not None
+                else "https://api.elsevier.com/content/search/scopus",
             ),
             redirect_port=int(os.environ.get("PSI_SCOPUS_REDIRECT_PORT", "0")),
         )
@@ -55,6 +61,21 @@ def load_scopus_environment() -> ScopusEnvironmentConfig:
     config = _local_or_environment()
     if config is None:
         return ScopusEnvironmentConfig(api_key=None, transport=None, oauth=None)
+
+    has_oauth = any(
+        value
+        for value in (
+            config.client_id,
+            config.authorization_endpoint,
+            config.token_endpoint,
+        )
+    )
+    if has_oauth and not config.client_id:
+        raise ValueError("PSI_SCOPUS_CLIENT_ID is required for Scopus OAuth")
+    if has_oauth and not config.authorization_endpoint:
+        raise ValueError("PSI_SCOPUS_AUTHORIZATION_ENDPOINT is required for Scopus OAuth")
+    if has_oauth and not config.token_endpoint:
+        raise ValueError("PSI_SCOPUS_TOKEN_ENDPOINT is required for Scopus OAuth")
 
     if not config.api_key:
         raise ValueError("Scopus API key is required when local Scopus configuration exists")
@@ -69,11 +90,7 @@ def load_scopus_environment() -> ScopusEnvironmentConfig:
     )
 
     oauth = None
-    if config.client_id or config.authorization_endpoint or config.token_endpoint:
-        if not (config.client_id and config.authorization_endpoint and config.token_endpoint):
-            raise ValueError(
-                "Scopus OAuth requires client ID, authorization endpoint and token endpoint"
-            )
+    if has_oauth:
         oauth = ScopusOAuthConfig(
             client_id=config.client_id,
             client_secret=config.client_secret,
