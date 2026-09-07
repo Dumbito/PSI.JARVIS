@@ -1,3 +1,7 @@
+from psi_jarvis.infrastructure.auth.scopus_config import (
+    ScopusEnvironmentConfig,
+    load_scopus_environment,
+)
 from psi_jarvis.infrastructure.auth.scopus_connection import (
     ScopusConnection,
     ScopusConnectionManager,
@@ -18,8 +22,10 @@ __all__ = [
     "ScopusConnection",
     "ScopusConnectionManager",
     "ScopusConnectionStatus",
+    "ScopusEnvironmentConfig",
     "ScopusOAuthClient",
     "ScopusOAuthConfig",
     "ScopusOAuthToken",
     "default_scopus_token_store",
+    "load_scopus_environment",
 ]
