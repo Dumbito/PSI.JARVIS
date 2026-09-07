@@ -162,9 +162,48 @@ class ScopusOAuthClient:
         }
         if self._config.client_secret:
             payload["client_secret"] = self._config.client_secret
+        return self._token_request(payload)
+
+    def refresh_token(self, refresh_token: str) -> ScopusOAuthToken:
+        if not refresh_token.strip():
+            raise ValueError("Scopus OAuth refresh token cannot be empty")
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": self._config.client_id,
+        }
+        if self._config.client_secret:
+            payload["client_secret"] = self._config.client_secret
+        return self._token_request(payload)
+
+    def login(self, timeout_seconds: float = 300.0) -> ScopusOAuthToken:
+        authorization = self.prepare_authorization()
+        callback = _LoopbackCallbackServer(
+            host=self._config.redirect_host,
+            port=self._config.redirect_port,
+            path=self._config.redirect_path,
+            expected_state=authorization.state,
+        )
+        callback.start()
+        bound_redirect_uri = self._redirect_uri(callback.port)
+        authorization = OAuthAuthorizationRequest(
+            authorization_url=self._replace_redirect_uri(authorization.authorization_url, bound_redirect_uri),
+            state=authorization.state,
+            code_verifier=authorization.code_verifier,
+            redirect_uri=bound_redirect_uri,
+        )
+        self._browser_opener(authorization.authorization_url)
+        callback.wait(timeout_seconds)
+        if callback.error:
+            raise RuntimeError(f"Scopus OAuth authorization failed: {callback.error}")
+        if not callback.code:
+            raise TimeoutError("Scopus OAuth callback did not return an authorization code")
+        return self.exchange_code(callback.code, authorization)
+
+    def _token_request(self, payload: Mapping[str, str]) -> ScopusOAuthToken:
         http_request = Request(
             self._config.token_endpoint,
-            data=urlencode(payload).encode("utf-8"),
+            data=urlencode(dict(payload)).encode("utf-8"),
             method="POST",
         )
         http_request.add_header("Accept", "application/json")
@@ -191,30 +230,6 @@ class ScopusOAuthClient:
             refresh_token=payload.get("refresh_token"),
             scope=payload.get("scope"),
         )
-
-    def login(self, timeout_seconds: float = 300.0) -> ScopusOAuthToken:
-        authorization = self.prepare_authorization()
-        callback = _LoopbackCallbackServer(
-            host=self._config.redirect_host,
-            port=self._config.redirect_port,
-            path=self._config.redirect_path,
-            expected_state=authorization.state,
-        )
-        callback.start()
-        bound_redirect_uri = self._redirect_uri(callback.port)
-        authorization = OAuthAuthorizationRequest(
-            authorization_url=self._replace_redirect_uri(authorization.authorization_url, bound_redirect_uri),
-            state=authorization.state,
-            code_verifier=authorization.code_verifier,
-            redirect_uri=bound_redirect_uri,
-        )
-        self._browser_opener(authorization.authorization_url)
-        callback.wait(timeout_seconds)
-        if callback.error:
-            raise RuntimeError(f"Scopus OAuth authorization failed: {callback.error}")
-        if not callback.code:
-            raise TimeoutError("Scopus OAuth callback did not return an authorization code")
-        return self.exchange_code(callback.code, authorization)
 
     def _redirect_uri(self, port: int) -> str:
         return f"http://{self._config.redirect_host}:{port}{self._config.redirect_path}"
