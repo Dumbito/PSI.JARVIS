@@ -47,6 +47,7 @@ class BibliographicSynchronizationService:
         metadata_changes: list[MetadataChange] = []
 
         for candidate in incoming:
+            self._require_provenance(candidate)
             identity = self._identity_key(candidate)
             current = by_identity.get(identity)
 
@@ -117,20 +118,22 @@ class BibliographicSynchronizationService:
         return f"title:{' '.join(paper.title.lower().split())}"
 
     @staticmethod
+    def _require_provenance(paper: Paper) -> None:
+        if not paper.provenances:
+            raise ValueError("Incoming synchronized paper must contain provenance")
+
+    @staticmethod
     def _merge_provenances(current: Paper, incoming: Paper):
         by_key = {item.key: item for item in (*current.provenances, *incoming.provenances)}
         return tuple(by_key[key] for key in sorted(by_key))
 
     @staticmethod
     def _batch_id(paper: Paper):
-        if not paper.provenances:
-            raise ValueError("Incoming synchronized paper must contain provenance")
-        return paper.provenances[0].receipt.batch_id
+        provenance = paper.provenances[0]
+        return provenance.receipt.batch_id
 
     @staticmethod
     def _provenance_identity(paper: Paper) -> tuple[str, str | None]:
-        if not paper.provenances:
-            raise ValueError("Incoming synchronized paper must contain provenance")
         provenance = paper.provenances[0]
         return provenance.source_key, provenance.source_record_id
 
