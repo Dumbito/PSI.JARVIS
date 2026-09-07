@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from psi_jarvis.infrastructure.acquisition.wos_transport import WebOfScienceTransportConfig
+from psi_jarvis.infrastructure.acquisition.zotero_transport import ZoteroTransportConfig
 from psi_jarvis.infrastructure.auth.scopus_connection import (
     ScopusConnectionManager,
     ScopusConnectionStatus,
@@ -44,6 +46,9 @@ ZOTERO_SOURCE = SourceConnectionDefinition(
 
 def build_default_source_connection_registry(
     scopus_manager: ScopusConnectionManager,
+    *,
+    wos_config: WebOfScienceTransportConfig | None = None,
+    zotero_config: ZoteroTransportConfig | None = None,
 ) -> SourceConnectionRegistry:
     registry = SourceConnectionRegistry()
 
@@ -59,21 +64,40 @@ def build_default_source_connection_registry(
     registry.register(SCOPUS_SOURCE, lambda: _scopus_state(scopus_manager))
     registry.register(
         WOS_SOURCE,
-        lambda: SourceConnectionState(
-            source=WOS_SOURCE,
-            status=SourceConnectionStatus.UNAVAILABLE,
-            detail="Conector todavía no implementado.",
+        lambda: _configured_api_state(
+            WOS_SOURCE,
+            wos_config is not None,
+            "Credencial configurada; falta verificar el acceso efectivo a la API.",
         ),
     )
     registry.register(
         ZOTERO_SOURCE,
-        lambda: SourceConnectionState(
-            source=ZOTERO_SOURCE,
-            status=SourceConnectionStatus.UNAVAILABLE,
-            detail="Conector todavía no implementado.",
+        lambda: _configured_api_state(
+            ZOTERO_SOURCE,
+            zotero_config is not None,
+            "Credencial configurada; falta verificar el acceso efectivo a la API.",
         ),
     )
     return registry
+
+
+def _configured_api_state(
+    source: SourceConnectionDefinition,
+    configured: bool,
+    detail: str,
+) -> SourceConnectionState:
+    if configured:
+        return SourceConnectionState(
+            source=source,
+            status=SourceConnectionStatus.CONFIGURED,
+            credential_method=CredentialMethod.API_KEY,
+            detail=detail,
+        )
+    return SourceConnectionState(
+        source=source,
+        status=SourceConnectionStatus.UNAVAILABLE,
+        detail="Conector disponible, pero no hay credencial configurada.",
+    )
 
 
 def _scopus_state(manager: ScopusConnectionManager) -> SourceConnectionState:
