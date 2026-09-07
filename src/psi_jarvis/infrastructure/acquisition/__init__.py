@@ -7,6 +7,11 @@ from psi_jarvis.infrastructure.acquisition.pubmed_transport import (
 )
 from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionResponse, RemoteBibliographicAdapter
 from psi_jarvis.infrastructure.acquisition.ris_importer import RISImporter
+from psi_jarvis.infrastructure.acquisition.scopus import ScopusAdapter, ScopusJsonMapper, build_scopus_adapter
+from psi_jarvis.infrastructure.acquisition.scopus_transport import (
+    ScopusSearchTransport,
+    ScopusTransportConfig,
+)
 from psi_jarvis.infrastructure.acquisition.wos import WebOfScienceAdapter, WebOfScienceJsonMapper, build_wos_adapter
 from psi_jarvis.infrastructure.acquisition.wos_transport import (
     DEFAULT_WOS_STARTER_BASE_URL,
@@ -31,6 +36,10 @@ __all__ = [
     "RISImporter",
     "RemoteAcquisitionResponse",
     "RemoteBibliographicAdapter",
+    "ScopusAdapter",
+    "ScopusJsonMapper",
+    "ScopusSearchTransport",
+    "ScopusTransportConfig",
     "WebOfScienceAdapter",
     "WebOfScienceJsonMapper",
     "WebOfScienceStarterTransport",
@@ -41,6 +50,7 @@ __all__ = [
     "ZoteroWebApiTransport",
     "build_default_bibliographic_registry",
     "build_pubmed_adapter",
+    "build_scopus_adapter",
     "build_wos_adapter",
     "build_zotero_adapter",
 ]
