@@ -1,8 +1,11 @@
 import json
 import sqlite3
+from datetime import datetime
 from pathlib import Path
+from uuid import UUID
 
 from psi_jarvis.application.synchronization.contracts import MetadataChange
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 class SQLiteMetadataHistoryRepository:
@@ -15,31 +18,12 @@ class SQLiteMetadataHistoryRepository:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
     def _initialize(self) -> None:
         with self._connect() as connection:
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS metadata_change_history (
-                    change_key TEXT PRIMARY KEY,
-                    paper_id TEXT NOT NULL,
-                    batch_id TEXT NOT NULL,
-                    source_key TEXT NOT NULL,
-                    source_record_id TEXT,
-                    changed_at TEXT NOT NULL,
-                    changed_fields TEXT NOT NULL,
-                    before_json TEXT NOT NULL,
-                    after_json TEXT NOT NULL
-                )
-                """
-            )
-            connection.execute(
-                "CREATE INDEX IF NOT EXISTS idx_metadata_change_history_paper_id ON metadata_change_history(paper_id)"
-            )
-            connection.execute(
-                "CREATE INDEX IF NOT EXISTS idx_metadata_change_history_batch_id ON metadata_change_history(batch_id)"
-            )
+            initialize_schema(connection)
 
     def record(self, change: MetadataChange) -> None:
         with self._connect() as connection:
@@ -68,15 +52,12 @@ class SQLiteMetadataHistoryRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT change_key, paper_id, batch_id, source_key, source_record_id,
+                SELECT paper_id, batch_id, source_key, source_record_id,
                        changed_at, changed_fields, before_json, after_json
                 FROM metadata_change_history
                 ORDER BY changed_at, change_key
                 """
             ).fetchall()
-
-        from datetime import datetime
-        from uuid import UUID
 
         return tuple(
             MetadataChange(
