@@ -45,11 +45,12 @@ def test_exchange_code_posts_form_data_and_builds_token():
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def read(self):
-            return (
+        def read(self, size=-1):
+            payload = (
                 b'{"access_token":"access-123","token_type":"Bearer",'
                 b'"expires_in":3600,"refresh_token":"refresh-123","scope":"scopus.read"}'
             )
+            return payload if size < 0 else payload[:size]
 
     def opener(request, timeout):
         calls.append((request, timeout))
@@ -87,8 +88,9 @@ def test_exchange_code_includes_client_secret_when_configured():
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def read(self):
-            return b'{"access_token":"access-123"}'
+        def read(self, size=-1):
+            payload = b'{"access_token":"access-123"}'
+            return payload if size < 0 else payload[:size]
 
     def opener(request, timeout):
         captured.append(parse_qs(request.data.decode("utf-8")))
@@ -120,8 +122,9 @@ def test_refresh_token_posts_refresh_grant():
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def read(self):
-            return b'{"access_token":"new-access","expires_in":3600}'
+        def read(self, size=-1):
+            payload = b'{"access_token":"new-access","expires_in":3600}'
+            return payload if size < 0 else payload[:size]
 
     def opener(request, timeout):
         captured.append(parse_qs(request.data.decode("utf-8")))
@@ -146,8 +149,9 @@ def test_invalid_token_response_is_rejected():
         def __exit__(self, exc_type, exc, tb):
             return False
 
-        def read(self):
-            return b'{"token_type":"Bearer"}'
+        def read(self, size=-1):
+            payload = b'{"token_type":"Bearer"}'
+            return payload if size < 0 else payload[:size]
 
     client = ScopusOAuthClient(CONFIG, opener=lambda request, timeout: FakeResponse())
     authorization = client.prepare_authorization()
@@ -171,6 +175,7 @@ def test_token_store_round_trip_and_permissions(tmp_path: Path):
 
     assert loaded == token
     assert path.stat().st_mode & 0o777 == 0o600
+    assert path.parent.stat().st_mode & 0o777 == 0o700
 
 
 def test_token_store_delete(tmp_path: Path):
@@ -191,7 +196,7 @@ def test_expired_token_is_detected():
     assert token.is_expired is True
 
 
-def test_oauth_config_validates_required_fields():
+def test_oauth_config_validates_required_fields_and_loopback_callback():
     with pytest.raises(ValueError, match="client_id"):
         ScopusOAuthConfig(
             client_id="",
@@ -206,3 +211,18 @@ def test_oauth_config_validates_required_fields():
             token_endpoint="https://auth.example.test/token",
             redirect_port=70000,
         )
+
+    with pytest.raises(ValueError, match="loopback"):
+        ScopusOAuthConfig(
+            client_id="client-123",
+            authorization_endpoint="https://auth.example.test/authorize",
+            token_endpoint="https://auth.example.test/token",
+            redirect_host="0.0.0.0",
+        )
+
+    ScopusOAuthConfig(
+        client_id="client-123",
+        authorization_endpoint="https://auth.example.test/authorize",
+        token_endpoint="https://auth.example.test/token",
+        redirect_host="::1",
+    )
