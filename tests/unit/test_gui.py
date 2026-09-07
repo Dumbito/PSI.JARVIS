@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 
 from psi_jarvis.gui.app import MainWindow
 from psi_jarvis.gui.data import DashboardSnapshot, GuiDataService, MetadataQualitySnapshot
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
 def test_gui_data_without_database_is_safe(tmp_path):
@@ -54,5 +55,20 @@ def test_main_window_navigation_updates_active_page(tmp_path):
     assert window.pages.currentIndex() == 5
     assert window.nav_buttons[5].property("active") is True
     assert window.nav_buttons[0].property("active") is False
+    window.close()
+    app.processEvents()
+
+
+def test_main_window_builds_against_initialized_schema(tmp_path):
+    database_path = tmp_path / "psi.db"
+    with sqlite3.connect(database_path) as connection:
+        initialize_schema(connection)
+        connection.commit()
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(data_service=GuiDataService(database_path))
+    assert window.pages.count() == 9
+    assert window.data.snapshot() == DashboardSnapshot()
+    assert window.data.metadata_quality() == MetadataQualitySnapshot()
     window.close()
     app.processEvents()
