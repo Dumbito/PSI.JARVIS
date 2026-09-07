@@ -21,12 +21,22 @@ class ScopusEnvironmentConfig:
 
 
 def _local_or_environment() -> ScopusLocalConfig | None:
-    environment_key = os.environ.get("PSI_SCOPUS_API_KEY", "").strip()
     local = ScopusLocalConfigStore().load()
-    if environment_key:
+    environment_key = os.environ.get("PSI_SCOPUS_API_KEY", "").strip()
+    environment_oauth_keys = (
+        "PSI_SCOPUS_CLIENT_ID",
+        "PSI_SCOPUS_CLIENT_SECRET",
+        "PSI_SCOPUS_AUTHORIZATION_ENDPOINT",
+        "PSI_SCOPUS_TOKEN_ENDPOINT",
+        "PSI_SCOPUS_SCOPES",
+        "PSI_SCOPUS_REDIRECT_PORT",
+    )
+    has_environment_oauth = any(os.environ.get(key, "").strip() for key in environment_oauth_keys)
+
+    if environment_key or has_environment_oauth:
         return ScopusLocalConfig(
-            api_key=environment_key,
-            insttoken=os.environ.get("PSI_SCOPUS_INSTTOKEN") or None,
+            api_key=environment_key or (local.api_key if local is not None else ""),
+            insttoken=os.environ.get("PSI_SCOPUS_INSTTOKEN") or (local.insttoken if local else None),
             client_id=os.environ.get("PSI_SCOPUS_CLIENT_ID") or None,
             client_secret=os.environ.get("PSI_SCOPUS_CLIENT_SECRET") or None,
             authorization_endpoint=os.environ.get("PSI_SCOPUS_AUTHORIZATION_ENDPOINT") or None,
@@ -34,7 +44,7 @@ def _local_or_environment() -> ScopusLocalConfig | None:
             scopes=tuple(os.environ.get("PSI_SCOPUS_SCOPES", "").split()),
             base_url=os.environ.get(
                 "PSI_SCOPUS_BASE_URL",
-                "https://api.elsevier.com/content/search/scopus",
+                local.base_url if local is not None else "https://api.elsevier.com/content/search/scopus",
             ),
             redirect_port=int(os.environ.get("PSI_SCOPUS_REDIRECT_PORT", "0")),
         )
