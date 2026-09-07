@@ -6,6 +6,38 @@ from psi_jarvis.application.acquisition.contracts import AcquisitionResult, Bibl
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
 
 
+DEFAULT_MAX_REMOTE_RESPONSE_BYTES = 128 * 1024 * 1024
+
+
+def read_remote_response(response: object, *, max_bytes: int = DEFAULT_MAX_REMOTE_RESPONSE_BYTES) -> bytes:
+    """Lee una respuesta HTTP con un límite explícito de memoria."""
+
+    if max_bytes < 1:
+        raise ValueError("Remote response size limit must be positive")
+
+    headers = getattr(response, "headers", None)
+    if headers is not None:
+        content_length = headers.get("Content-Length")
+        if content_length is not None:
+            try:
+                declared_length = int(content_length)
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError("Invalid HTTP Content-Length header") from exc
+            if declared_length > max_bytes:
+                raise RuntimeError(
+                    f"Remote response exceeds the {max_bytes} byte safety limit"
+                )
+
+    try:
+        content = response.read(max_bytes + 1)
+    except TypeError as exc:
+        raise RuntimeError("HTTP response object must support bounded reads") from exc
+
+    if len(content) > max_bytes:
+        raise RuntimeError(f"Remote response exceeds the {max_bytes} byte safety limit")
+    return content
+
+
 @dataclass(frozen=True)
 class RemoteAcquisitionResponse:
     """Respuesta cruda de un proveedor bibliográfico remoto."""
