@@ -60,7 +60,7 @@ class ScopusSearchTransport:
         return RemoteAcquisitionResponse(raw_content=raw_content, source_locator=request_url)
 
     def _request(self, params: Mapping[str, str]) -> tuple[str, str]:
-        url = f"{self._config.base_url.rstrip('/')}/?{urlencode(dict(params))}"
+        url = f"{self._config.base_url.rstrip('/')}?{urlencode(dict(params))}"
         request = Request(url, method="GET")
         request.add_header("Accept", "application/json")
         request.add_header("X-ELS-APIKey", self._config.api_key)
@@ -76,7 +76,8 @@ class ScopusSearchTransport:
             content = response.read()
         return content.decode("utf-8"), self._safe_source_locator(params)
 
-    def _common_query_params(self) -> dict[str, str]:
+    @staticmethod
+    def _common_query_params() -> dict[str, str]:
         return {"httpAccept": "application/json"}
 
     def _query_parameters(self, query: BibliographicQuery) -> dict[str, str]:
@@ -121,5 +122,4 @@ class ScopusSearchTransport:
             raise RuntimeError(f"Invalid Scopus Search JSON: {exc}") from exc
 
     def _safe_source_locator(self, params: Mapping[str, str]) -> str:
-        safe_params = {key: value for key, value in params.items() if key != "apiKey"}
-        return f"{self._config.base_url.rstrip('/')}/?{urlencode(safe_params)}"
+        return f"{self._config.base_url.rstrip('/')}?{urlencode(dict(params))}" 
