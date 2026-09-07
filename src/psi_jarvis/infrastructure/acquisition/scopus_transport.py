@@ -7,7 +7,10 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from psi_jarvis.application.acquisition.contracts import BibliographicQuery
-from psi_jarvis.infrastructure.acquisition.remote_base import RemoteAcquisitionResponse
+from psi_jarvis.infrastructure.acquisition.remote_base import (
+    RemoteAcquisitionResponse,
+    read_remote_response,
+)
 
 
 DEFAULT_SCOPUS_BASE_URL = "https://api.elsevier.com/content/search/scopus"
@@ -73,7 +76,7 @@ class ScopusSearchTransport:
             status = getattr(response, "status", 200)
             if status != 200:
                 raise RuntimeError(f"Scopus Search API returned HTTP {status}")
-            content = response.read()
+            content = read_remote_response(response)
         return content.decode("utf-8"), self._safe_source_locator(params)
 
     @staticmethod
@@ -122,4 +125,4 @@ class ScopusSearchTransport:
             raise RuntimeError(f"Invalid Scopus Search JSON: {exc}") from exc
 
     def _safe_source_locator(self, params: Mapping[str, str]) -> str:
-        return f"{self._config.base_url.rstrip('/')}?{urlencode(dict(params))}" 
+        return f"{self._config.base_url.rstrip('/')}?{urlencode(dict(params))}"
