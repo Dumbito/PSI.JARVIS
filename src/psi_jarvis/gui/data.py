@@ -59,6 +59,29 @@ class AuditRow:
     changed_fields: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class ScreeningRunSnapshot:
+    run_id: str
+    project_id: str | None
+    criteria_version: str
+    started_at: str
+    total_input: int
+    unique_papers: int
+    duplicates_removed: int
+    screened_papers: int
+
+
+@dataclass(frozen=True)
+class MetadataQualitySnapshot:
+    total_papers: int = 0
+    with_abstract: int = 0
+    with_authors: int = 0
+    with_doi: int = 0
+    with_pmid: int = 0
+    with_journal: int = 0
+    with_year: int = 0
+
+
 def default_database_path() -> Path:
     configured = os.environ.get("PSI_JARVIS_DATABASE_PATH")
     if configured:
@@ -145,6 +168,40 @@ class GuiDataService:
                 decision="Included" if row["included"] else "Excluded",
                 reason=row["reason"], run_id=row["run_id"], criteria_version=row["criteria_version"],
             ) for row in rows
+        )
+
+    def screening_runs(self, limit: int = 100) -> tuple[ScreeningRunSnapshot, ...]:
+        if not self.database_path.exists():
+            return ()
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    "SELECT run_id, project_id, criteria_version, started_at, total_input, unique_papers, "
+                    "duplicates_removed, screened_papers FROM screening_runs ORDER BY started_at DESC LIMIT ?",
+                    (max(1, int(limit)),),
+                ).fetchall()
+        except (sqlite3.OperationalError, ValueError):
+            return ()
+        return tuple(
+            ScreeningRunSnapshot(
+                run_id=row["run_id"], project_id=row["project_id"],
+                criteria_version=row["criteria_version"], started_at=row["started_at"],
+                total_input=row["total_input"], unique_papers=row["unique_papers"],
+                duplicates_removed=row["duplicates_removed"], screened_papers=row["screened_papers"],
+            ) for row in rows
+        )
+
+    def metadata_quality(self) -> MetadataQualitySnapshot:
+        papers = self.papers()
+        total = len(papers)
+        return MetadataQualitySnapshot(
+            total_papers=total,
+            with_abstract=sum(bool(p.abstract and p.abstract.strip()) for p in papers),
+            with_authors=sum(bool(p.authors) for p in papers),
+            with_doi=sum(bool(p.doi and p.doi.strip()) for p in papers),
+            with_pmid=sum(bool(p.pmid and p.pmid.strip()) for p in papers),
+            with_journal=sum(bool(p.journal and p.journal.strip()) for p in papers),
+            with_year=sum(p.publication_year is not None for p in papers),
         )
 
     def audit_rows(self, limit: int = 200) -> tuple[AuditRow, ...]:
