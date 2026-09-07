@@ -8,6 +8,7 @@ from psi_jarvis.infrastructure.auth.scopus_connection import (
 )
 from psi_jarvis.infrastructure.auth.scopus_oauth import (
     JsonTokenStore,
+    ScopusOAuthClient,
     ScopusOAuthConfig,
     ScopusOAuthToken,
 )
@@ -58,6 +59,40 @@ def test_expired_token_is_reported(tmp_path: Path):
     manager = ScopusConnectionManager(config(), store)
 
     assert manager.inspect().status is ScopusConnectionStatus.EXPIRED
+
+
+def test_expired_token_is_refreshed_and_saved(tmp_path: Path):
+    store = JsonTokenStore(tmp_path / "scopus.json")
+    store.save(
+        ScopusOAuthToken(
+            access_token="old-access",
+            expires_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            refresh_token="refresh-123",
+        )
+    )
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"access_token":"new-access","expires_in":3600}'
+
+    client = ScopusOAuthClient(config(), opener=lambda request, timeout: FakeResponse())
+    manager = ScopusConnectionManager(config(), store, oauth_client=client)
+
+    connection = manager.ensure_connected()
+
+    assert connection.status is ScopusConnectionStatus.CONNECTED
+    assert connection.token is not None
+    assert connection.token.access_token == "new-access"
+    assert connection.token.refresh_token == "refresh-123"
+    assert store.load().access_token == "new-access"
 
 
 def test_apply_token_returns_transport_config_with_oauth_access_token(tmp_path: Path):
