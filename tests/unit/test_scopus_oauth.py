@@ -108,6 +108,34 @@ def test_exchange_code_includes_client_secret_when_configured():
     assert captured[0]["client_secret"] == ["secret-456"]
 
 
+def test_refresh_token_posts_refresh_grant():
+    captured = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"access_token":"new-access","expires_in":3600}'
+
+    def opener(request, timeout):
+        captured.append(parse_qs(request.data.decode("utf-8")))
+        return FakeResponse()
+
+    client = ScopusOAuthClient(CONFIG, opener=opener)
+    token = client.refresh_token("refresh-123")
+
+    assert token.access_token == "new-access"
+    assert captured[0]["grant_type"] == ["refresh_token"]
+    assert captured[0]["refresh_token"] == ["refresh-123"]
+    assert captured[0]["client_id"] == ["client-123"]
+
+
 def test_invalid_token_response_is_rejected():
     class FakeResponse:
         status = 200
