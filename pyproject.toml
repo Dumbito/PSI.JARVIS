@@ -11,7 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pandas>=2.2",
     "openpyxl>=3.1",
-    "pydantic-settings>=2.0",
+    "pydantic-settings>=2.14.2",
 ]
 
 authors = [
