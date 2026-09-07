@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
 import secrets
 import threading
@@ -14,10 +15,13 @@ from typing import Callable, Mapping
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
+from psi_jarvis.infrastructure.acquisition.remote_base import read_remote_response
+
 
 DEFAULT_REDIRECT_HOST = "127.0.0.1"
 DEFAULT_REDIRECT_PATH = "/oauth/callback"
 DEFAULT_TIMEOUT_SECONDS = 20.0
+MAX_OAUTH_TOKEN_RESPONSE_BYTES = 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,8 @@ class ScopusOAuthConfig:
         ):
             if not getattr(self, field_name).strip():
                 raise ValueError(f"Scopus OAuth {field_name} cannot be empty")
+        if not _is_loopback_host(self.redirect_host):
+            raise ValueError("Scopus OAuth redirect host must be loopback (127.0.0.1 or ::1)")
         if not 0 <= self.redirect_port <= 65535:
             raise ValueError("Scopus OAuth redirect port must be between 0 and 65535")
         if not self.redirect_path.startswith("/"):
@@ -73,6 +79,7 @@ class JsonTokenStore:
 
     def save(self, token: ScopusOAuthToken) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._path.parent.chmod(0o700)
         payload = {
             "access_token": token.access_token,
             "token_type": token.token_type,
@@ -212,7 +219,7 @@ class ScopusOAuthClient:
             status = getattr(response, "status", 200)
             if status != 200:
                 raise RuntimeError(f"Scopus OAuth token endpoint returned HTTP {status}")
-            raw = response.read().decode("utf-8")
+            raw = read_remote_response(response, max_bytes=MAX_OAUTH_TOKEN_RESPONSE_BYTES).decode("utf-8")
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as exc:
@@ -232,7 +239,10 @@ class ScopusOAuthClient:
         )
 
     def _redirect_uri(self, port: int) -> str:
-        return f"http://{self._config.redirect_host}:{port}{self._config.redirect_path}"
+        host = self._config.redirect_host
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        return f"http://{host}:{port}{self._config.redirect_path}"
 
     @staticmethod
     def _replace_redirect_uri(url: str, redirect_uri: str) -> str:
@@ -300,6 +310,16 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args) -> None:
         return
+
+
+def _is_loopback_host(host: str) -> bool:
+    normalized = host.strip().lower()
+    if normalized == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except ValueError:
+        return False
 
 
 def _pkce_challenge(verifier: str) -> str:
