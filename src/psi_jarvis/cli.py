@@ -13,30 +13,15 @@ def _scopus_manager_from_environment():
     from psi_jarvis.infrastructure.auth import (
         ScopusConnectionManager,
         ScopusOAuthClient,
-        ScopusOAuthConfig,
         default_scopus_token_store,
+        load_scopus_environment,
     )
 
-    client_id = os.environ.get("PSI_SCOPUS_CLIENT_ID", "").strip()
-    authorization_endpoint = os.environ.get("PSI_SCOPUS_AUTHORIZATION_ENDPOINT", "").strip()
-    token_endpoint = os.environ.get("PSI_SCOPUS_TOKEN_ENDPOINT", "").strip()
-    if not client_id or not authorization_endpoint or not token_endpoint:
-        return ScopusConnectionManager(None, default_scopus_token_store())
-
-    raw_scopes = os.environ.get("PSI_SCOPUS_SCOPES", "").strip()
-    scopes = tuple(scope for scope in raw_scopes.split() if scope)
-    config = ScopusOAuthConfig(
-        client_id=client_id,
-        client_secret=os.environ.get("PSI_SCOPUS_CLIENT_SECRET") or None,
-        authorization_endpoint=authorization_endpoint,
-        token_endpoint=token_endpoint,
-        scopes=scopes,
-        redirect_port=int(os.environ.get("PSI_SCOPUS_REDIRECT_PORT", "0")),
-    )
+    config = load_scopus_environment()
     return ScopusConnectionManager(
-        config,
+        config.oauth,
         default_scopus_token_store(),
-        oauth_client=ScopusOAuthClient(config),
+        oauth_client=ScopusOAuthClient(config.oauth) if config.oauth is not None else None,
     )
 
 
@@ -79,25 +64,20 @@ def doctor() -> int:
 
     checks = []
 
-    # Python
     python_ok = sys.version_info >= (3, 12)
     checks.append(("Python >= 3.12", python_ok))
 
-    # Entorno virtual
     venv_ok = sys.prefix != sys.base_prefix
     checks.append(("Entorno virtual", venv_ok))
 
-    # Estructura
     required_paths = [
         Path("pyproject.toml"),
         Path("src/psi_jarvis"),
         Path("tests"),
     ]
-
     structure_ok = all(path.exists() for path in required_paths)
     checks.append(("Estructura del proyecto", structure_ok))
 
-    # Importación
     try:
         from psi_jarvis.core import Result, Settings
         from psi_jarvis.domain import Paper
@@ -115,28 +95,19 @@ def doctor() -> int:
             ScreeningEngine,
             ScreeningResult,
         )
-
         imports_ok = True
     except Exception:
         imports_ok = False
 
     checks.append(("Importaciones", imports_ok))
 
-    # Tests
     print("Ejecutando tests...")
     print()
-
-    tests_ok = run_command(
-        [sys.executable, "-m", "pytest", "-q"]
-    ) == 0
-
+    tests_ok = run_command([sys.executable, "-m", "pytest", "-q"]) == 0
     checks.append(("Tests", tests_ok))
     print()
 
-    # Git
-    git_repo_ok = run_command(
-        ["git", "rev-parse", "--is-inside-work-tree"]
-    ) == 0
+    git_repo_ok = run_command(["git", "rev-parse", "--is-inside-work-tree"]) == 0
 
     if git_repo_ok:
         git_status = subprocess.run(
@@ -151,14 +122,11 @@ def doctor() -> int:
     checks.append(("Git repository", git_repo_ok))
     checks.append(("Git working tree clean", git_clean))
 
-    # Resultado
     print("===== DIAGNÓSTICO =====")
     print()
-
     for name, ok in checks:
         symbol = "✓" if ok else "✗"
         print(f"{symbol} {name}")
-
     print()
 
     if all(ok for _, ok in checks):
@@ -186,21 +154,15 @@ def main() -> int:
     command = sys.argv[1]
 
     if command == "test":
-        return run_command(
-            [sys.executable, "-m", "pytest", "-v"]
-        )
+        return run_command([sys.executable, "-m", "pytest", "-v"])
 
     if command == "status":
         return run_command(["git", "status"])
 
     if command == "check":
-        result = run_command(
-            [sys.executable, "-m", "pytest", "-v"]
-        )
-
+        result = run_command([sys.executable, "-m", "pytest", "-v"])
         if result != 0:
             return result
-
         print()
         print("===== GIT STATUS =====")
         return run_command(["git", "status"])
