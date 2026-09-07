@@ -1,7 +1,7 @@
 import sqlite3
 
 
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 
 def _column_exists(connection: sqlite3.Connection, table: str, column: str) -> bool:
@@ -49,6 +49,7 @@ def _migration_2(connection: sqlite3.Connection) -> None:
     if _table_exists(connection, "screening_runs"):
         connection.execute("CREATE INDEX IF NOT EXISTS idx_screening_runs_project_id ON screening_runs(project_id)")
 
+
 def _migration_3(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
@@ -64,12 +65,9 @@ def _migration_3(connection: sqlite3.Connection) -> None:
         )
         """
     )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_papers_doi ON papers(doi)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_papers_pmid ON papers(pmid)"
-    )
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_papers_doi ON papers(doi)")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_papers_pmid ON papers(pmid)")
+
 
 def _migration_4(connection: sqlite3.Connection) -> None:
     connection.execute(
@@ -92,12 +90,8 @@ def _migration_4(connection: sqlite3.Connection) -> None:
         )
         """
     )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_corpora_project_id ON corpora(project_id)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_corpus_papers_paper_id ON corpus_papers(paper_id)"
-    )
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_corpora_project_id ON corpora(project_id)")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_corpus_papers_paper_id ON corpus_papers(paper_id)")
 
 
 def _migration_5(connection: sqlite3.Connection) -> None:
@@ -189,74 +183,78 @@ def _migration_6(connection: sqlite3.Connection) -> None:
         )
         """
     )
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_paper_provenances_paper_id ON paper_provenances(paper_id)")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_paper_provenances_batch_id ON paper_provenances(batch_id)")
+
+
+def _migration_7(connection: sqlite3.Connection) -> None:
     connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_paper_provenances_paper_id ON paper_provenances(paper_id)"
+        """
+        CREATE TABLE IF NOT EXISTS metadata_change_history (
+            change_key TEXT PRIMARY KEY,
+            paper_id TEXT NOT NULL,
+            batch_id TEXT NOT NULL,
+            source_key TEXT NOT NULL,
+            source_record_id TEXT,
+            changed_at TEXT NOT NULL,
+            changed_fields TEXT NOT NULL,
+            before_json TEXT NOT NULL,
+            after_json TEXT NOT NULL
+        )
+        """
     )
     connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_paper_provenances_batch_id ON paper_provenances(batch_id)"
+        "CREATE INDEX IF NOT EXISTS idx_metadata_change_history_paper_id ON metadata_change_history(paper_id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_metadata_change_history_batch_id ON metadata_change_history(batch_id)"
     )
 
 
 def initialize_schema(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
-    )
+    connection.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
 
-    row = connection.execute(
-        "SELECT version FROM schema_version LIMIT 1"
-    ).fetchone()
-
+    row = connection.execute("SELECT version FROM schema_version LIMIT 1").fetchone()
     current_version = 0 if row is None else row[0]
 
     if current_version > CURRENT_SCHEMA_VERSION:
         raise RuntimeError(
-            f"Database schema version {current_version} is newer than "
-            f"supported version {CURRENT_SCHEMA_VERSION}"
+            f"Database schema version {current_version} is newer than supported version {CURRENT_SCHEMA_VERSION}"
         )
 
     if current_version < 1:
         _migration_1(connection)
         if row is None:
-            connection.execute(
-                "INSERT INTO schema_version (version) VALUES (1)"
-            )
+            connection.execute("INSERT INTO schema_version (version) VALUES (1)")
         else:
-            connection.execute(
-                "UPDATE schema_version SET version = 1"
-            )
+            connection.execute("UPDATE schema_version SET version = 1")
         current_version = 1
 
     if current_version < 2:
         _migration_2(connection)
-        connection.execute(
-            "UPDATE schema_version SET version = 2"
-        )
+        connection.execute("UPDATE schema_version SET version = 2")
         current_version = 2
 
     if current_version < 3:
         _migration_3(connection)
-        connection.execute(
-            "UPDATE schema_version SET version = 3"
-        )
+        connection.execute("UPDATE schema_version SET version = 3")
         current_version = 3
 
     if current_version < 4:
         _migration_4(connection)
-        connection.execute(
-            "UPDATE schema_version SET version = 4"
-        )
+        connection.execute("UPDATE schema_version SET version = 4")
         current_version = 4
 
     if current_version < 5:
         _migration_5(connection)
-        connection.execute(
-            "UPDATE schema_version SET version = 5"
-        )
+        connection.execute("UPDATE schema_version SET version = 5")
         current_version = 5
 
     if current_version < 6:
         _migration_6(connection)
-        connection.execute(
-            "UPDATE schema_version SET version = 6"
-        )
+        connection.execute("UPDATE schema_version SET version = 6")
         current_version = 6
+
+    if current_version < 7:
+        _migration_7(connection)
+        connection.execute("UPDATE schema_version SET version = 7")
