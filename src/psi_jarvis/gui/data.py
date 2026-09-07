@@ -80,8 +80,13 @@ class GuiDataService:
     def snapshot(self) -> DashboardSnapshot:
         if not self.database_path.exists():
             return DashboardSnapshot()
-        projects = SQLiteProjectRepository(self.database_path).list_all()
-        papers = SQLitePaperRepository(self.database_path).list_all()
+
+        try:
+            projects = SQLiteProjectRepository(self.database_path).list_all()
+            papers = SQLitePaperRepository(self.database_path).list_all()
+        except sqlite3.OperationalError:
+            return DashboardSnapshot()
+
         included = excluded = 0
         source_counts: dict[str, int] = {}
         with self._connect() as connection:
@@ -109,12 +114,18 @@ class GuiDataService:
     def projects(self):
         if not self.database_path.exists():
             return ()
-        return SQLiteProjectRepository(self.database_path).list_all()
+        try:
+            return SQLiteProjectRepository(self.database_path).list_all()
+        except sqlite3.OperationalError:
+            return ()
 
     def papers(self):
         if not self.database_path.exists():
             return ()
-        return SQLitePaperRepository(self.database_path).list_all()
+        try:
+            return SQLitePaperRepository(self.database_path).list_all()
+        except sqlite3.OperationalError:
+            return ()
 
     def screening_rows(self) -> tuple[ScreeningRow, ...]:
         if not self.database_path.exists():
