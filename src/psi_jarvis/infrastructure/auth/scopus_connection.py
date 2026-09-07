@@ -78,7 +78,9 @@ class ScopusConnectionManager:
                 )
             self._token_store.save(refreshed)
             return ScopusConnection(ScopusConnectionStatus.CONNECTED, refreshed)
-        raise RuntimeError(f"Scopus is not connected: {connection.status.value}")
+        if connection.status is ScopusConnectionStatus.DISCONNECTED:
+            raise RuntimeError("Scopus is not connected")
+        raise RuntimeError(f"Scopus is not available: {connection.status.value}")
 
     def apply_token(self, transport_config: ScopusTransportConfig) -> ScopusTransportConfig:
         connection = self.ensure_connected()
