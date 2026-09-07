@@ -28,6 +28,7 @@ class ScopusLocalConfigStore:
 
     def save(self, config: ScopusLocalConfig) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._path.parent.chmod(0o700)
         temporary = self._path.with_suffix(".tmp")
         temporary.write_text(
             json.dumps(asdict(config), indent=2, ensure_ascii=False),
