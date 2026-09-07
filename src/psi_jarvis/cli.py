@@ -1,4 +1,3 @@
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +22,22 @@ def _scopus_manager_from_environment():
         default_scopus_token_store(),
         oauth_client=ScopusOAuthClient(config.oauth) if config.oauth is not None else None,
     )
+
+
+def scopus_configure() -> int:
+    from psi_jarvis.infrastructure.auth.scopus_local_config import (
+        ScopusLocalConfigStore,
+        configure_scopus_interactively,
+    )
+
+    try:
+        configure_scopus_interactively(ScopusLocalConfigStore())
+    except Exception as exc:
+        print(f"No se pudo guardar la configuración de Scopus: {exc}")
+        return 1
+    print("Scopus: configuración local guardada")
+    print("Ejecuta 'psi scopus status' para comprobar el estado.")
+    return 0
 
 
 def scopus_status() -> int:
@@ -146,6 +161,7 @@ def main() -> int:
         print("  psi status")
         print("  psi check")
         print("  psi doctor")
+        print("  psi scopus configure")
         print("  psi scopus status")
         print("  psi scopus login")
         print("  psi scopus logout")
@@ -172,9 +188,11 @@ def main() -> int:
 
     if command == "scopus":
         if len(sys.argv) < 3:
-            print("Uso: psi scopus {status|login|logout}")
+            print("Uso: psi scopus {configure|status|login|logout}")
             return 1
         subcommand = sys.argv[2]
+        if subcommand == "configure":
+            return scopus_configure()
         if subcommand == "status":
             return scopus_status()
         if subcommand == "login":
