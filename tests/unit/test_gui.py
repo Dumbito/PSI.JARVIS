@@ -36,6 +36,8 @@ def test_gui_data_with_uninitialized_database_is_safe(tmp_path):
     assert service.metadata_quality() == MetadataQualitySnapshot()
     assert service.audit_rows() == ()
     assert service.paper_details("not-a-uuid") is None
+    assert service.project_snapshot("not-a-uuid") is None
+    assert service.screening_detail("not-a-uuid") is None
 
 
 def test_main_window_builds_with_injected_data_service(tmp_path):
@@ -134,3 +136,20 @@ def test_gui_workflow_creates_project_imports_and_screens_csv(tmp_path):
     assert len(service.screening_runs()) == 1
     assert service.metadata_quality().with_abstract == 1
     assert service.metadata_quality().with_doi == 0
+
+    project_snapshot = service.project_snapshot(str(project.project_id))
+    assert project_snapshot is not None
+    assert project_snapshot.name == "Memory review"
+    assert project_snapshot.topic == "neural memory"
+    assert project_snapshot.inclusion == ("cognition",)
+    assert project_snapshot.screening_runs == 1
+    assert project_snapshot.screened_papers == 1
+
+    screening = service.screening_rows()[0]
+    detail = service.screening_detail(screening.paper_id, screening.run_id)
+    assert detail is not None
+    assert detail.title == "Neural memory and cognition"
+    assert detail.decision == "Included"
+    assert detail.run_id == screening.run_id
+    assert detail.criteria_version == screening.criteria_version
+    assert detail.audit_id is not None
