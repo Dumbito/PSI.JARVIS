@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 
 from psi_jarvis.gui.app import MainWindow
 from psi_jarvis.gui.data import DashboardSnapshot, GuiDataService, MetadataQualitySnapshot
+from psi_jarvis.gui.tutorial import STEPS, TutorialDialog
 from psi_jarvis.gui.workflow import GuiWorkflowService
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
@@ -72,6 +73,26 @@ def test_main_window_builds_against_initialized_schema(tmp_path):
     assert window.data.snapshot() == DashboardSnapshot()
     assert window.data.metadata_quality() == MetadataQualitySnapshot()
     window.close()
+    app.processEvents()
+
+
+def test_tutorial_supports_next_back_and_skip():
+    app = QApplication.instance() or QApplication([])
+    dialog = TutorialDialog()
+    assert dialog.stack.count() == len(STEPS)
+    assert dialog.progress.text() == "Step 1 of 6"
+    assert dialog.back_button.isEnabled() is False
+
+    dialog.next_button.click()
+    assert dialog.progress.text() == "Step 2 of 6"
+    assert dialog.back_button.isEnabled() is True
+
+    dialog.back_button.click()
+    assert dialog.progress.text() == "Step 1 of 6"
+
+    dialog.skip_button.click()
+    assert dialog.result() == TutorialDialog.Rejected
+    dialog.deleteLater()
     app.processEvents()
 
 
