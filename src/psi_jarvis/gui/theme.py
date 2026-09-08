@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QEasingCurve, QObject, QPoint, QPropertyAnimation, QTimer, Qt
+from PySide6.QtCore import (
+    QEvent,
+    QEasingCurve,
+    QObject,
+    QPoint,
+    QPropertyAnimation,
+    QRect,
+    QTimer,
+    Qt,
+)
 from PySide6.QtWidgets import (
     QApplication,
+    QDialog,
     QFrame,
-    QGraphicsOpacityEffect,
     QHeaderView,
     QPushButton,
     QStackedWidget,
@@ -84,7 +93,7 @@ QStatusBar { background: #08101a; color: #6f879f; border-top: 1px solid #1d3045;
 
 
 class _UiAnimationFilter(QObject):
-    """Subtle, non-blocking interaction animations shared by the GUI."""
+    """Subtle, non-blocking animations that avoid graphics-effect rendering."""
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         event_type = event.type()
@@ -103,12 +112,12 @@ class _UiAnimationFilter(QObject):
         return super().eventFilter(watched, event)
 
     def _on_show(self, watched: QObject) -> None:
-        if isinstance(watched, QStackedWidget) and not isinstance(
-            watched.parentWidget(), QTabWidget
-        ):
+        if isinstance(watched, QStackedWidget):
             self._watch_stack(watched)
         elif isinstance(watched, QTabWidget):
             self._watch_tabs(watched)
+        elif isinstance(watched, QDialog):
+            self._animate_dialog(watched)
         elif isinstance(watched, QTableWidget):
             self._configure_table(watched)
         elif isinstance(watched, QPushButton) and watched.text() == "Import & screen…":
@@ -128,7 +137,7 @@ class _UiAnimationFilter(QObject):
             return
         page = stack.widget(index)
         if page is not None:
-            self._fade_in(page, 180)
+            self._slide_in(page, 180, QPoint(10, 0))
 
     def _watch_tabs(self, tabs: QTabWidget) -> None:
         if getattr(tabs, "_psi_tab_animation_hooked", False):
@@ -139,43 +148,48 @@ class _UiAnimationFilter(QObject):
         )
         self._animate_tab_page(tabs, tabs.currentIndex())
 
-    @staticmethod
-    def _animate_tab_page(tabs: QTabWidget, index: int) -> None:
+    def _animate_tab_page(self, tabs: QTabWidget, index: int) -> None:
         if index < 0:
             return
         page = tabs.widget(index)
-        if page is None:
+        if page is not None:
+            self._slide_in(page, 150, QPoint(8, 0))
+
+    @staticmethod
+    def _slide_in(widget: QObject, duration: int, offset: QPoint) -> None:
+        if not hasattr(widget, "move") or not hasattr(widget, "pos"):
             return
-        final_pos = page.pos()
-        if final_pos.x() != 0:
-            final_pos = QPoint(0, final_pos.y())
-        start_pos = final_pos + QPoint(8, 0)
-        page.move(start_pos)
-        animation = QPropertyAnimation(page, b"pos", page)
-        animation.setDuration(150)
+        final_pos = widget.pos()
+        start_pos = final_pos + offset
+        animation = getattr(widget, "_psi_slide_animation", None)
+        if animation is not None:
+            animation.stop()
+        widget.move(start_pos)
+        animation = QPropertyAnimation(widget, b"pos", widget)
+        animation.setDuration(duration)
         animation.setStartValue(start_pos)
         animation.setEndValue(final_pos)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        page._psi_tab_animation = animation
+        widget._psi_slide_animation = animation
         animation.start()
 
-    def _fade_in(self, widget: QObject, duration: int) -> None:
-        if not hasattr(widget, "setGraphicsEffect"):
+    @staticmethod
+    def _animate_dialog(dialog: QDialog) -> None:
+        final_geometry = QRect(dialog.geometry())
+        if final_geometry.width() <= 0 or final_geometry.height() <= 0:
             return
-        effect = getattr(widget, "_psi_opacity_effect", None)
-        if effect is None:
-            effect = QGraphicsOpacityEffect(widget)
-            widget._psi_opacity_effect = effect
-            widget.setGraphicsEffect(effect)
-        animation = getattr(widget, "_psi_opacity_animation", None)
+        animation = getattr(dialog, "_psi_dialog_animation", None)
         if animation is not None:
             animation.stop()
-        animation = QPropertyAnimation(effect, b"opacity", widget)
-        animation.setDuration(duration)
-        animation.setStartValue(0.0)
-        animation.setEndValue(1.0)
+        start_geometry = QRect(final_geometry)
+        start_geometry.moveTop(start_geometry.top() + 10)
+        dialog.setGeometry(start_geometry)
+        animation = QPropertyAnimation(dialog, b"geometry", dialog)
+        animation.setDuration(160)
+        animation.setStartValue(start_geometry)
+        animation.setEndValue(final_geometry)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        widget._psi_opacity_animation = animation
+        dialog._psi_dialog_animation = animation
         animation.start()
 
     def _configure_table(self, table: QTableWidget) -> None:
@@ -213,16 +227,22 @@ class _UiAnimationFilter(QObject):
         rect = table.visualRect(index)
         rect.setLeft(0)
         rect.setRight(viewport.width() - 1)
-        if overlay.geometry() == rect and overlay.isVisible():
+        previous = overlay.geometry()
+        if previous == rect and overlay.isVisible():
             return
-        overlay.setGeometry(rect)
-        overlay.show()
         animation = getattr(viewport, "_psi_hover_animation", None)
         if animation is not None:
             animation.stop()
+        if not overlay.isVisible():
+            start = QRect(rect)
+            start.translate(0, 3)
+            overlay.setGeometry(start)
+            overlay.show()
+        else:
+            start = previous
         animation = QPropertyAnimation(overlay, b"geometry", overlay)
         animation.setDuration(120)
-        animation.setStartValue(overlay.geometry())
+        animation.setStartValue(start)
         animation.setEndValue(rect)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         viewport._psi_hover_animation = animation
@@ -233,7 +253,11 @@ class _UiAnimationFilter(QObject):
         overlay = getattr(viewport, "_psi_hover_overlay", None)
         if overlay is None:
             return
+        animation = getattr(viewport, "_psi_hover_animation", None)
+        if animation is not None:
+            animation.stop()
         overlay.hide()
+        viewport._psi_hover_animation = None
 
 
 _ANIMATION_FILTER: _UiAnimationFilter | None = None
