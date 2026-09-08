@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from psi_jarvis.gui.audit_explorer import AuditExplorerView
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.theme import apply_theme
@@ -286,16 +287,6 @@ class ReportsPage(QWidget):
         QMessageBox.information(self,"Report exported",f"JSON: {paths[0]}\nMarkdown: {paths[1]}")
 
 
-class AuditPage(QWidget):
-    def __init__(self,data:GuiDataService):
-        super().__init__(); self.data=data; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12); top=QHBoxLayout(); top.addLayout(page_header("Audit","Metadata-change history and provenance evidence.")); top.addStretch(); refresh=QPushButton("Refresh"); refresh.setObjectName("secondary"); refresh.clicked.connect(self.populate); top.addWidget(refresh); root.addLayout(top); self.table=QTableWidget(0,4); self.table.setHorizontalHeaderLabels(["Changed at","Paper ID","Source","Changed fields"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); root.addWidget(self.table,1); self.populate()
-
-    def populate(self):
-        rows=self.data.audit_rows(); self.table.setRowCount(len(rows))
-        for r,a in enumerate(rows):
-            for c,v in enumerate((a.changed_at,a.paper_id,a.source_key,", ".join(a.changed_fields))): self.table.setItem(r,c,QTableWidgetItem(str(v)))
-
-
 class SettingsPage(QWidget):
     def __init__(self,data:GuiDataService):
         super().__init__(); root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Settings","Runtime paths and methodological safeguards.")); db,dl=card("Database"); dl.addWidget(QLabel(str(data.database_path))); dl.addWidget(QLabel("Override with PSI_JARVIS_DATABASE_PATH at launch.")); root.addWidget(db); boundary,bl=card("Scientific safeguards"); bl.addWidget(QLabel("Deterministic screening remains authoritative.")); bl.addWidget(QLabel("Synchronization never resolves metadata conflicts silently.")); bl.addWidget(QLabel("Credentials and tokens stay outside the source tree.")); root.addWidget(boundary); root.addStretch()
@@ -314,7 +305,7 @@ class MainWindow(QMainWindow):
     def _build_pages(self):
         while self.pages.count():
             widget=self.pages.widget(0); self.pages.removeWidget(widget); widget.deleteLater()
-        for page in (DashboardPage(self.data,self.refresh_all),ProjectsPage(self.data,self.workflow,self.refresh_all,self.open_project_workspace),PapersPage(self.data,self.workflow,self.refresh_all),SourcesPage(self.data),ScreeningPage(self.data),AnalysisPage(self.data),ReportsPage(self.data,self.workflow),AuditPage(self.data),SettingsPage(self.data)): self.pages.addWidget(page)
+        for page in (DashboardPage(self.data,self.refresh_all),ProjectsPage(self.data,self.workflow,self.refresh_all,self.open_project_workspace),PapersPage(self.data,self.workflow,self.refresh_all),SourcesPage(self.data),ScreeningPage(self.data),AnalysisPage(self.data),ReportsPage(self.data,self.workflow),AuditExplorerView(self.data),SettingsPage(self.data)): self.pages.addWidget(page)
 
     def open_project_workspace(self, project_id: str) -> None:
         view = ProjectWorkspaceView(self.data, project_id, self.open_screening_run, self)
