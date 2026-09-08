@@ -90,6 +90,31 @@ class MetadataQualitySnapshot:
     with_year: int = 0
 
 
+@dataclass(frozen=True)
+class ProjectSnapshot:
+    project_id: str
+    name: str
+    research_question: str
+    topic: str
+    inclusion: tuple[str, ...]
+    exclusion: tuple[str, ...]
+    created_at: str
+    screening_runs: int
+    screened_papers: int
+
+
+@dataclass(frozen=True)
+class ScreeningDetail:
+    paper_id: str
+    title: str
+    decision: str
+    reason: str
+    run_id: str | None
+    criteria_version: str | None
+    audit_id: str | None
+    audited_at: str | None
+
+
 def default_database_path() -> Path:
     configured = os.environ.get("PSI_JARVIS_DATABASE_PATH")
     if configured:
@@ -289,6 +314,62 @@ class GuiDataService:
             return SQLiteProjectRepository(self.database_path).get(UUID(project_id))
         except (sqlite3.OperationalError, ValueError):
             return None
+
+    def project_snapshot(self, project_id: str) -> ProjectSnapshot | None:
+        """Return project protocol plus persisted run/screening counts."""
+        project = self.project(project_id)
+        if project is None:
+            return None
+        runs = tuple(run for run in self.screening_runs(limit=100000) if run.project_id == project.project_id.hex)
+        return ProjectSnapshot(
+            project_id=str(project.project_id),
+            name=project.name,
+            research_question=project.research_question,
+            topic=project.criteria.topic,
+            inclusion=tuple(project.criteria.inclusion),
+            exclusion=tuple(project.criteria.exclusion),
+            created_at=project.created_at.isoformat(),
+            screening_runs=len(runs),
+            screened_papers=sum(run.screened_papers for run in runs),
+        )
+
+    def screening_detail(self, paper_id: str, run_id: str | None = None) -> ScreeningDetail | None:
+        """Return one persisted screening decision plus its audit timestamp."""
+        if not self.database_path.exists():
+            return None
+        try:
+            with self._connect() as connection:
+                if run_id:
+                    row = connection.execute(
+                        "SELECT sr.paper_id, p.title, sr.included, sr.reason, sr.run_id, sr.criteria_version "
+                        "FROM screening_results sr JOIN papers p ON p.paper_id = sr.paper_id "
+                        "WHERE sr.paper_id = ? AND sr.run_id = ? LIMIT 1",
+                        (paper_id, run_id),
+                    ).fetchone()
+                else:
+                    row = connection.execute(
+                        "SELECT sr.paper_id, p.title, sr.included, sr.reason, sr.run_id, sr.criteria_version "
+                        "FROM screening_results sr JOIN papers p ON p.paper_id = sr.paper_id "
+                        "WHERE sr.paper_id = ? ORDER BY sr.run_id DESC LIMIT 1",
+                        (paper_id,),
+                    ).fetchone()
+                if row is None:
+                    return None
+                audit = connection.execute(
+                    "SELECT audit_id, audited_at FROM screening_audits "
+                    "WHERE paper_id = ? AND run_id = ? ORDER BY audited_at DESC LIMIT 1",
+                    (paper_id, row["run_id"]),
+                ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        return ScreeningDetail(
+            paper_id=row["paper_id"], title=row["title"],
+            decision="Included" if row["included"] else "Excluded",
+            reason=row["reason"], run_id=row["run_id"],
+            criteria_version=row["criteria_version"],
+            audit_id=audit["audit_id"] if audit else None,
+            audited_at=audit["audited_at"] if audit else None,
+        )
 
     def sources(self) -> tuple[SourceSnapshot, ...]:
         try:
