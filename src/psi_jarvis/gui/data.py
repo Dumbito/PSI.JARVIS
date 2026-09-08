@@ -7,6 +7,12 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from psi_jarvis.domain.analysis.author_analysis import AuthorAnalysis
+from psi_jarvis.domain.analysis.deduplication_analysis import DeduplicationAnalysis
+from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
+from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
+from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
+from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
 from psi_jarvis.infrastructure.auth import (
     ScopusConnectionManager,
     ScopusOAuthClient,
@@ -17,6 +23,8 @@ from psi_jarvis.infrastructure.connections import build_default_source_connectio
 from psi_jarvis.infrastructure.sqlite_metadata_history_repository import SQLiteMetadataHistoryRepository
 from psi_jarvis.infrastructure.sqlite_paper_repository import SQLitePaperRepository
 from psi_jarvis.infrastructure.sqlite_project_repository import SQLiteProjectRepository
+from psi_jarvis.infrastructure.sqlite_screening_audit_repository import SQLiteScreeningAuditRepository
+from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
 
 
 @dataclass(frozen=True)
@@ -236,6 +244,49 @@ class GuiDataService:
                 "pmid": paper.pmid or "", "journal": paper.journal or "",
                 "year": paper.publication_year or "", "provenance_count": int(provenance_count),
             }
+        except (sqlite3.OperationalError, ValueError):
+            return None
+
+    def all_audits(self):
+        """All persisted ``ScreeningAudit`` records, across every run/project."""
+        if not self.database_path.exists():
+            return ()
+        try:
+            return SQLiteScreeningAuditRepository(self.database_path).list_all()
+        except sqlite3.OperationalError:
+            return ()
+
+    def rule_analysis(self) -> RuleAnalysis:
+        return RuleAnalysis.from_audits(self.all_audits())
+
+    def exclusion_reason_analysis(self) -> ExclusionReasonAnalysis:
+        return ExclusionReasonAnalysis.from_audits(self.all_audits())
+
+    def author_analysis(self) -> AuthorAnalysis:
+        return AuthorAnalysis.from_papers(self.papers())
+
+    def journal_analysis(self) -> JournalAnalysis:
+        return JournalAnalysis.from_papers(self.papers())
+
+    def publication_year_analysis(self) -> PublicationYearAnalysis:
+        return PublicationYearAnalysis.from_papers(self.papers())
+
+    def deduplication_analysis(self) -> DeduplicationAnalysis:
+        runs = self.screening_runs(limit=100000)
+        total_input = sum(run.total_input for run in runs)
+        unique_papers = sum(run.unique_papers for run in runs)
+        duplicates_removed = sum(run.duplicates_removed for run in runs)
+        if total_input == 0:
+            return DeduplicationAnalysis(total_input=0, unique_papers=0, duplicate_papers=0)
+        return DeduplicationAnalysis(
+            total_input=total_input, unique_papers=unique_papers, duplicate_papers=duplicates_removed,
+        )
+
+    def project(self, project_id: str):
+        if not self.database_path.exists():
+            return None
+        try:
+            return SQLiteProjectRepository(self.database_path).get(UUID(project_id))
         except (sqlite3.OperationalError, ValueError):
             return None
 
