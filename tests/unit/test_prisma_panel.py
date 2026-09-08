@@ -68,3 +68,15 @@ def test_panel_refresh_repopulates_run_selector(qtbot):
 
     assert panel.run_box.count() == 2
     assert panel.flow_view._flow.records_identified == 20
+
+
+def test_panel_refresh_preserves_selected_run(qtbot):
+    panel = PrismaReportPanel(FakeData())
+    qtbot.addWidget(panel)
+
+    panel.run_box.setCurrentIndex(1)
+    assert panel.run_box.currentData() == "run-1"
+    panel.refresh()
+
+    assert panel.run_box.currentData() == "run-1"
+    assert panel.flow_view._flow.records_identified == 10
