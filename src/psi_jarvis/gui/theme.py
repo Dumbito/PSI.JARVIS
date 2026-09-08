@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QTableWidget,
+    QTabWidget,
 )
 
 
@@ -102,8 +103,12 @@ class _UiAnimationFilter(QObject):
         return super().eventFilter(watched, event)
 
     def _on_show(self, watched: QObject) -> None:
-        if isinstance(watched, QStackedWidget):
+        if isinstance(watched, QStackedWidget) and not isinstance(
+            watched.parentWidget(), QTabWidget
+        ):
             self._watch_stack(watched)
+        elif isinstance(watched, QTabWidget):
+            self._watch_tabs(watched)
         elif isinstance(watched, QTableWidget):
             self._configure_table(watched)
         elif isinstance(watched, QPushButton) and watched.text() == "Import & screen…":
@@ -124,6 +129,35 @@ class _UiAnimationFilter(QObject):
         page = stack.widget(index)
         if page is not None:
             self._fade_in(page, 180)
+
+    def _watch_tabs(self, tabs: QTabWidget) -> None:
+        if getattr(tabs, "_psi_tab_animation_hooked", False):
+            return
+        tabs._psi_tab_animation_hooked = True
+        tabs.currentChanged.connect(
+            lambda index, widget=tabs: self._animate_tab_page(widget, index)
+        )
+        self._animate_tab_page(tabs, tabs.currentIndex())
+
+    @staticmethod
+    def _animate_tab_page(tabs: QTabWidget, index: int) -> None:
+        if index < 0:
+            return
+        page = tabs.widget(index)
+        if page is None:
+            return
+        final_pos = page.pos()
+        if final_pos.x() != 0:
+            final_pos = QPoint(0, final_pos.y())
+        start_pos = final_pos + QPoint(8, 0)
+        page.move(start_pos)
+        animation = QPropertyAnimation(page, b"pos", page)
+        animation.setDuration(150)
+        animation.setStartValue(start_pos)
+        animation.setEndValue(final_pos)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        page._psi_tab_animation = animation
+        animation.start()
 
     def _fade_in(self, widget: QObject, duration: int) -> None:
         if not hasattr(widget, "setGraphicsEffect"):
@@ -181,11 +215,8 @@ class _UiAnimationFilter(QObject):
         rect.setRight(viewport.width() - 1)
         if overlay.geometry() == rect and overlay.isVisible():
             return
-        was_visible = overlay.isVisible()
-        if not was_visible:
-            overlay.setGeometry(rect)
-            overlay.show()
-            return
+        overlay.setGeometry(rect)
+        overlay.show()
         animation = getattr(viewport, "_psi_hover_animation", None)
         if animation is not None:
             animation.stop()
@@ -202,11 +233,7 @@ class _UiAnimationFilter(QObject):
         overlay = getattr(viewport, "_psi_hover_overlay", None)
         if overlay is None:
             return
-        animation = getattr(viewport, "_psi_hover_animation", None)
-        if animation is not None:
-            animation.stop()
         overlay.hide()
-        viewport._psi_hover_animation = None
 
 
 _ANIMATION_FILTER: _UiAnimationFilter | None = None
