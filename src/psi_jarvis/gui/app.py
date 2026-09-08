@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.theme import apply_theme
+from psi_jarvis.gui.tutorial import TutorialDialog
 from psi_jarvis.gui.workflow import GuiWorkflowService, UnsupportedFileFormat
 
 NAV_ITEMS = (
@@ -56,9 +57,8 @@ def rate_table(headers: list[str], rows: list[tuple]) -> QTableWidget:
     table.horizontalHeader().setStretchLastSection(True)
     table.setEditTriggers(QTableWidget.NoEditTriggers)
     table.setSelectionBehavior(QTableWidget.SelectRows)
-    for row, values in enumerate(rows):
-        for col, value in enumerate(values):
-            table.setItem(row, col, QTableWidgetItem(str(value)))
+    table.setAlternatingRowColors(True)
+    table.verticalHeader().setVisible(False)
     return table
 
 
@@ -104,10 +104,8 @@ class NewProjectDialog(QDialog):
     def _create(self) -> None:
         try:
             self.created_project = self.workflow.create_project(
-                name=self.name.text(),
-                research_question=self.question.text(),
-                topic=self.topic.text(),
-                inclusion=self._lines(self.inclusion),
+                name=self.name.text(), research_question=self.question.text(),
+                topic=self.topic.text(), inclusion=self._lines(self.inclusion),
                 exclusion=self._lines(self.exclusion),
             )
             self.accept()
@@ -194,9 +192,9 @@ class ProjectsPage(QWidget):
         super().__init__(); self.data = data; self.workflow = workflow; self.refresh_all = refresh_all
         root = QVBoxLayout(self); root.setContentsMargins(28, 24, 28, 28); root.setSpacing(14)
         top = QHBoxLayout(); top.addLayout(page_header("Projects", "Review protocols persisted in the project repository.")); top.addStretch()
-        new_project = QPushButton("New project"); new_project.clicked.connect(self._new_project); top.addWidget(new_project)
+        new_project = QPushButton("New project"); new_project.setToolTip("Create a review protocol without changing the screening engine."); new_project.clicked.connect(self._new_project); top.addWidget(new_project)
         root.addLayout(top)
-        self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["Project", "Topic", "Research question", "Created"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["Project", "Topic", "Research question", "Created"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False)
         root.addWidget(self.table, 1)
         note = QLabel("Project editing remains outside this presentation layer; protocol semantics stay in the application/domain layer.")
         note.setObjectName("pageSubtitle"); root.addWidget(note)
@@ -221,9 +219,9 @@ class PapersPage(QWidget):
         root = QVBoxLayout(self); root.setContentsMargins(28, 24, 28, 28); root.setSpacing(12)
         top = QHBoxLayout(); title = QLabel("Papers"); title.setObjectName("pageTitle"); top.addWidget(title); top.addStretch()
         self.search = QLineEdit(); self.search.setPlaceholderText("Search title, DOI, PMID, journal…"); self.search.setMaximumWidth(320); top.addWidget(self.search)
-        import_button = QPushButton("Import & screen…"); import_button.clicked.connect(self._import_and_screen); top.addWidget(import_button)
+        import_button = QPushButton("Import & screen…"); import_button.setToolTip("Import CSV, Excel or RIS and run the existing screening pipeline."); import_button.clicked.connect(self._import_and_screen); top.addWidget(import_button)
         root.addLayout(top)
-        self.table = QTableWidget(0, 5); self.table.setHorizontalHeaderLabels(["Title","Year","Journal","DOI","PMID"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.doubleClicked.connect(self.open_selected); self.search.textChanged.connect(self.filter_rows); root.addWidget(self.table,1)
+        self.table = QTableWidget(0, 5); self.table.setHorizontalHeaderLabels(["Title","Year","Journal","DOI","PMID"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); self.table.doubleClicked.connect(self.open_selected); self.search.textChanged.connect(self.filter_rows); root.addWidget(self.table,1)
         self.rows = data.papers(); self.populate(); hint = QLabel("Double-click a paper to inspect its stored metadata and provenance count."); hint.setObjectName("pageSubtitle"); root.addWidget(hint)
 
     def populate(self) -> None:
@@ -248,12 +246,7 @@ class PapersPage(QWidget):
         dialog = ImportScreenDialog(self.workflow, projects, self)
         if dialog.exec() == QDialog.Accepted and dialog.outcome is not None:
             outcome = dialog.outcome
-            QMessageBox.information(
-                self, "Import & screen complete",
-                f"Input: {outcome.total_input}\nUnique: {outcome.unique_papers}\n"
-                f"Duplicates removed: {outcome.duplicates_removed}\nScreened: {outcome.screened_papers}\n"
-                f"Included: {outcome.included}  ·  Excluded: {outcome.excluded}\n\nRun ID: {outcome.run_id}",
-            )
+            QMessageBox.information(self, "Import & screen complete", f"Input: {outcome.total_input}\nUnique: {outcome.unique_papers}\nDuplicates removed: {outcome.duplicates_removed}\nScreened: {outcome.screened_papers}\nIncluded: {outcome.included}  ·  Excluded: {outcome.excluded}\n\nRun ID: {outcome.run_id}")
             self.refresh_all()
 
 
@@ -273,7 +266,7 @@ class ScreeningPage(QWidget):
     def __init__(self, data: GuiDataService) -> None:
         super().__init__(); self.data = data; root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12)
         top = QHBoxLayout(); title = QLabel("Screening"); title.setObjectName("pageTitle"); top.addWidget(title); top.addStretch(); self.filter = QComboBox(); self.filter.addItems(["All decisions","Included","Excluded"]); self.filter.currentTextChanged.connect(self.apply_filter); top.addWidget(self.filter); root.addLayout(top)
-        root.addWidget(QLabel("Persisted screening results are displayed as evidence. The GUI does not create or alter scientific decisions.")); self.table = QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Paper","Year","Decision","Reason","Criteria version"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); root.addWidget(self.table,1); self.rows = data.screening_rows(); self.populate()
+        root.addWidget(QLabel("Persisted screening results are displayed as evidence. The GUI does not create or alter scientific decisions.")); self.table = QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Paper","Year","Decision","Reason","Criteria version"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); root.addWidget(self.table,1); self.rows = data.screening_rows(); self.populate()
 
     def populate(self) -> None:
         self.table.setRowCount(len(self.rows))
@@ -287,104 +280,49 @@ class ScreeningPage(QWidget):
 
 class AnalysisPage(QWidget):
     """Read-only analytical views, one tab per domain analysis class."""
-
     def __init__(self, data: GuiDataService) -> None:
         super().__init__(); self.data = data
         root = QVBoxLayout(self); root.setContentsMargins(28, 24, 28, 28); root.setSpacing(14)
         root.addLayout(page_header("Analysis", "Read-only analytical views derived from persisted corpus state."))
-        self.tabs = QTabWidget()
-        self.tabs.addTab(self._overview_tab(), "Overview")
-        self.tabs.addTab(self._rules_tab(), "Rules")
-        self.tabs.addTab(self._exclusions_tab(), "Exclusions")
-        self.tabs.addTab(self._deduplication_tab(), "Deduplication")
-        self.tabs.addTab(self._authors_tab(), "Authors")
-        self.tabs.addTab(self._journals_tab(), "Journals")
-        self.tabs.addTab(self._years_tab(), "Years")
-        root.addWidget(self.tabs, 1)
+        self.tabs = QTabWidget(); self.tabs.addTab(self._overview_tab(), "Overview"); self.tabs.addTab(self._rules_tab(), "Rules"); self.tabs.addTab(self._exclusions_tab(), "Exclusions"); self.tabs.addTab(self._deduplication_tab(), "Deduplication"); self.tabs.addTab(self._authors_tab(), "Authors"); self.tabs.addTab(self._journals_tab(), "Journals"); self.tabs.addTab(self._years_tab(), "Years"); root.addWidget(self.tabs, 1)
 
     def _overview_tab(self) -> QWidget:
         page = QWidget(); layout = QVBoxLayout(page); layout.setSpacing(14)
-        quality = self.data.metadata_quality(); total = quality.total_papers
-        frame, quality_layout = card("Metadata quality")
+        quality = self.data.metadata_quality(); total = quality.total_papers; frame, quality_layout = card("Metadata quality")
         for label, count in (("Abstract", quality.with_abstract), ("Authors", quality.with_authors), ("DOI", quality.with_doi), ("PMID", quality.with_pmid), ("Journal", quality.with_journal), ("Publication year", quality.with_year)):
             rate = int(count / total * 100) if total else 0; quality_layout.addWidget(QLabel(f"{label}: {count:,}/{total:,} · {rate}% complete"))
-        layout.addWidget(frame)
-        snap = self.data.snapshot(); decisions, decision_layout = card("Decision distribution"); decision_layout.addWidget(QLabel(f"Included: {snap.included:,}")); decision_layout.addWidget(QLabel(f"Excluded: {snap.excluded:,}")); decision_layout.addWidget(QLabel(f"Screened: {snap.screened:,}")); layout.addWidget(decisions)
+        layout.addWidget(frame); snap = self.data.snapshot(); decisions, decision_layout = card("Decision distribution"); decision_layout.addWidget(QLabel(f"Included: {snap.included:,}")); decision_layout.addWidget(QLabel(f"Excluded: {snap.excluded:,}")); decision_layout.addWidget(QLabel(f"Screened: {snap.screened:,}")); layout.addWidget(decisions)
         runs, runs_layout = card("Persisted screening runs"); snapshots = self.data.screening_runs()
         if snapshots:
             for run in snapshots[:8]: runs_layout.addWidget(QLabel(f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened · {run.duplicates_removed:,} duplicates removed"))
         else: runs_layout.addWidget(QLabel("No persisted screening runs recorded."))
-        layout.addWidget(runs); layout.addStretch()
-        return page
+        layout.addWidget(runs); layout.addStretch(); return page
 
     def _rules_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        layout.addWidget(QLabel("Matched/failed counts per rule ID, aggregated across every persisted audit."))
-        analysis = self.data.rule_analysis()
-        rows = [(rule.rule_id, rule.matched, rule.failed, f"{rule.match_rate:.0%}") for rule in analysis.rules]
-        layout.addWidget(rate_table(["Rule ID", "Matched", "Failed", "Match rate"], rows))
-        if not rows: layout.addWidget(QLabel("No rule evidence recorded yet."))
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); layout.addWidget(QLabel("Matched/failed counts per rule ID, aggregated across every persisted audit.")); analysis = self.data.rule_analysis(); rows = [(rule.rule_id, rule.matched, rule.failed, f"{rule.match_rate:.0%}") for rule in analysis.rules]; layout.addWidget(rate_table(["Rule ID", "Matched", "Failed", "Match rate"], rows)); return page
 
     def _exclusions_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        layout.addWidget(QLabel("Distribution of exclusion reasons across every persisted audit."))
-        analysis = self.data.exclusion_reason_analysis()
-        rows = [(reason.reason, reason.count, f"{reason.rate:.0%}") for reason in analysis.reasons]
-        layout.addWidget(rate_table(["Reason", "Count", "Share of exclusions"], rows))
-        if not rows: layout.addWidget(QLabel("No excluded papers recorded yet."))
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); layout.addWidget(QLabel("Distribution of exclusion reasons across every persisted audit.")); analysis = self.data.exclusion_reason_analysis(); rows = [(reason.reason, reason.count, f"{reason.rate:.0%}") for reason in analysis.reasons]; layout.addWidget(rate_table(["Reason", "Count", "Share of exclusions"], rows)); return page
 
     def _deduplication_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        analysis = self.data.deduplication_analysis()
-        frame, frame_layout = card("Deduplication (all persisted runs)")
-        frame_layout.addWidget(QLabel(f"Total input: {analysis.total_input:,}"))
-        frame_layout.addWidget(QLabel(f"Unique papers: {analysis.unique_papers:,}"))
-        frame_layout.addWidget(QLabel(f"Duplicates removed: {analysis.duplicate_papers:,}"))
-        frame_layout.addWidget(QLabel(f"Duplicate rate: {analysis.duplicate_rate:.0%}"))
-        layout.addWidget(frame); layout.addStretch()
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); analysis = self.data.deduplication_analysis(); frame, frame_layout = card("Deduplication (all persisted runs)"); frame_layout.addWidget(QLabel(f"Total input: {analysis.total_input:,}")); frame_layout.addWidget(QLabel(f"Unique papers: {analysis.unique_papers:,}")); frame_layout.addWidget(QLabel(f"Duplicates removed: {analysis.duplicate_papers:,}")); frame_layout.addWidget(QLabel(f"Duplicate rate: {analysis.duplicate_rate:.0%}")); layout.addWidget(frame); layout.addStretch(); return page
 
     def _authors_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        analysis = self.data.author_analysis()
-        layout.addWidget(QLabel(f"{analysis.unique_authors:,} unique authors across {analysis.total_papers:,} papers · {analysis.author_coverage_rate:.0%} coverage."))
-        rows = sorted(analysis.by_author, key=lambda item: -item[1])[:50]
-        layout.addWidget(rate_table(["Author", "Papers"], rows))
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); analysis = self.data.author_analysis(); layout.addWidget(QLabel(f"{analysis.unique_authors:,} unique authors across {analysis.total_papers:,} papers · {analysis.author_coverage_rate:.0%} coverage.")); rows = sorted(analysis.by_author, key=lambda item: -item[1])[:50]; layout.addWidget(rate_table(["Author", "Papers"], rows)); return page
 
     def _journals_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        analysis = self.data.journal_analysis()
-        layout.addWidget(QLabel(f"{analysis.unique_journals:,} unique journals across {analysis.total_papers:,} papers · {analysis.journal_coverage_rate:.0%} coverage."))
-        rows = sorted(analysis.by_journal, key=lambda item: -item[1])[:50]
-        layout.addWidget(rate_table(["Journal", "Papers"], rows))
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); analysis = self.data.journal_analysis(); layout.addWidget(QLabel(f"{analysis.unique_journals:,} unique journals across {analysis.total_papers:,} papers · {analysis.journal_coverage_rate:.0%} coverage.")); rows = sorted(analysis.by_journal, key=lambda item: -item[1])[:50]; layout.addWidget(rate_table(["Journal", "Papers"], rows)); return page
 
     def _years_tab(self) -> QWidget:
-        page = QWidget(); layout = QVBoxLayout(page)
-        analysis = self.data.publication_year_analysis()
-        span = f"{analysis.year_min}–{analysis.year_max}" if analysis.year_min else "—"
-        layout.addWidget(QLabel(f"Span: {span} · {analysis.year_coverage_rate:.0%} of papers carry a publication year."))
-        rows = sorted(analysis.by_year)
-        layout.addWidget(rate_table(["Year", "Papers"], rows))
-        return page
+        page = QWidget(); layout = QVBoxLayout(page); analysis = self.data.publication_year_analysis(); span = f"{analysis.year_min}–{analysis.year_max}" if analysis.year_min else "—"; layout.addWidget(QLabel(f"Span: {span} · {analysis.year_coverage_rate:.0%} of papers carry a publication year.")); layout.addWidget(rate_table(["Year", "Papers"], sorted(analysis.by_year))); return page
 
 
 class ReportsPage(QWidget):
     def __init__(self, data: GuiDataService, workflow: GuiWorkflowService) -> None:
-        super().__init__(); self.data = data; self.workflow = workflow
-        root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14)
-        root.addLayout(page_header("Reports", "Reproducible reporting backed by the existing application reporting layer."))
-        top = QHBoxLayout()
-        self.run_box = QComboBox()
-        self.runs = self.data.screening_runs()
-        for run in self.runs:
-            self.run_box.addItem(f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened", run.run_id)
-        top.addWidget(self.run_box, 1)
-        export = QPushButton("Export report…"); export.clicked.connect(self._export); top.addWidget(export)
-        root.addLayout(top)
+        super().__init__(); self.data = data; self.workflow = workflow; root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14)
+        root.addLayout(page_header("Reports", "Reproducible reporting backed by the existing application reporting layer.")); top = QHBoxLayout(); self.run_box = QComboBox(); self.runs = self.data.screening_runs()
+        for run in self.runs: self.run_box.addItem(f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened", run.run_id)
+        top.addWidget(self.run_box, 1); export = QPushButton("Export report…"); export.setToolTip("Generate JSON and Markdown from the persisted run evidence."); export.clicked.connect(self._export); top.addWidget(export); root.addLayout(top)
         frame, layout = card("Persisted screening runs available as report provenance")
         if self.runs:
             for run in self.runs: layout.addWidget(QLabel(f"{run.started_at} · {run.criteria_version} · input {run.total_input:,} · unique {run.unique_papers:,} · screened {run.screened_papers:,}"))
@@ -392,26 +330,19 @@ class ReportsPage(QWidget):
         root.addWidget(frame); root.addWidget(QLabel("Report content is produced by existing domain analysis classes and rendered/exported by the existing JSON/Markdown renderers and ReportExporter. The GUI does not reimplement reporting logic or silently rerun screening.")); root.addStretch()
 
     def _export(self) -> None:
-        if not self.runs:
-            QMessageBox.warning(self, "No runs", "There are no persisted screening runs to export yet."); return
-        run_id = UUID(self.run_box.currentData())
-        directory = QFileDialog.getExistingDirectory(self, "Choose export folder", str(Path.home()))
+        if not self.runs: QMessageBox.warning(self, "No runs", "There are no persisted screening runs to export yet."); return
+        run_id = UUID(self.run_box.currentData()); directory = QFileDialog.getExistingDirectory(self, "Choose export folder", str(Path.home()))
         if not directory: return
-        try:
-            paths = self.workflow.export_report(run_id, directory)
-        except Exception as exc:
-            QMessageBox.critical(self, "Export failed", str(exc)); return
-        if paths is None:
-            QMessageBox.warning(self, "Nothing to export", "No audit evidence was found for the selected run."); return
-        json_path, markdown_path = paths
-        QMessageBox.information(self, "Report exported", f"JSON: {json_path}\nMarkdown: {markdown_path}")
+        try: paths = self.workflow.export_report(run_id, directory)
+        except Exception as exc: QMessageBox.critical(self, "Export failed", str(exc)); return
+        if paths is None: QMessageBox.warning(self, "Nothing to export", "No audit evidence was found for the selected run."); return
+        json_path, markdown_path = paths; QMessageBox.information(self, "Report exported", f"JSON: {json_path}\nMarkdown: {markdown_path}")
 
 
 class AuditPage(QWidget):
     def __init__(self, data: GuiDataService) -> None:
-        super().__init__(); self.data = data; root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12)
-        top = QHBoxLayout(); top.addLayout(page_header("Audit", "Metadata-change history and provenance evidence.")); top.addStretch(); refresh = QPushButton("Refresh"); refresh.setObjectName("secondary"); refresh.clicked.connect(self.populate); top.addWidget(refresh); root.addLayout(top)
-        self.table = QTableWidget(0,4); self.table.setHorizontalHeaderLabels(["Changed at","Paper ID","Source","Changed fields"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); root.addWidget(self.table,1); self.populate()
+        super().__init__(); self.data = data; root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12); top = QHBoxLayout(); top.addLayout(page_header("Audit", "Metadata-change history and provenance evidence.")); top.addStretch(); refresh = QPushButton("Refresh"); refresh.setObjectName("secondary"); refresh.clicked.connect(self.populate); top.addWidget(refresh); root.addLayout(top)
+        self.table = QTableWidget(0,4); self.table.setHorizontalHeaderLabels(["Changed at","Paper ID","Source","Changed fields"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); root.addWidget(self.table,1); self.populate()
 
     def populate(self) -> None:
         rows = self.data.audit_rows(); self.table.setRowCount(len(rows))
@@ -421,43 +352,25 @@ class AuditPage(QWidget):
 
 class SettingsPage(QWidget):
     def __init__(self, data: GuiDataService) -> None:
-        super().__init__(); root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Settings", "Runtime paths and methodological safeguards."))
-        db, db_layout = card("Database"); db_layout.addWidget(QLabel(str(data.database_path))); db_layout.addWidget(QLabel("Override with PSI_JARVIS_DATABASE_PATH when launching the application.")); root.addWidget(db)
-        boundary, boundary_layout = card("Scientific safeguards"); boundary_layout.addWidget(QLabel("Deterministic screening remains authoritative.")); boundary_layout.addWidget(QLabel("Synchronization never resolves metadata conflicts silently.")); boundary_layout.addWidget(QLabel("Credentials and tokens are kept outside the source tree.")); root.addWidget(boundary); root.addStretch()
+        super().__init__(); root = QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Settings", "Runtime paths and methodological safeguards.")); db, db_layout = card("Database"); db_layout.addWidget(QLabel(str(data.database_path))); db_layout.addWidget(QLabel("Override with PSI_JARVIS_DATABASE_PATH when launching the application.")); root.addWidget(db); boundary, boundary_layout = card("Scientific safeguards"); boundary_layout.addWidget(QLabel("Deterministic screening remains authoritative.")); boundary_layout.addWidget(QLabel("Synchronization never resolves metadata conflicts silently.")); boundary_layout.addWidget(QLabel("Credentials and tokens are kept outside the source tree.")); root.addWidget(boundary); root.addStretch()
 
 
 class MainWindow(QMainWindow):
     def __init__(self, data_service: GuiDataService | None = None) -> None:
-        super().__init__(); self.setWindowTitle("PSI.JARVIS V.1"); self.resize(1440,900); self.setMinimumSize(1100,700)
-        self.data = data_service or GuiDataService()
-        self.workflow = GuiWorkflowService(self.data.database_path)
-        self.pages = QStackedWidget(); self.nav_buttons: list[QPushButton] = []; self._build_ui(); self.statusBar().showMessage("Ready · deterministic scientific workspace")
+        super().__init__(); self.setWindowTitle("PSI.JARVIS V.1"); self.resize(1440,900); self.setMinimumSize(1100,700); self.data = data_service or GuiDataService(); self.workflow = GuiWorkflowService(self.data.database_path); self.pages = QStackedWidget(); self.nav_buttons: list[QPushButton] = []; self._build_ui(); self.statusBar().showMessage("Ready · deterministic scientific workspace")
 
     def _build_ui(self) -> None:
-        root = QWidget(); root_layout = QHBoxLayout(root); root_layout.setContentsMargins(0,0,0,0); root_layout.setSpacing(0)
-        sidebar = QFrame(); sidebar.setObjectName("sidebar"); sidebar.setFixedWidth(220); side = QVBoxLayout(sidebar); side.setContentsMargins(14,20,14,14); side.setSpacing(4)
-        brand = QHBoxLayout(); brand_label = QLabel("PSI.JARVIS"); brand_label.setObjectName("brand"); version = QLabel("V.1"); version.setObjectName("version"); brand.addWidget(brand_label); brand.addWidget(version); brand.addStretch(); side.addLayout(brand)
-        tagline = QLabel("Scientific Paper Screening\n& Analysis System"); tagline.setObjectName("tagline"); side.addWidget(tagline); side.addSpacing(16)
+        root = QWidget(); root_layout = QHBoxLayout(root); root_layout.setContentsMargins(0,0,0,0); root_layout.setSpacing(0); sidebar = QFrame(); sidebar.setObjectName("sidebar"); sidebar.setFixedWidth(220); side = QVBoxLayout(sidebar); side.setContentsMargins(14,20,14,14); side.setSpacing(4)
+        brand = QHBoxLayout(); brand_label = QLabel("PSI.JARVIS"); brand_label.setObjectName("brand"); version = QLabel("V.1"); version.setObjectName("version"); brand.addWidget(brand_label); brand.addWidget(version); brand.addStretch(); side.addLayout(brand); tagline = QLabel("Scientific Paper Screening\n& Analysis System"); tagline.setObjectName("tagline"); side.addWidget(tagline); side.addSpacing(16)
         for index, (label, icon) in enumerate(NAV_ITEMS):
-            button = QPushButton(f"  {icon}   {label}"); button.setObjectName("nav"); button.setProperty("active", index == 0); button.clicked.connect(lambda checked=False, i=index: self._select_page(i)); self.nav_buttons.append(button); side.addWidget(button)
+            button = QPushButton(f"  {icon}   {label}"); button.setObjectName("nav"); button.setProperty("active", index == 0); button.setToolTip(f"Open {label}"); button.clicked.connect(lambda checked=False, i=index: self._select_page(i)); self.nav_buttons.append(button); side.addWidget(button)
         side.addStretch(); footer = QLabel("Human methodological authority\n\nDeterministic · Traceable\nReproducible"); footer.setObjectName("tagline"); side.addWidget(footer); root_layout.addWidget(sidebar)
-        content = QWidget(); content_layout = QVBoxLayout(content); content_layout.setContentsMargins(0,0,0,0); content_layout.addWidget(self.pages); root_layout.addWidget(content,1); self.setCentralWidget(root); self.setStatusBar(QStatusBar())
-        self._build_pages()
+        content = QWidget(); content_layout = QVBoxLayout(content); content_layout.setContentsMargins(0,0,0,0); content_layout.addWidget(self.pages); root_layout.addWidget(content,1); self.setCentralWidget(root); self.setStatusBar(QStatusBar()); self._build_pages()
 
     def _build_pages(self) -> None:
         while self.pages.count():
             widget = self.pages.widget(0); self.pages.removeWidget(widget); widget.deleteLater()
-        pages = (
-            DashboardPage(self.data, self.refresh_all),
-            ProjectsPage(self.data, self.workflow, self.refresh_all),
-            PapersPage(self.data, self.workflow, self.refresh_all),
-            SourcesPage(self.data),
-            ScreeningPage(self.data),
-            AnalysisPage(self.data),
-            ReportsPage(self.data, self.workflow),
-            AuditPage(self.data),
-            SettingsPage(self.data),
-        )
+        pages = (DashboardPage(self.data, self.refresh_all), ProjectsPage(self.data, self.workflow, self.refresh_all), PapersPage(self.data, self.workflow, self.refresh_all), SourcesPage(self.data), ScreeningPage(self.data), AnalysisPage(self.data), ReportsPage(self.data, self.workflow), AuditPage(self.data), SettingsPage(self.data))
         for page in pages: self.pages.addWidget(page)
 
     def _select_page(self, index: int) -> None:
@@ -466,14 +379,12 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"{NAV_ITEMS[index][0]} · ready")
 
     def refresh_all(self) -> None:
-        current = self.pages.currentIndex()
-        self._build_pages()
-        self._select_page(max(0, current))
-        self.statusBar().showMessage("Workspace refreshed")
+        current = self.pages.currentIndex(); self._build_pages(); self._select_page(max(0, current)); self.statusBar().showMessage("Workspace refreshed")
 
 
 def main() -> int:
     app = QApplication.instance() or QApplication(sys.argv); apply_theme(app)
-    window = MainWindow()
-    window.show()
+    window = MainWindow(); window.show()
+    tutorial = TutorialDialog(window)
+    tutorial.exec()
     return app.exec()
