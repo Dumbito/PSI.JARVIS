@@ -21,7 +21,69 @@ PSI.JARVIS is a modular, reproducible and auditable platform for scientific lite
 
 ## Status
 
-Development — foundation, acquisition, external synchronization, persisted screening evidence and professional desktop GUI layers implemented. AI/NLP assistance remains a planned auxiliary phase and cannot replace deterministic scientific decisions.
+Development — foundation, acquisition, external synchronization, persisted screening evidence and professional desktop GUI layers implemented. The current architecture also reserves an isolated AI/NLP assistant boundary for future local or remote providers without granting those providers scientific authority.
+
+## Scientific UX contract
+
+The desktop workflow is organized around the same path used by a systematic literature review: project/protocol → paper → screening → evidence → audit/reporting. The GUI exposes persisted state and delegates write operations to application services; it does not re-implement screening or deduplication rules.
+
+The interface makes processing state, screening context, deduplication, provenance, exclusion reasons and audit history visible where the underlying data exists. Empty, unavailable and not-yet-persisted states are represented explicitly rather than inferred.
+
+Scientific decisions remain authoritative in the deterministic `ScreeningEngine` and persisted screening/audit repositories. A refresh, navigation event or presentation-layer action cannot silently rewrite a persisted decision.
+
+## Analysis and reporting
+
+The analysis layer already exposes deterministic reporting surfaces for:
+
+- screening statistics and metrics
+- inclusion/exclusion decisions
+- exclusion reasons
+- deduplication
+- criteria and rule behavior
+- metadata quality
+- authors
+- journals
+- publication years
+- sensitivity/configuration analysis
+
+Reports reuse the existing domain/application reporting layer rather than duplicating scientific calculations in the GUI. Exported reports therefore remain derived artifacts of persisted scientific state.
+
+## PRISMA flow
+
+The current PRISMA representation is deliberately limited to stages that PSI.JARVIS persists as scientific state: records identified, duplicates removed, records screened, screening exclusions, and records retained for the next stage. Full-text retrieval, report retrieval failures, study-level eligibility assessment and final study inclusion are not inferred when their underlying events are absent.
+
+The Reports workspace provides a run selector and a read-only PRISMA-style diagram. Counts are derived from the selected persisted screening run and its screening decisions, preserving the project's provenance and deterministic-authority model.
+
+The `PrismaFlow` domain object validates stage relationships so inconsistent counts cannot be rendered as a valid flow.
+
+## AI/NLP assistant boundary
+
+AI/NLP is an auxiliary capability, not the scientific authority. The domain contains an explicit assistant contract for future providers:
+
+- suggestions are separate from `ScreeningResult` and `ScreeningAudit`
+- model identity and prompt version are captured with the suggestion
+- the input hash provides deterministic provenance for the assistant input envelope
+- optional confidence is range-validated
+- assistant output carries a fixed `assistant-only` authority label
+- promotion of an assistant suggestion into a scientific screening decision is explicitly rejected
+
+This boundary is provider-neutral and is suitable for a future local Ollama integration. No Ollama dependency is required for the deterministic screening application, and no model output is allowed to silently modify primary screening.
+
+## GUI engineering and robustness
+
+The PySide6 interface uses non-blocking property/geometry animations and explicit widget ownership. Global page transitions do not use `QGraphicsOpacityEffect`.
+
+Regression coverage checks the Qt-sensitive architecture, including:
+
+- main page-stack animation behavior
+- `QTabWidget` internal stack exclusion
+- geometry-based tab/dialog transitions
+- table hover overlays without graphics effects
+- single application-owned animation filter
+- PRISMA diagram and panel lifecycle/refresh behavior
+- persisted run selection and stage mapping
+
+The CI workflow installs the Qt test plugin and runs the GUI suite in an offscreen environment. Every push to `main` and every pull request executes the complete test suite plus whitespace validation.
 
 ## Desktop GUI
 
@@ -44,12 +106,6 @@ Launch locally with:
 ```text
 psi-gui
 ```
-
-## PRISMA flow
-
-The current PRISMA representation is deliberately limited to stages that PSI.JARVIS persists as scientific state: records identified, duplicates removed, records screened, screening exclusions, and records retained for the next stage. Full-text retrieval, report retrieval failures, study-level eligibility assessment and final study inclusion are not inferred when their underlying events are absent.
-
-The Reports workspace provides a run selector and a read-only PRISMA-style diagram. Counts are derived from the selected persisted screening run and its screening decisions, preserving the project's provenance and deterministic-authority model.
 
 ## Bibliographic sources
 
