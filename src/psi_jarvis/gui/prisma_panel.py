@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from psi_jarvis.gui.data import GuiDataService
-from psi_jarvis.gui.prisma_view import PrismaFlowView
+from psi_jarvis.gui.prisma_diagram import PrismaDiagram
 
 
 class PrismaReportPanel(QWidget):
@@ -25,7 +25,7 @@ class PrismaReportPanel(QWidget):
         refresh.clicked.connect(self.refresh)
         controls.addWidget(refresh)
         root.addLayout(controls)
-        self.flow_view = PrismaFlowView(data)
+        self.flow_view = PrismaDiagram(data)
         root.addWidget(self.flow_view, 1)
 
     def _populate_runs(self) -> None:
