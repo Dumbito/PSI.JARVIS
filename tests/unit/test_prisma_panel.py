@@ -43,6 +43,8 @@ class FakeData:
             FakeRow("run-2", "Included"),
             FakeRow("run-2", "Included"),
             *[FakeRow("run-2", "Excluded") for _ in range(16)],
+            *[FakeRow("run-1", "Included") for _ in range(4)],
+            *[FakeRow("run-1", "Excluded") for _ in range(5)],
         ]
 
 
@@ -80,3 +82,5 @@ def test_panel_refresh_preserves_selected_run(qtbot):
 
     assert panel.run_box.currentData() == "run-1"
     assert panel.flow_view._flow.records_identified == 10
+    assert panel.flow_view._flow.records_excluded == 5
+    assert panel.flow_view._flow.records_included_for_next_stage == 4
