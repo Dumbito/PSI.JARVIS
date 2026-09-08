@@ -21,15 +21,25 @@ from psi_jarvis.domain.screening.audit_repository import ScreeningAuditRepositor
 from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.domain.screening.execution import ScreeningExecution
-from psi_jarvis.domain.screening.execution_repository import ScreeningExecutionRepository
+from psi_jarvis.domain.screening.execution_repository import (
+    ScreeningExecutionRepository,
+)
 from psi_jarvis.domain.screening.result import ScreeningResult
 from psi_jarvis.domain.screening.result_repository import ScreeningResultRepository
 from psi_jarvis.domain.screening.run import ScreeningRun
 from psi_jarvis.domain.screening.run_repository import ScreeningRunRepository
-from psi_jarvis.infrastructure.screening_audit_repository import InMemoryScreeningAuditRepository
-from psi_jarvis.infrastructure.screening_result_repository import InMemoryScreeningResultRepository
-from psi_jarvis.infrastructure.screening_run_repository import InMemoryScreeningRunRepository
-from psi_jarvis.infrastructure.screening_execution_repository import InMemoryScreeningExecutionRepository
+from psi_jarvis.infrastructure.screening_audit_repository import (
+    InMemoryScreeningAuditRepository,
+)
+from psi_jarvis.infrastructure.screening_result_repository import (
+    InMemoryScreeningResultRepository,
+)
+from psi_jarvis.infrastructure.screening_run_repository import (
+    InMemoryScreeningRunRepository,
+)
+from psi_jarvis.infrastructure.screening_execution_repository import (
+    InMemoryScreeningExecutionRepository,
+)
 
 
 @dataclass(frozen=True)
@@ -71,9 +81,13 @@ class PaperPipeline:
         self.deduplicator = deduplicator or PaperDeduplicator()
         self.screening_engine = screening_engine
         self.run_repository = run_repository or InMemoryScreeningRunRepository()
-        self.result_repository = result_repository or InMemoryScreeningResultRepository()
+        self.result_repository = (
+            result_repository or InMemoryScreeningResultRepository()
+        )
         self.audit_repository = audit_repository or InMemoryScreeningAuditRepository()
-        self.execution_repository = execution_repository or InMemoryScreeningExecutionRepository()
+        self.execution_repository = (
+            execution_repository or InMemoryScreeningExecutionRepository()
+        )
 
     def process(
         self,
@@ -83,10 +97,7 @@ class PaperPipeline:
     ) -> PipelineResult:
         total_input = len(papers)
 
-        normalized_papers = tuple(
-            self.normalizer.normalize(paper)
-            for paper in papers
-        )
+        normalized_papers = tuple(self.normalizer.normalize(paper) for paper in papers)
 
         deduplication = self.deduplicator.deduplicate(normalized_papers)
 
@@ -107,8 +118,7 @@ class PaperPipeline:
         )
 
         audits = tuple(
-            ScreeningAudit.from_result(result)
-            for result in screening_results
+            ScreeningAudit.from_result(result) for result in screening_results
         )
 
         execution = ScreeningExecution(
@@ -131,7 +141,9 @@ class PaperPipeline:
             duplicates_removed=deduplication.duplicates_removed,
             screened_papers=len(screening_results),
             included_papers=sum(1 for result in screening_results if result.included),
-            excluded_papers=sum(1 for result in screening_results if not result.included),
+            excluded_papers=sum(
+                1 for result in screening_results if not result.included
+            ),
         )
 
         rule_analysis = RuleAnalysis.from_audits(audits)
@@ -146,7 +158,9 @@ class PaperPipeline:
             total_input=total_input,
             screened_papers=len(screening_results),
             included_papers=sum(1 for result in screening_results if result.included),
-            excluded_papers=sum(1 for result in screening_results if not result.included),
+            excluded_papers=sum(
+                1 for result in screening_results if not result.included
+            ),
             duplicates_removed=deduplication.duplicates_removed,
             audits=audits,
         )
@@ -158,7 +172,9 @@ class PaperPipeline:
         )
         author_analysis = AuthorAnalysis.from_papers(deduplication.papers)
         journal_analysis = JournalAnalysis.from_papers(deduplication.papers)
-        publication_year_analysis = PublicationYearAnalysis.from_papers(deduplication.papers)
+        publication_year_analysis = PublicationYearAnalysis.from_papers(
+            deduplication.papers
+        )
 
         self.run_repository.save(run)
         self.execution_repository.save(execution)

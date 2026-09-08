@@ -6,7 +6,9 @@ from getpass import getpass
 from pathlib import Path
 
 
-DEFAULT_SCOPUS_CONFIG_PATH = Path.home() / ".config" / "psi-jarvis" / "connections" / "scopus_config.json"
+DEFAULT_SCOPUS_CONFIG_PATH = (
+    Path.home() / ".config" / "psi-jarvis" / "connections" / "scopus_config.json"
+)
 
 
 @dataclass(frozen=True)
@@ -50,7 +52,9 @@ class ScopusLocalConfigStore:
             authorization_endpoint=payload.get("authorization_endpoint"),
             token_endpoint=payload.get("token_endpoint"),
             scopes=tuple(payload.get("scopes", ())),
-            base_url=payload.get("base_url", "https://api.elsevier.com/content/search/scopus"),
+            base_url=payload.get(
+                "base_url", "https://api.elsevier.com/content/search/scopus"
+            ),
             redirect_port=int(payload.get("redirect_port", 0)),
         )
 
@@ -73,12 +77,18 @@ def configure_scopus_interactively(store: ScopusLocalConfigStore) -> ScopusLocal
     scopes: tuple[str, ...] = ()
 
     if client_id:
-        client_secret = getpass("OAuth client secret (Enter si no aplica): ").strip() or None
+        client_secret = (
+            getpass("OAuth client secret (Enter si no aplica): ").strip() or None
+        )
         authorization_endpoint = input("OAuth authorization endpoint: ").strip() or None
         token_endpoint = input("OAuth token endpoint: ").strip() or None
         if not authorization_endpoint or not token_endpoint:
-            raise ValueError("OAuth authorization and token endpoints are required when client ID is set")
-        scopes = tuple(input("OAuth scopes (separados por espacios, Enter para omitir): ").split())
+            raise ValueError(
+                "OAuth authorization and token endpoints are required when client ID is set"
+            )
+        scopes = tuple(
+            input("OAuth scopes (separados por espacios, Enter para omitir): ").split()
+        )
 
     config = ScopusLocalConfig(
         api_key=api_key,

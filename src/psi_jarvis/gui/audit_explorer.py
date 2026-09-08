@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from psi_jarvis.gui.data import GuiDataService, AuditRow
 
@@ -9,7 +19,9 @@ from psi_jarvis.gui.data import GuiDataService, AuditRow
 class AuditExplorerDialog(QDialog):
     """Read-only inspection of a metadata-history event and its provenance."""
 
-    def __init__(self, data: GuiDataService, audit: AuditRow, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, data: GuiDataService, audit: AuditRow, parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.data = data
         self.audit = audit
@@ -45,9 +57,13 @@ class AuditExplorerDialog(QDialog):
             root.addWidget(paper_label)
 
         provenance = self.data.paper_provenance(self.audit.paper_id)
-        root.addWidget(QLabel(f"Provenance linked to this paper · {len(provenance):,} record(s)"))
+        root.addWidget(
+            QLabel(f"Provenance linked to this paper · {len(provenance):,} record(s)")
+        )
         table = QTableWidget(len(provenance), 6)
-        table.setHorizontalHeaderLabels(["Source", "Record ID", "Batch", "Ordinal", "Format", "Raw SHA-256"])
+        table.setHorizontalHeaderLabels(
+            ["Source", "Record ID", "Batch", "Ordinal", "Format", "Raw SHA-256"]
+        )
         table.horizontalHeader().setStretchLastSection(True)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -66,7 +82,9 @@ class AuditExplorerDialog(QDialog):
                 table.setItem(row, column, QTableWidgetItem(str(value)))
         root.addWidget(table, 1)
 
-        note = QLabel("Read-only audit evidence. This view does not modify metadata, provenance, or scientific decisions.")
+        note = QLabel(
+            "Read-only audit evidence. This view does not modify metadata, provenance, or scientific decisions."
+        )
         note.setWordWrap(True)
         note.setObjectName("pageSubtitle")
         root.addWidget(note)
@@ -82,9 +100,13 @@ class AuditExplorerView(QWidget):
         super().__init__(parent)
         self.data = data
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search paper ID, source, record ID, or changed field…")
+        self.search.setPlaceholderText(
+            "Search paper ID, source, record ID, or changed field…"
+        )
         self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["Changed at", "Paper ID", "Source", "Source record", "Changed fields"])
+        self.table.setHorizontalHeaderLabels(
+            ["Changed at", "Paper ID", "Source", "Source record", "Changed fields"]
+        )
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -94,7 +116,9 @@ class AuditExplorerView(QWidget):
         self.search.textChanged.connect(self._filter)
         root = QVBoxLayout(self)
         root.addWidget(self.search)
-        root.addWidget(QLabel("Metadata history · double-click an event to inspect its provenance"))
+        root.addWidget(
+            QLabel("Metadata history · double-click an event to inspect its provenance")
+        )
         root.addWidget(self.table, 1)
         self.populate()
 
@@ -102,7 +126,13 @@ class AuditExplorerView(QWidget):
         self.rows = self.data.audit_rows(limit=10000)
         self.table.setRowCount(len(self.rows))
         for row, audit in enumerate(self.rows):
-            values = (audit.changed_at, audit.paper_id, audit.source_key, audit.source_record_id or "—", ", ".join(audit.changed_fields))
+            values = (
+                audit.changed_at,
+                audit.paper_id,
+                audit.source_key,
+                audit.source_record_id or "—",
+                ", ".join(audit.changed_fields),
+            )
             for column, value in enumerate(values):
                 self.table.setItem(row, column, QTableWidgetItem(str(value)))
         self._filter(self.search.text())
@@ -110,7 +140,12 @@ class AuditExplorerView(QWidget):
     def _filter(self, text: str) -> None:
         needle = text.strip().casefold()
         for row in range(self.table.rowCount()):
-            value = " ".join(self.table.item(row, column).text() if self.table.item(row, column) else "" for column in range(self.table.columnCount())).casefold()
+            value = " ".join(
+                self.table.item(row, column).text()
+                if self.table.item(row, column)
+                else ""
+                for column in range(self.table.columnCount())
+            ).casefold()
             self.table.setRowHidden(row, bool(needle) and needle not in value)
 
     def _open(self) -> None:

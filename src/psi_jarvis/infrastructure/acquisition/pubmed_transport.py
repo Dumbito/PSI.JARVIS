@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree
@@ -86,7 +86,9 @@ class PubMedEUtilsTransport:
 
     def _request(self, endpoint: str, params: Mapping[str, str]) -> str:
         url = f"{self._config.base_url.rstrip('/')}/{endpoint}"
-        request = Request(url, data=urlencode(dict(params)).encode("utf-8"), method="POST")
+        request = Request(
+            url, data=urlencode(dict(params)).encode("utf-8"), method="POST"
+        )
         request.add_header("Accept", "application/xml")
         request.add_header("User-Agent", self._config.tool)
         with self._opener(request, timeout=self._config.timeout_seconds) as response:
@@ -103,7 +105,15 @@ class PubMedEUtilsTransport:
         return params
 
     def _query_parameters(self, query: BibliographicQuery) -> dict[str, str]:
-        allowed = {"retstart", "sort", "datetype", "reldate", "mindate", "maxdate", "field"}
+        allowed = {
+            "retstart",
+            "sort",
+            "datetype",
+            "reldate",
+            "mindate",
+            "maxdate",
+            "field",
+        }
         parameters: dict[str, str] = {}
         for name, value in query.parameters:
             if name not in allowed:
@@ -115,7 +125,9 @@ class PubMedEUtilsTransport:
             try:
                 retstart = int(raw_retstart)
             except ValueError as exc:
-                raise ValueError("PubMed retstart must be a non-negative integer") from exc
+                raise ValueError(
+                    "PubMed retstart must be a non-negative integer"
+                ) from exc
             if retstart < 0:
                 raise ValueError("PubMed retstart must be a non-negative integer")
             if retstart >= MAX_PUBMED_ESEARCH_RESULTS:
@@ -165,7 +177,9 @@ class PubMedEUtilsTransport:
         if len(pmids) > retmax:
             raise RuntimeError("NCBI ESearch response contains more PMIDs than retmax")
         if retstart + requested_retmax > MAX_PUBMED_ESEARCH_RESULTS:
-            raise RuntimeError("NCBI ESearch request exceeds the 10000-record PubMed window")
+            raise RuntimeError(
+                "NCBI ESearch request exceeds the 10000-record PubMed window"
+            )
         if count < retstart:
             raise RuntimeError("NCBI ESearch response count is smaller than retstart")
         if count > retstart and not pmids:
@@ -176,4 +190,6 @@ class PubMedEUtilsTransport:
         safe_params.pop("api_key", None)
         safe_params.pop("email", None)
         safe_params.pop("tool", None)
-        return f"{self._config.base_url.rstrip('/')}/{endpoint}?{urlencode(safe_params)}"
+        return (
+            f"{self._config.base_url.rstrip('/')}/{endpoint}?{urlencode(safe_params)}"
+        )

@@ -28,20 +28,14 @@ class ConfigurationComparisonService:
         normalizer = self.normalizer or PaperNormalizer()
         deduplicator = self.deduplicator or PaperDeduplicator()
 
-        normalized_papers = tuple(
-            normalizer.normalize(paper)
-            for paper in papers
-        )
+        normalized_papers = tuple(normalizer.normalize(paper) for paper in papers)
         corpus = deduplicator.deduplicate(normalized_papers).papers
 
         runs = []
 
         for criteria in configurations:
             engine = ScreeningEngine(criteria)
-            results = tuple(
-                engine.evaluate(paper)
-                for paper in corpus
-            )
+            results = tuple(engine.evaluate(paper) for paper in corpus)
             runs.append((criteria, results))
 
         return ConfigurationComparison.from_runs(tuple(runs))

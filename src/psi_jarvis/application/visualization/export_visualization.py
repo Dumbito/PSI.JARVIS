@@ -8,9 +8,7 @@ class VisualizationExporter:
 
     def __post_init__(self) -> None:
         if not str(self.output_dir).strip():
-            raise ValueError(
-                "Visualization output directory cannot be empty"
-            )
+            raise ValueError("Visualization output directory cannot be empty")
 
     def export(
         self,
@@ -21,9 +19,7 @@ class VisualizationExporter:
             raise ValueError("Visualization content cannot be empty")
 
         if not filename.strip():
-            raise ValueError(
-                "Visualization filename cannot be empty"
-            )
+            raise ValueError("Visualization filename cannot be empty")
 
         path = self.output_dir / filename
         self.output_dir.mkdir(

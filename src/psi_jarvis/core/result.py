@@ -1,12 +1,8 @@
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-
-T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class Result(Generic[T]):
+class Result[T]:
     """Representa el resultado de una operación del sistema."""
 
     success: bool

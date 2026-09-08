@@ -12,7 +12,9 @@ class DeduplicationResult:
 
 
 class PaperDeduplicator:
-    def deduplicate(self, papers: list[Paper] | tuple[Paper, ...]) -> DeduplicationResult:
+    def deduplicate(
+        self, papers: list[Paper] | tuple[Paper, ...]
+    ) -> DeduplicationResult:
         unique: list[Paper] = []
         positions: dict[str, int] = {}
 
@@ -58,7 +60,4 @@ class PaperDeduplicator:
     @staticmethod
     def _merged_provenances(first, second):
         by_key = {provenance.key: provenance for provenance in (*first, *second)}
-        return tuple(
-            by_key[key]
-            for key in sorted(by_key)
-        )
+        return tuple(by_key[key] for key in sorted(by_key))

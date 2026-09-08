@@ -88,8 +88,7 @@ class SQLiteScreeningAuditRepository:
                 ).fetchone()
             else:
                 row = connection.execute(
-                    "SELECT * FROM screening_audits "
-                    "WHERE paper_id = ? AND run_id = ?",
+                    "SELECT * FROM screening_audits WHERE paper_id = ? AND run_id = ?",
                     (str(paper_id), str(run_id)),
                 ).fetchone()
 

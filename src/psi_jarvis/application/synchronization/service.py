@@ -1,7 +1,8 @@
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import json
-from typing import Callable, Protocol
+from typing import Protocol
+from collections.abc import Callable
 
 from psi_jarvis.application.synchronization.contracts import (
     MetadataChange,
@@ -31,11 +32,13 @@ class BibliographicSynchronizationService:
     history_repository: MetadataHistoryRepository
     clock: Callable[[], datetime] | None = None
 
-    def synchronize(self, incoming: tuple[Paper, ...] | list[Paper]) -> SynchronizationResult:
-        now = (self.clock or (lambda: datetime.now(timezone.utc)))()
-        if now.tzinfo is None or now.utcoffset() != timezone.utc.utcoffset(now):
+    def synchronize(
+        self, incoming: tuple[Paper, ...] | list[Paper]
+    ) -> SynchronizationResult:
+        now = (self.clock or (lambda: datetime.now(UTC)))()
+        if now.tzinfo is None or now.utcoffset() != UTC.utcoffset(now):
             raise ValueError("Synchronization timestamp must be UTC")
-        now = now.astimezone(timezone.utc)
+        now = now.astimezone(UTC)
 
         existing = self.repository.list_all()
         by_identity = self._index(existing)
@@ -124,7 +127,9 @@ class BibliographicSynchronizationService:
 
     @staticmethod
     def _merge_provenances(current: Paper, incoming: Paper):
-        by_key = {item.key: item for item in (*current.provenances, *incoming.provenances)}
+        by_key = {
+            item.key: item for item in (*current.provenances, *incoming.provenances)
+        }
         return tuple(by_key[key] for key in sorted(by_key))
 
     @staticmethod

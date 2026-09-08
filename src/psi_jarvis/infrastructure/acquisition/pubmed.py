@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from re import search
-from typing import Callable
+from collections.abc import Callable
 from uuid import UUID, uuid5
 from xml.etree import ElementTree
 
@@ -38,13 +38,17 @@ class PubMedXmlMapper:
     format_version: str = "1"
     mapping_version: str = "1"
 
-    def map(self, response: RemoteAcquisitionResponse, receipt: AcquisitionReceipt) -> AcquisitionResult:
+    def map(
+        self, response: RemoteAcquisitionResponse, receipt: AcquisitionReceipt
+    ) -> AcquisitionResult:
         try:
             root = ElementTree.fromstring(response.raw_content)
         except ElementTree.ParseError as exc:
             return AcquisitionResult(
                 receipt=receipt,
-                issues=(AcquisitionIssue("invalid_format", f"Invalid PubMed XML: {exc}"),),
+                issues=(
+                    AcquisitionIssue("invalid_format", f"Invalid PubMed XML: {exc}"),
+                ),
             )
 
         papers: list[Paper] = []
@@ -57,16 +61,34 @@ class PubMedXmlMapper:
             if paper is not None:
                 papers.append(paper)
 
-        return AcquisitionResult(receipt=receipt, papers=tuple(papers), issues=tuple(issues))
+        return AcquisitionResult(
+            receipt=receipt, papers=tuple(papers), issues=tuple(issues)
+        )
 
-    def _map_article(self, receipt: AcquisitionReceipt, ordinal: int, article: ElementTree.Element):
+    def _map_article(
+        self, receipt: AcquisitionReceipt, ordinal: int, article: ElementTree.Element
+    ):
         citation = article.find("MedlineCitation")
         if citation is None:
-            return None, (AcquisitionIssue("missing_citation", "PubMed record has no MedlineCitation", "warning", ordinal),)
+            return None, (
+                AcquisitionIssue(
+                    "missing_citation",
+                    "PubMed record has no MedlineCitation",
+                    "warning",
+                    ordinal,
+                ),
+            )
 
         article_data = citation.find("Article")
         if article_data is None:
-            return None, (AcquisitionIssue("missing_article", "PubMed record has no Article element", "warning", ordinal),)
+            return None, (
+                AcquisitionIssue(
+                    "missing_article",
+                    "PubMed record has no Article element",
+                    "warning",
+                    ordinal,
+                ),
+            )
 
         raw_record = ElementTree.tostring(article, encoding="unicode")
         title = self._text(article_data.find("ArticleTitle"))
@@ -79,11 +101,26 @@ class PubMedXmlMapper:
 
         issues: list[AcquisitionIssue] = []
         if not title:
-            issues.append(AcquisitionIssue("missing_title", "PubMed record has no title", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_title", "PubMed record has no title", "warning", ordinal
+                )
+            )
         if not pmid:
-            issues.append(AcquisitionIssue("missing_pmid", "PubMed record has no PMID", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_pmid", "PubMed record has no PMID", "warning", ordinal
+                )
+            )
         if article_data.find("Journal") is None:
-            issues.append(AcquisitionIssue("missing_journal", "PubMed record has no journal", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_journal",
+                    "PubMed record has no journal",
+                    "warning",
+                    ordinal,
+                )
+            )
 
         provenance = BibliographicProvenance(
             receipt=receipt,

@@ -1,15 +1,20 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
-from psi_jarvis.application.acquisition.contracts import AcquisitionResult, BibliographicQuery
+from psi_jarvis.application.acquisition.contracts import (
+    AcquisitionResult,
+    BibliographicQuery,
+)
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
 
 
 DEFAULT_MAX_REMOTE_RESPONSE_BYTES = 128 * 1024 * 1024
 
 
-def read_remote_response(response: object, *, max_bytes: int = DEFAULT_MAX_REMOTE_RESPONSE_BYTES) -> bytes:
+def read_remote_response(
+    response: object, *, max_bytes: int = DEFAULT_MAX_REMOTE_RESPONSE_BYTES
+) -> bytes:
     """Lee una respuesta HTTP con un límite explícito de memoria."""
 
     if max_bytes < 1:
@@ -59,7 +64,7 @@ class RemoteBibliographicAdapter(ABC):
     mapping_version: str
 
     def __init__(self, clock=None) -> None:
-        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def acquire(self, query: BibliographicQuery) -> AcquisitionResult:
         response = self.fetch(query)

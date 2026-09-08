@@ -73,12 +73,16 @@ def load_scopus_environment() -> ScopusEnvironmentConfig:
     if has_oauth and not config.client_id:
         raise ValueError("PSI_SCOPUS_CLIENT_ID is required for Scopus OAuth")
     if has_oauth and not config.authorization_endpoint:
-        raise ValueError("PSI_SCOPUS_AUTHORIZATION_ENDPOINT is required for Scopus OAuth")
+        raise ValueError(
+            "PSI_SCOPUS_AUTHORIZATION_ENDPOINT is required for Scopus OAuth"
+        )
     if has_oauth and not config.token_endpoint:
         raise ValueError("PSI_SCOPUS_TOKEN_ENDPOINT is required for Scopus OAuth")
 
     if not config.api_key:
-        raise ValueError("Scopus API key is required when local Scopus configuration exists")
+        raise ValueError(
+            "Scopus API key is required when local Scopus configuration exists"
+        )
 
     transport = ScopusTransportConfig(
         api_key=config.api_key,
@@ -100,4 +104,6 @@ def load_scopus_environment() -> ScopusEnvironmentConfig:
             redirect_port=config.redirect_port,
         )
 
-    return ScopusEnvironmentConfig(api_key=config.api_key, transport=transport, oauth=oauth)
+    return ScopusEnvironmentConfig(
+        api_key=config.api_key, transport=transport, oauth=oauth
+    )

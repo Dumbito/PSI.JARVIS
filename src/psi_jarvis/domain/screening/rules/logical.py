@@ -4,11 +4,9 @@ from typing import Protocol
 
 class ScreeningRule(Protocol):
     @property
-    def id(self) -> str:
-        ...
+    def id(self) -> str: ...
 
-    def matches(self, text: str) -> bool:
-        ...
+    def matches(self, text: str) -> bool: ...
 
 
 @dataclass(frozen=True)

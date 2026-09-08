@@ -1,6 +1,9 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Protocol, runtime_checkable
+
+from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
+from psi_jarvis.domain.paper import Paper
 
 
 @dataclass(frozen=True)
@@ -22,15 +25,13 @@ class BibliographicQuery:
         object.__setattr__(
             self,
             "parameters",
-            tuple((name.strip(), str(value).strip()) for name, value in self.parameters),
+            tuple(
+                (name.strip(), str(value).strip()) for name, value in self.parameters
+            ),
         )
 
     def payload(self) -> dict[str, object]:
         return {"text": self.text, "parameters": dict(self.parameters)}
-
-
-from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
-from psi_jarvis.domain.paper import Paper
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,7 @@ class AcquisitionRequest:
             raise ValueError("Acquisition request location cannot be empty")
         if self.acquired_at is not None and (
             self.acquired_at.tzinfo is None
-            or self.acquired_at.utcoffset() != timezone.utc.utcoffset(self.acquired_at)
+            or self.acquired_at.utcoffset() != UTC.utcoffset(self.acquired_at)
         ):
             raise ValueError("Acquisition request timestamp must be UTC")
 

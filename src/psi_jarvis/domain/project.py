@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
+
 
 @dataclass(frozen=True)
 class ReviewProject:
@@ -32,5 +33,5 @@ class ReviewProject:
             name=normalized_name,
             research_question=normalized_question,
             criteria=criteria,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )

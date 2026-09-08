@@ -1,12 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from hashlib import sha256
 import json
 from uuid import UUID, uuid5
 
 
 def canonical_json(payload: object) -> str:
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
 
 
 def sha256_text(value: str) -> str:
@@ -36,10 +38,15 @@ class AcquisitionReceipt:
         ):
             if not value.strip():
                 raise ValueError(f"Acquisition receipt {name} cannot be empty")
-        if self.acquired_at.tzinfo is None or self.acquired_at.utcoffset() != timezone.utc.utcoffset(self.acquired_at):
+        if (
+            self.acquired_at.tzinfo is None
+            or self.acquired_at.utcoffset() != UTC.utcoffset(self.acquired_at)
+        ):
             raise ValueError("Acquisition receipt timestamp must be UTC")
         if self.request_sha256 != sha256_text(self.request_json):
-            raise ValueError("Acquisition receipt request hash does not match request json")
+            raise ValueError(
+                "Acquisition receipt request hash does not match request json"
+            )
         if len(self.input_sha256) != 64:
             raise ValueError("Acquisition receipt input hash must be a SHA-256 digest")
 
@@ -57,17 +64,26 @@ class AcquisitionReceipt:
     ) -> "AcquisitionReceipt":
         request_json = canonical_json(request_payload)
         input_sha256 = sha256_text(input_content)
-        timestamp = acquired_at.astimezone(timezone.utc).isoformat()
+        timestamp = acquired_at.astimezone(UTC).isoformat()
         batch_id = uuid5(
             UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
-            "|".join((source_key, adapter_key, adapter_version, timestamp, request_json, input_sha256)),
+            "|".join(
+                (
+                    source_key,
+                    adapter_key,
+                    adapter_version,
+                    timestamp,
+                    request_json,
+                    input_sha256,
+                )
+            ),
         )
         return cls(
             batch_id=batch_id,
             source_key=source_key,
             adapter_key=adapter_key,
             adapter_version=adapter_version,
-            acquired_at=acquired_at.astimezone(timezone.utc),
+            acquired_at=acquired_at.astimezone(UTC),
             request_json=request_json,
             request_sha256=sha256_text(request_json),
             input_sha256=input_sha256,
@@ -113,7 +129,9 @@ class BibliographicProvenance:
             if not value.strip():
                 raise ValueError(f"Bibliographic provenance {name} cannot be empty")
         if len(self.raw_record_sha256) != 64:
-            raise ValueError("Bibliographic provenance raw record hash must be a SHA-256 digest")
+            raise ValueError(
+                "Bibliographic provenance raw record hash must be a SHA-256 digest"
+            )
 
     @property
     def source_key(self) -> str:

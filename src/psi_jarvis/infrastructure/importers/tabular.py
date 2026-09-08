@@ -79,9 +79,7 @@ class TabularImporter:
             return ()
 
         return tuple(
-            author.strip()
-            for author in str(value).split(";")
-            if author.strip()
+            author.strip() for author in str(value).split(";") if author.strip()
         )
 
     @staticmethod

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.paper import Paper
 
@@ -31,7 +31,11 @@ class PublicationYearAnalysis:
         if self.year_min is not None and self.year_max is None:
             raise ValueError("Year maximum cannot be missing when minimum exists")
 
-        if self.year_min is not None and self.year_max is not None and self.year_min > self.year_max:
+        if (
+            self.year_min is not None
+            and self.year_max is not None
+            and self.year_min > self.year_max
+        ):
             raise ValueError("Year minimum cannot exceed year maximum")
 
         if sum(count for _, count in self.by_year) != self.papers_with_year:

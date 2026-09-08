@@ -16,8 +16,12 @@ from uuid import UUID
 
 from psi_jarvis.application.acquisition import AcquisitionRequest, AcquisitionService
 from psi_jarvis.application.pipeline.pipeline import PaperPipeline, PipelineResult
-from psi_jarvis.application.project.create_review_project import CreateReviewProjectService
-from psi_jarvis.application.project.screen_review_project import ScreenReviewProjectService
+from psi_jarvis.application.project.create_review_project import (
+    CreateReviewProjectService,
+)
+from psi_jarvis.application.project.screen_review_project import (
+    ScreenReviewProjectService,
+)
 from psi_jarvis.application.reporting.export_report import ReportExporter
 from psi_jarvis.domain.analysis.author_analysis import AuthorAnalysis
 from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
@@ -40,10 +44,18 @@ from psi_jarvis.infrastructure.importers.excel_importer import ExcelImporter
 from psi_jarvis.infrastructure.sqlite_corpus_repository import SQLiteCorpusRepository
 from psi_jarvis.infrastructure.sqlite_paper_repository import SQLitePaperRepository
 from psi_jarvis.infrastructure.sqlite_project_repository import SQLiteProjectRepository
-from psi_jarvis.infrastructure.sqlite_screening_audit_repository import SQLiteScreeningAuditRepository
-from psi_jarvis.infrastructure.sqlite_screening_execution_repository import SQLiteScreeningExecutionRepository
-from psi_jarvis.infrastructure.sqlite_screening_result_repository import SQLiteScreeningResultRepository
-from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
+from psi_jarvis.infrastructure.sqlite_screening_audit_repository import (
+    SQLiteScreeningAuditRepository,
+)
+from psi_jarvis.infrastructure.sqlite_screening_execution_repository import (
+    SQLiteScreeningExecutionRepository,
+)
+from psi_jarvis.infrastructure.sqlite_screening_result_repository import (
+    SQLiteScreeningResultRepository,
+)
+from psi_jarvis.infrastructure.sqlite_screening_run_repository import (
+    SQLiteScreeningRunRepository,
+)
 
 
 class UnsupportedFileFormat(ValueError):
@@ -71,7 +83,9 @@ def _acquisition_port(path: Path):
         return CSVImporter()
     if suffix in {".xlsx", ".xls"}:
         return ExcelImporter()
-    raise UnsupportedFileFormat(f"Formato de archivo no soportado: {suffix or '(sin extensión)'}")
+    raise UnsupportedFileFormat(
+        f"Formato de archivo no soportado: {suffix or '(sin extensión)'}"
+    )
 
 
 class GuiWorkflowService:
@@ -86,16 +100,35 @@ class GuiWorkflowService:
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
 
-    def create_project(self, name: str, research_question: str, topic: str, inclusion: tuple[str, ...], exclusion: tuple[str, ...]):
-        criteria = ScreeningCriteria(topic=topic, inclusion=inclusion, exclusion=exclusion)
+    def create_project(
+        self,
+        name: str,
+        research_question: str,
+        topic: str,
+        inclusion: tuple[str, ...],
+        exclusion: tuple[str, ...],
+    ):
+        criteria = ScreeningCriteria(
+            topic=topic, inclusion=inclusion, exclusion=exclusion
+        )
         repository = SQLiteProjectRepository(self.database_path)
-        return CreateReviewProjectService(repository).execute(name=name, criteria=criteria, research_question=research_question)
+        return CreateReviewProjectService(repository).execute(
+            name=name, criteria=criteria, research_question=research_question
+        )
 
-    def import_and_screen(self, project_id: UUID, file_path: str | Path) -> ImportOutcome:
+    def import_and_screen(
+        self, project_id: UUID, file_path: str | Path
+    ) -> ImportOutcome:
         path = Path(file_path)
-        acquisition = AcquisitionService(_acquisition_port(path)).execute(AcquisitionRequest(location=str(path)))
+        acquisition = AcquisitionService(_acquisition_port(path)).execute(
+            AcquisitionRequest(location=str(path))
+        )
         if not acquisition.success:
-            message = acquisition.issues[0].message if acquisition.issues else "No se pudo importar el archivo."
+            message = (
+                acquisition.issues[0].message
+                if acquisition.issues
+                else "No se pudo importar el archivo."
+            )
             raise ValueError(message)
         if not acquisition.papers:
             raise ValueError("El archivo no contiene artículos reconocibles.")
@@ -111,7 +144,9 @@ class GuiWorkflowService:
             execution_repository=SQLiteScreeningExecutionRepository(self.database_path),
         )
         project_repository = SQLiteProjectRepository(self.database_path)
-        result: PipelineResult = ScreenReviewProjectService(project_repository, pipeline).execute(project_id, acquisition.papers)
+        result: PipelineResult = ScreenReviewProjectService(
+            project_repository, pipeline
+        ).execute(project_id, acquisition.papers)
 
         for paper in result.papers:
             paper_repository.save(paper)
@@ -119,34 +154,88 @@ class GuiWorkflowService:
         # Persist the project-scoped corpus explicitly. This is the durable
         # bridge between a review project and the canonical papers seen by
         # the screening pipeline; the GUI only reads this relation later.
-        SQLiteCorpusRepository(self.database_path).save(Corpus.create(project_id=project_id, papers=tuple(result.papers)))
+        SQLiteCorpusRepository(self.database_path).save(
+            Corpus.create(project_id=project_id, papers=tuple(result.papers))
+        )
 
         included = sum(1 for item in result.screening_results if item.included)
         return ImportOutcome(
-            run_id=str(result.run.run_id), total_input=result.total_input,
-            unique_papers=result.unique_papers, duplicates_removed=result.duplicates_removed,
-            screened_papers=result.screened_papers, included=included,
+            run_id=str(result.run.run_id),
+            total_input=result.total_input,
+            unique_papers=result.unique_papers,
+            duplicates_removed=result.duplicates_removed,
+            screened_papers=result.screened_papers,
+            included=included,
             excluded=result.screened_papers - included,
         )
 
-    def report_for_run(self, run_id: UUID, title: str = "PSI.JARVIS Screening Report") -> Report | None:
+    def report_for_run(
+        self, run_id: UUID, title: str = "PSI.JARVIS Screening Report"
+    ) -> Report | None:
         all_audits = SQLiteScreeningAuditRepository(self.database_path).list_all()
-        audits: tuple[ScreeningAudit, ...] = tuple(a for a in all_audits if a.run_id == run_id)
+        audits: tuple[ScreeningAudit, ...] = tuple(
+            a for a in all_audits if a.run_id == run_id
+        )
         if not audits:
             return None
         run = SQLiteScreeningRunRepository(self.database_path).get(run_id)
         paper_repository = SQLitePaperRepository(self.database_path)
-        papers = tuple(paper for paper in (paper_repository.get(a.paper_id) for a in audits) if paper is not None)
-        included = sum(1 for a in audits if a.included); excluded = len(audits) - included; screened_papers = len(audits)
+        papers = tuple(
+            paper
+            for paper in (paper_repository.get(a.paper_id) for a in audits)
+            if paper is not None
+        )
+        included = sum(1 for a in audits if a.included)
+        excluded = len(audits) - included
+        screened_papers = len(audits)
         if run is not None:
-            total_input = run.total_input; duplicates_removed = run.duplicates_removed; unique_papers = run.unique_papers
+            total_input = run.total_input
+            duplicates_removed = run.duplicates_removed
+            unique_papers = run.unique_papers
         else:
-            total_input = screened_papers; duplicates_removed = 0; unique_papers = screened_papers
-        statistics = StatisticalSummary(total_input=total_input, unique_papers=unique_papers, duplicates_removed=duplicates_removed, screened_papers=screened_papers, included_papers=included, excluded_papers=excluded)
-        screening_metrics = ScreeningMetrics.from_audits(total_input=total_input, screened_papers=screened_papers, included_papers=included, excluded_papers=excluded, duplicates_removed=duplicates_removed, audits=audits)
-        return Report(title=title, statistics=statistics, screening_metrics=screening_metrics, rule_analysis=RuleAnalysis.from_audits(audits), criteria_analysis=CriteriaAnalysis.from_audits(audits), decision_distribution=DecisionDistribution(total=screened_papers, included=included, excluded=excluded), exclusion_reason_analysis=ExclusionReasonAnalysis.from_audits(audits), metadata_quality=MetadataQuality.from_papers(papers), deduplication_analysis=DeduplicationAnalysis(total_input=total_input, unique_papers=unique_papers, duplicate_papers=duplicates_removed), author_analysis=AuthorAnalysis.from_papers(papers), journal_analysis=JournalAnalysis.from_papers(papers), publication_year_analysis=PublicationYearAnalysis.from_papers(papers))
+            total_input = screened_papers
+            duplicates_removed = 0
+            unique_papers = screened_papers
+        statistics = StatisticalSummary(
+            total_input=total_input,
+            unique_papers=unique_papers,
+            duplicates_removed=duplicates_removed,
+            screened_papers=screened_papers,
+            included_papers=included,
+            excluded_papers=excluded,
+        )
+        screening_metrics = ScreeningMetrics.from_audits(
+            total_input=total_input,
+            screened_papers=screened_papers,
+            included_papers=included,
+            excluded_papers=excluded,
+            duplicates_removed=duplicates_removed,
+            audits=audits,
+        )
+        return Report(
+            title=title,
+            statistics=statistics,
+            screening_metrics=screening_metrics,
+            rule_analysis=RuleAnalysis.from_audits(audits),
+            criteria_analysis=CriteriaAnalysis.from_audits(audits),
+            decision_distribution=DecisionDistribution(
+                total=screened_papers, included=included, excluded=excluded
+            ),
+            exclusion_reason_analysis=ExclusionReasonAnalysis.from_audits(audits),
+            metadata_quality=MetadataQuality.from_papers(papers),
+            deduplication_analysis=DeduplicationAnalysis(
+                total_input=total_input,
+                unique_papers=unique_papers,
+                duplicate_papers=duplicates_removed,
+            ),
+            author_analysis=AuthorAnalysis.from_papers(papers),
+            journal_analysis=JournalAnalysis.from_papers(papers),
+            publication_year_analysis=PublicationYearAnalysis.from_papers(papers),
+        )
 
-    def export_report(self, run_id: UUID, output_dir: str | Path) -> tuple[Path, Path] | None:
+    def export_report(
+        self, run_id: UUID, output_dir: str | Path
+    ) -> tuple[Path, Path] | None:
         report = self.report_for_run(run_id)
         if report is None:
             return None

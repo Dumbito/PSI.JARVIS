@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 
@@ -57,27 +57,15 @@ class ScreeningMetrics:
 
     @property
     def screening_completion_rate(self) -> float:
-        return (
-            0.0
-            if self.total_input == 0
-            else self.screened_papers / self.total_input
-        )
+        return 0.0 if self.total_input == 0 else self.screened_papers / self.total_input
 
     @property
     def screening_yield(self) -> float:
-        return (
-            0.0
-            if self.total_input == 0
-            else self.included_papers / self.total_input
-        )
+        return 0.0 if self.total_input == 0 else self.included_papers / self.total_input
 
     @property
     def exclusion_yield(self) -> float:
-        return (
-            0.0
-            if self.total_input == 0
-            else self.excluded_papers / self.total_input
-        )
+        return 0.0 if self.total_input == 0 else self.excluded_papers / self.total_input
 
     @property
     def average_matched_rules(self) -> float:

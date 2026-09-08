@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.paper import Paper
 
@@ -35,8 +35,9 @@ class AuthorAnalysis:
             raise ValueError("Author distribution counts cannot be negative")
 
         if sum(count for _, count in self.by_author) < self.papers_with_authors:
-            raise ValueError("Author distribution cannot be smaller than papers with authors")
-
+            raise ValueError(
+                "Author distribution cannot be smaller than papers with authors"
+            )
 
     @classmethod
     def from_papers(cls, papers: Iterable[Paper]) -> "AuthorAnalysis":
@@ -47,9 +48,7 @@ class AuthorAnalysis:
 
         for paper in papers:
             authors = tuple(
-                author.strip()
-                for author in paper.authors
-                if author.strip()
+                author.strip() for author in paper.authors if author.strip()
             )
             authors_by_paper.append(authors)
 

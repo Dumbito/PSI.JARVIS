@@ -3,7 +3,6 @@ from pathlib import Path
 from uuid import UUID
 
 from psi_jarvis.domain.project import ReviewProject
-from psi_jarvis.domain.project_repository import ProjectRepository
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 

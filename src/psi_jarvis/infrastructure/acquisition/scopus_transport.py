@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -60,7 +60,9 @@ class ScopusSearchTransport:
 
         raw_content, request_url = self._request(params)
         self._validate_json(raw_content)
-        return RemoteAcquisitionResponse(raw_content=raw_content, source_locator=request_url)
+        return RemoteAcquisitionResponse(
+            raw_content=raw_content, source_locator=request_url
+        )
 
     def _request(self, params: Mapping[str, str]) -> tuple[str, str]:
         url = f"{self._config.base_url.rstrip('/')}?{urlencode(dict(params))}"
@@ -100,7 +102,9 @@ class ScopusSearchTransport:
         parameters: dict[str, str] = {}
         for name, value in query.parameters:
             if name == "count":
-                raise ValueError("Scopus count is controlled by transport configuration")
+                raise ValueError(
+                    "Scopus count is controlled by transport configuration"
+                )
             if name not in allowed:
                 raise ValueError(f"Unsupported Scopus Search parameter: {name}")
             parameters[name] = value

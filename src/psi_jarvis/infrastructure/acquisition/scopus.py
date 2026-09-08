@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from re import search
-from typing import Callable
+from collections.abc import Callable
 from uuid import UUID, uuid5
 
 from psi_jarvis.application.acquisition.contracts import (
@@ -38,34 +38,51 @@ class ScopusJsonMapper:
     format_version: str = "1"
     mapping_version: str = "1"
 
-    def map(self, response: RemoteAcquisitionResponse, receipt: AcquisitionReceipt) -> AcquisitionResult:
+    def map(
+        self, response: RemoteAcquisitionResponse, receipt: AcquisitionReceipt
+    ) -> AcquisitionResult:
         try:
             payload = json.loads(response.raw_content)
         except json.JSONDecodeError as exc:
             return AcquisitionResult(
                 receipt=receipt,
-                issues=(AcquisitionIssue("invalid_format", f"Invalid Scopus JSON: {exc}"),),
+                issues=(
+                    AcquisitionIssue("invalid_format", f"Invalid Scopus JSON: {exc}"),
+                ),
             )
 
         entries = payload.get("search-results", {}).get("entry", [])
         if not isinstance(entries, list):
             return AcquisitionResult(
                 receipt=receipt,
-                issues=(AcquisitionIssue("invalid_format", "Scopus search-results.entry must be a list"),),
+                issues=(
+                    AcquisitionIssue(
+                        "invalid_format", "Scopus search-results.entry must be a list"
+                    ),
+                ),
             )
 
         papers: list[Paper] = []
         issues: list[AcquisitionIssue] = []
         for ordinal, entry in enumerate(entries, start=1):
             if not isinstance(entry, dict):
-                issues.append(AcquisitionIssue("invalid_record", "Scopus entry must be an object", "warning", ordinal))
+                issues.append(
+                    AcquisitionIssue(
+                        "invalid_record",
+                        "Scopus entry must be an object",
+                        "warning",
+                        ordinal,
+                    )
+                )
                 continue
             paper, record_issues = self._map_entry(receipt, ordinal, entry)
             issues.extend(record_issues)
             if paper is not None:
                 papers.append(paper)
 
-        return AcquisitionResult(receipt=receipt, papers=tuple(papers), issues=tuple(issues))
+        return AcquisitionResult(
+            receipt=receipt, papers=tuple(papers), issues=tuple(issues)
+        )
 
     def _map_entry(self, receipt: AcquisitionReceipt, ordinal: int, entry: dict):
         source_record_id = self._text(entry.get("dc:identifier"))
@@ -78,13 +95,33 @@ class ScopusJsonMapper:
 
         issues: list[AcquisitionIssue] = []
         if not title:
-            issues.append(AcquisitionIssue("missing_title", "Scopus record has no title", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_title", "Scopus record has no title", "warning", ordinal
+                )
+            )
         if not source_record_id:
-            issues.append(AcquisitionIssue("missing_scopus_id", "Scopus record has no identifier", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_scopus_id",
+                    "Scopus record has no identifier",
+                    "warning",
+                    ordinal,
+                )
+            )
         if not journal:
-            issues.append(AcquisitionIssue("missing_journal", "Scopus record has no publication name", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_journal",
+                    "Scopus record has no publication name",
+                    "warning",
+                    ordinal,
+                )
+            )
 
-        raw_record = json.dumps(entry, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        raw_record = json.dumps(
+            entry, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
         provenance = BibliographicProvenance(
             receipt=receipt,
             record_ordinal=ordinal,

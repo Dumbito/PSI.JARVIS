@@ -69,10 +69,9 @@ class SQLiteScreeningResultRepository:
                     json.dumps(result.matched_rule_ids),
                     json.dumps(result.failed_rule_ids),
                     result.criteria_version,
-                    json.dumps([
-                        self._trace_to_dict(trace)
-                        for trace in result.rule_traces
-                    ]),
+                    json.dumps(
+                        [self._trace_to_dict(trace) for trace in result.rule_traces]
+                    ),
                 ),
             )
 

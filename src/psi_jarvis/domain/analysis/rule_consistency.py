@@ -47,9 +47,7 @@ class RuleConsistency:
             raise ValueError("Rule consistency counts cannot be negative")
 
         if self.included_results + self.excluded_results != self.total_results:
-            raise ValueError(
-                "Included and excluded results must equal total results"
-            )
+            raise ValueError("Included and excluded results must equal total results")
 
         if any(not rule_id.strip() for rule_id in self.untracked_rule_ids):
             raise ValueError("Untracked rule IDs cannot be empty")
@@ -123,9 +121,7 @@ class RuleConsistency:
 
         untracked_rule_ids = tuple(
             sorted(
-                rule_id
-                for rule_id in statistics
-                if rule_id not in declared_rule_ids
+                rule_id for rule_id in statistics if rule_id not in declared_rule_ids
             )
         )
 

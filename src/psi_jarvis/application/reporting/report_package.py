@@ -2,7 +2,11 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
-from psi_jarvis.application.reporting import JSONRenderer, MarkdownRenderer, ReportBuilder
+from psi_jarvis.application.reporting import (
+    JSONRenderer,
+    MarkdownRenderer,
+    ReportBuilder,
+)
 from psi_jarvis.application.visualization import SVGChartRenderer, VisualizationBuilder
 from psi_jarvis.application.pipeline.pipeline import PipelineResult
 
@@ -23,7 +27,9 @@ class ReportPackageBuilder:
     report_builder: ReportBuilder = ReportBuilder()
     markdown_renderer: MarkdownRenderer = MarkdownRenderer()
     json_renderer: JSONRenderer = JSONRenderer()
-    visualization_builder: VisualizationBuilder = VisualizationBuilder(SVGChartRenderer())
+    visualization_builder: VisualizationBuilder = VisualizationBuilder(
+        SVGChartRenderer()
+    )
 
     def execute(self, result: PipelineResult) -> ReproducibleReportPackage:
         report = self.report_builder.execute(result)
@@ -70,7 +76,7 @@ class ReportPackageExporter:
         ) + chr(10)
         files = (*files, ("report_manifest.json", manifest))
         paths = tuple(self.output_dir / filename for filename, _ in files)
-        for path, (_, content) in zip(paths, files):
+        for path, (_, content) in zip(paths, files, strict=True):
             if not content.strip():
                 raise ValueError(f"Report package content cannot be empty: {path.name}")
             path.write_text(content, encoding="utf-8")

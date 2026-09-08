@@ -22,7 +22,6 @@ class BibliographicAdapterRegistry:
         return tuple(sorted(self._adapters))
 
 
-
 def build_bibliographic_registry(*adapters: type) -> BibliographicAdapterRegistry:
     """Construye un registro a partir de clases de adaptadores explícitas."""
     registry = BibliographicAdapterRegistry()

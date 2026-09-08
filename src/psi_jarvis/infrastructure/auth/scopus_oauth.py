@@ -8,10 +8,10 @@ import secrets
 import threading
 import webbrowser
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
@@ -49,7 +49,9 @@ class ScopusOAuthConfig:
             if not getattr(self, field_name).strip():
                 raise ValueError(f"Scopus OAuth {field_name} cannot be empty")
         if not _is_loopback_host(self.redirect_host):
-            raise ValueError("Scopus OAuth redirect host must be loopback (127.0.0.1 or ::1)")
+            raise ValueError(
+                "Scopus OAuth redirect host must be loopback (127.0.0.1 or ::1)"
+            )
         if not 0 <= self.redirect_port <= 65535:
             raise ValueError("Scopus OAuth redirect port must be between 0 and 65535")
         if not self.redirect_path.startswith("/"):
@@ -68,7 +70,9 @@ class ScopusOAuthToken:
 
     @property
     def is_expired(self) -> bool:
-        return self.expires_at is not None and self.expires_at <= datetime.now(timezone.utc)
+        return self.expires_at is not None and self.expires_at <= datetime.now(
+            UTC
+        )
 
 
 class JsonTokenStore:
@@ -157,7 +161,9 @@ class ScopusOAuthClient:
     def build_authorization_url(self, request: OAuthAuthorizationRequest) -> str:
         return request.authorization_url
 
-    def exchange_code(self, code: str, request: OAuthAuthorizationRequest) -> ScopusOAuthToken:
+    def exchange_code(
+        self, code: str, request: OAuthAuthorizationRequest
+    ) -> ScopusOAuthToken:
         if not code.strip():
             raise ValueError("Scopus OAuth authorization code cannot be empty")
         payload = {
@@ -194,7 +200,9 @@ class ScopusOAuthClient:
         callback.start()
         bound_redirect_uri = self._redirect_uri(callback.port)
         authorization = OAuthAuthorizationRequest(
-            authorization_url=self._replace_redirect_uri(authorization.authorization_url, bound_redirect_uri),
+            authorization_url=self._replace_redirect_uri(
+                authorization.authorization_url, bound_redirect_uri
+            ),
             state=authorization.state,
             code_verifier=authorization.code_verifier,
             redirect_uri=bound_redirect_uri,
@@ -204,7 +212,9 @@ class ScopusOAuthClient:
         if callback.error:
             raise RuntimeError(f"Scopus OAuth authorization failed: {callback.error}")
         if not callback.code:
-            raise TimeoutError("Scopus OAuth callback did not return an authorization code")
+            raise TimeoutError(
+                "Scopus OAuth callback did not return an authorization code"
+            )
         return self.exchange_code(callback.code, authorization)
 
     def _token_request(self, payload: Mapping[str, str]) -> ScopusOAuthToken:
@@ -215,11 +225,17 @@ class ScopusOAuthClient:
         )
         http_request.add_header("Accept", "application/json")
         http_request.add_header("Content-Type", "application/x-www-form-urlencoded")
-        with self._opener(http_request, timeout=self._config.timeout_seconds) as response:
+        with self._opener(
+            http_request, timeout=self._config.timeout_seconds
+        ) as response:
             status = getattr(response, "status", 200)
             if status != 200:
-                raise RuntimeError(f"Scopus OAuth token endpoint returned HTTP {status}")
-            raw = read_remote_response(response, max_bytes=MAX_OAUTH_TOKEN_RESPONSE_BYTES).decode("utf-8")
+                raise RuntimeError(
+                    f"Scopus OAuth token endpoint returned HTTP {status}"
+                )
+            raw = read_remote_response(
+                response, max_bytes=MAX_OAUTH_TOKEN_RESPONSE_BYTES
+            ).decode("utf-8")
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as exc:
@@ -229,7 +245,9 @@ class ScopusOAuthClient:
             raise RuntimeError("Scopus OAuth token response has no access_token")
         expires_at = None
         if payload.get("expires_in") is not None:
-            expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(payload["expires_in"]))
+            expires_at = datetime.now(UTC) + timedelta(
+                seconds=int(payload["expires_in"])
+            )
         return ScopusOAuthToken(
             access_token=access_token,
             token_type=str(payload.get("token_type", "Bearer")),
@@ -289,7 +307,10 @@ class _LoopbackCallbackServer:
         if not self.code and not self.error:
             self.error = "Missing authorization code"
             return 400, "Authorization rejected"
-        return 200, "PSI.JARVIS: Scopus authorization received. You can close this window."
+        return (
+            200,
+            "PSI.JARVIS: Scopus authorization received. You can close this window.",
+        )
 
 
 class _CallbackHTTPServer(HTTPServer):
@@ -329,4 +350,6 @@ def _pkce_challenge(verifier: str) -> str:
 
 def default_scopus_token_store(home: Path | None = None) -> JsonTokenStore:
     base = home or Path.home()
-    return JsonTokenStore(base / ".config" / "psi-jarvis" / "connections" / "scopus.json")
+    return JsonTokenStore(
+        base / ".config" / "psi-jarvis" / "connections" / "scopus.json"
+    )

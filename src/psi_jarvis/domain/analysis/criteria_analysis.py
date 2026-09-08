@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 
@@ -43,15 +43,11 @@ class CriteriaAnalysis:
         audits = tuple(audits)
 
         matched = Counter(
-            criterion_id
-            for audit in audits
-            for criterion_id in audit.matched_rule_ids
+            criterion_id for audit in audits for criterion_id in audit.matched_rule_ids
         )
 
         failed = Counter(
-            criterion_id
-            for audit in audits
-            for criterion_id in audit.failed_rule_ids
+            criterion_id for audit in audits for criterion_id in audit.failed_rule_ids
         )
 
         criterion_ids = sorted(set(matched) | set(failed))

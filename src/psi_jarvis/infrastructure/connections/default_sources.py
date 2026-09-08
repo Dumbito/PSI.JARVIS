@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from psi_jarvis.infrastructure.acquisition.wos_transport import WebOfScienceTransportConfig
+from psi_jarvis.infrastructure.acquisition.wos_transport import (
+    WebOfScienceTransportConfig,
+)
 from psi_jarvis.infrastructure.acquisition.zotero_transport import ZoteroTransportConfig
 from psi_jarvis.infrastructure.auth.scopus_connection import (
     ScopusConnectionManager,
@@ -112,7 +114,8 @@ def _scopus_state(manager: ScopusConnectionManager) -> SourceConnectionState:
     if connection.status is ScopusConnectionStatus.CONFIGURED:
         method = (
             CredentialMethod.INSTITUTIONAL_TOKEN
-            if connection.transport_config is not None and connection.transport_config.insttoken
+            if connection.transport_config is not None
+            and connection.transport_config.insttoken
             else CredentialMethod.API_KEY
         )
         return SourceConnectionState(

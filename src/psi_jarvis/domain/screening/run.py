@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 
@@ -41,7 +41,7 @@ class ScreeningRun:
             run_id=uuid4(),
             project_id=project_id,
             criteria_version=criteria_version,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             total_input=total_input,
             unique_papers=unique_papers,
             duplicates_removed=duplicates_removed,

@@ -57,11 +57,7 @@ class SVGChartRenderer:
         baseline = self.height - 60
         plot_height = self.height - 120
         plot_width = self.width - 120
-        group_width = (
-            plot_width / len(labels)
-            if labels
-            else plot_width
-        )
+        group_width = plot_width / len(labels) if labels else plot_width
         bar_width = group_width * 0.3
 
         parts = [
@@ -74,7 +70,7 @@ class SVGChartRenderer:
             (
                 f'<text x="{self.width / 2:.2f}" y="35" '
                 f'text-anchor="middle" font-size="24">'
-                f'Criteria Analysis</text>'
+                f"Criteria Analysis</text>"
             ),
             (
                 f'<line x1="60" y1="{baseline}" '
@@ -88,41 +84,37 @@ class SVGChartRenderer:
             values = (matched[index], failed[index])
             offsets = (group_width * 0.15, group_width * 0.55)
 
-            for value, offset in zip(values, offsets):
+            for value, offset in zip(values, offsets, strict=True):
                 x = group_x + offset
-                bar_height = (
-                    0
-                    if maximum == 0
-                    else value / maximum * plot_height
-                )
+                bar_height = 0 if maximum == 0 else value / maximum * plot_height
                 y = baseline - bar_height
                 parts.append(
-                    (
+
                         f'<rect x="{x:.2f}" y="{y:.2f}" '
                         f'width="{bar_width:.2f}" '
                         f'height="{bar_height:.2f}"/>'
-                    )
+
                 )
                 parts.append(
-                    (
+
                         f'<text x="{x + bar_width / 2:.2f}" '
                         f'y="{max(y - 6, 50):.2f}" '
                         f'text-anchor="middle" font-size="12">'
-                        f'{value}</text>'
-                    )
+                        f"{value}</text>"
+
                 )
 
             parts.append(
-                (
+
                     f'<text x="{group_x + group_width / 2:.2f}" '
                     f'y="{baseline + 20}" '
                     f'text-anchor="middle" font-size="12">'
-                    f'{_escape(label)}</text>'
-                )
+                    f"{_escape(label)}</text>"
+
             )
 
-        parts.append('</svg>')
-        return ''.join(parts)
+        parts.append("</svg>")
+        return "".join(parts)
 
     def render_screening_flow(self, flow: ScreeningFlow) -> str:
         stages = (
@@ -134,8 +126,8 @@ class SVGChartRenderer:
         )
 
         parts = [
-            f"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{self.width}\" height=\"{self.height}\" viewBox=\"0 0 {self.width} {self.height}\">",
-            f"<text x=\"{self.width / 2:.2f}\" y=\"35\" text-anchor=\"middle\" font-size=\"24\">Screening Flow</text>",
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{self.height}" viewBox="0 0 {self.width} {self.height}">',
+            f'<text x="{self.width / 2:.2f}" y="35" text-anchor="middle" font-size="24">Screening Flow</text>',
         ]
 
         box_width = self.width - 240
@@ -147,18 +139,18 @@ class SVGChartRenderer:
         for index, (label, value) in enumerate(stages):
             y = start_y + index * (box_height + gap)
             parts.append(
-                f"<rect x=\"{x}\" y=\"{y}\" width=\"{box_width}\" height=\"{box_height}\" fill=\"white\" stroke=\"black\"/>"
+                f'<rect x="{x}" y="{y}" width="{box_width}" height="{box_height}" fill="white" stroke="black"/>'
             )
             parts.append(
-                f"<text x=\"{self.width / 2:.2f}\" y=\"{y + 22}\" text-anchor=\"middle\" font-size=\"14\">{_escape(label)}</text>"
+                f'<text x="{self.width / 2:.2f}" y="{y + 22}" text-anchor="middle" font-size="14">{_escape(label)}</text>'
             )
             parts.append(
-                f"<text x=\"{self.width / 2:.2f}\" y=\"{y + 42}\" text-anchor=\"middle\" font-size=\"13\">{value}</text>"
+                f'<text x="{self.width / 2:.2f}" y="{y + 42}" text-anchor="middle" font-size="13">{value}</text>'
             )
             if index < len(stages) - 1:
                 arrow_y = y + box_height
                 parts.append(
-                    f"<line x1=\"{self.width / 2:.2f}\" y1=\"{arrow_y}\" x2=\"{self.width / 2:.2f}\" y2=\"{arrow_y + gap}\" stroke=\"black\"/>"
+                    f'<line x1="{self.width / 2:.2f}" y1="{arrow_y}" x2="{self.width / 2:.2f}" y2="{arrow_y + gap}" stroke="black"/>'
                 )
 
         parts.append("</svg>")
@@ -171,18 +163,12 @@ class SVGChartRenderer:
         values: tuple[int, ...],
     ) -> str:
         if len(labels) != len(values):
-            raise ValueError(
-                "Chart labels and values must have equal length"
-            )
+            raise ValueError("Chart labels and values must have equal length")
 
         baseline = self.height - 60
         plot_height = self.height - 120
         plot_width = self.width - 120
-        slot_width = (
-            plot_width / len(values)
-            if values
-            else plot_width
-        )
+        slot_width = plot_width / len(values) if values else plot_width
         maximum = max(values, default=0)
 
         parts = [
@@ -195,7 +181,7 @@ class SVGChartRenderer:
             (
                 f'<text x="{self.width / 2:.2f}" y="35" '
                 f'text-anchor="middle" font-size="24">'
-                f'{_escape(title)}</text>'
+                f"{_escape(title)}</text>"
             ),
             (
                 f'<line x1="60" y1="{baseline}" '
@@ -204,48 +190,38 @@ class SVGChartRenderer:
             ),
         ]
 
-        for index, (label, value) in enumerate(
-            zip(labels, values)
-        ):
-            x = (
-                60
-                + index * slot_width
-                + slot_width * 0.15
-            )
+        for index, (label, value) in enumerate(zip(labels, values, strict=True)):
+            x = 60 + index * slot_width + slot_width * 0.15
             bar_width = slot_width * 0.7
-            bar_height = (
-                0
-                if maximum == 0
-                else value / maximum * plot_height
-            )
+            bar_height = 0 if maximum == 0 else value / maximum * plot_height
             y = baseline - bar_height
             center = x + bar_width / 2
 
             parts.append(
-                (
+
                     f'<rect x="{x:.2f}" y="{y:.2f}" '
                     f'width="{bar_width:.2f}" '
                     f'height="{bar_height:.2f}"/>'
-                )
+
             )
 
             parts.append(
-                (
+
                     f'<text x="{center:.2f}" '
                     f'y="{baseline + 20}" '
                     f'text-anchor="middle" '
                     f'font-size="12">'
-                    f'{_escape(label)}</text>'
-                )
+                    f"{_escape(label)}</text>"
+
             )
 
             parts.append(
-                (
+
                     f'<text x="{center:.2f}" '
                     f'y="{max(y - 6, 50):.2f}" '
                     f'text-anchor="middle" '
                     f'font-size="12">{value}</text>'
-                )
+
             )
 
         parts.append("</svg>")

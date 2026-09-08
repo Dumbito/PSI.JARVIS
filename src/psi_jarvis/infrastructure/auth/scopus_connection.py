@@ -56,15 +56,21 @@ class ScopusConnectionManager:
         if token is None:
             return ScopusConnection(ScopusConnectionStatus.DISCONNECTED)
         if token.is_expired:
-            return ScopusConnection(ScopusConnectionStatus.EXPIRED, token, self._transport_config)
-        return ScopusConnection(ScopusConnectionStatus.CONNECTED, token, self._transport_config)
+            return ScopusConnection(
+                ScopusConnectionStatus.EXPIRED, token, self._transport_config
+            )
+        return ScopusConnection(
+            ScopusConnectionStatus.CONNECTED, token, self._transport_config
+        )
 
     def login(self) -> ScopusConnection:
         if self._oauth_client is None:
             raise RuntimeError("Scopus OAuth is not configured")
         token = self._oauth_client.login()
         self._token_store.save(token)
-        return ScopusConnection(ScopusConnectionStatus.CONNECTED, token, self._transport_config)
+        return ScopusConnection(
+            ScopusConnectionStatus.CONNECTED, token, self._transport_config
+        )
 
     def logout(self) -> None:
         self._token_store.delete()
@@ -75,9 +81,14 @@ class ScopusConnectionManager:
             return connection
         if connection.status is ScopusConnectionStatus.CONNECTED:
             return connection
-        if connection.status is ScopusConnectionStatus.EXPIRED and connection.token is not None:
+        if (
+            connection.status is ScopusConnectionStatus.EXPIRED
+            and connection.token is not None
+        ):
             if not connection.token.refresh_token or self._oauth_client is None:
-                raise RuntimeError("Scopus OAuth token is expired and cannot be refreshed")
+                raise RuntimeError(
+                    "Scopus OAuth token is expired and cannot be refreshed"
+                )
             refreshed = self._oauth_client.refresh_token(connection.token.refresh_token)
             if refreshed.refresh_token is None:
                 refreshed = ScopusOAuthToken(
@@ -97,7 +108,9 @@ class ScopusConnectionManager:
             raise RuntimeError("Scopus is not connected")
         raise RuntimeError(f"Scopus is not available: {connection.status.value}")
 
-    def apply_token(self, transport_config: ScopusTransportConfig | None = None) -> ScopusTransportConfig:
+    def apply_token(
+        self, transport_config: ScopusTransportConfig | None = None
+    ) -> ScopusTransportConfig:
         config = transport_config or self._transport_config
         if config is None:
             raise RuntimeError("Scopus transport is not configured")

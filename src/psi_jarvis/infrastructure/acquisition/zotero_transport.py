@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
@@ -67,7 +67,9 @@ class ZoteroWebApiTransport:
             json.loads(raw_content)
         except json.JSONDecodeError as exc:
             raise RuntimeError(f"Invalid Zotero JSON: {exc}") from exc
-        return RemoteAcquisitionResponse(raw_content=raw_content, source_locator=self._safe_locator(params))
+        return RemoteAcquisitionResponse(
+            raw_content=raw_content, source_locator=self._safe_locator(params)
+        )
 
     def _query_parameters(self, query: BibliographicQuery) -> dict[str, str]:
         params = {

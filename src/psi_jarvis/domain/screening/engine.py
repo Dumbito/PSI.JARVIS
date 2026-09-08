@@ -39,15 +39,11 @@ class ScreeningEngine:
             )
 
         matched_exclusions = tuple(
-            rule.value
-            for rule in self.criteria.exclusion_rules
-            if rule.matches(text)
+            rule.value for rule in self.criteria.exclusion_rules if rule.matches(text)
         )
 
         matched_exclusion_ids = tuple(
-            rule.id
-            for rule in self.criteria.exclusion_rules
-            if rule.matches(text)
+            rule.id for rule in self.criteria.exclusion_rules if rule.matches(text)
         )
 
         if matched_exclusions:
@@ -61,9 +57,7 @@ class ScreeningEngine:
             )
 
         matched_inclusions = tuple(
-            rule.value
-            for rule in self.criteria.inclusion_rules
-            if rule.matches(text)
+            rule.value for rule in self.criteria.inclusion_rules if rule.matches(text)
         )
 
         failed_inclusions = tuple(
@@ -73,15 +67,11 @@ class ScreeningEngine:
         )
 
         matched_inclusion_ids = tuple(
-            rule.id
-            for rule in self.criteria.inclusion_rules
-            if rule.matches(text)
+            rule.id for rule in self.criteria.inclusion_rules if rule.matches(text)
         )
 
         failed_inclusion_ids = tuple(
-            rule.id
-            for rule in self.criteria.inclusion_rules
-            if not rule.matches(text)
+            rule.id for rule in self.criteria.inclusion_rules if not rule.matches(text)
         )
 
         if failed_inclusions:
@@ -137,9 +127,7 @@ class ScreeningEngine:
                 or (self.criteria.inclusion_rule.id,),
                 matched_rule_ids=inclusion.matched_rule_ids,
                 criteria_version=criteria_version,
-                rule_traces=(
-                    inclusion.trace,
-                ) if inclusion.trace is not None else (),
+                rule_traces=(inclusion.trace,) if inclusion.trace is not None else (),
             )
 
         return ScreeningResult(

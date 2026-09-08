@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 
@@ -31,9 +31,7 @@ class ExclusionReasonAnalysis:
     @classmethod
     def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "ExclusionReasonAnalysis":
         excluded_reasons = Counter(
-            audit.reason
-            for audit in audits
-            if not audit.included
+            audit.reason for audit in audits if not audit.included
         )
         total_excluded = sum(excluded_reasons.values())
         return cls(

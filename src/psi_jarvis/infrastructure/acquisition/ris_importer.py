@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 from uuid import UUID, uuid5
 
@@ -26,14 +26,18 @@ class RISImporter:
     mapping_version = "1"
 
     def __init__(self, clock=None) -> None:
-        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def acquire(self, request: AcquisitionRequest) -> AcquisitionResult:
         path = Path(request.location)
         if not path.exists():
             return AcquisitionResult(
                 receipt=None,
-                issues=(AcquisitionIssue("source_unavailable", f"RIS file not found: {path}"),),
+                issues=(
+                    AcquisitionIssue(
+                        "source_unavailable", f"RIS file not found: {path}"
+                    ),
+                ),
             )
         if path.suffix.lower() != ".ris":
             return AcquisitionResult(
@@ -53,16 +57,22 @@ class RISImporter:
         )
         records, error = self._parse_records(content)
         if error is not None:
-            return AcquisitionResult(receipt=receipt, issues=(AcquisitionIssue("invalid_format", error),))
+            return AcquisitionResult(
+                receipt=receipt, issues=(AcquisitionIssue("invalid_format", error),)
+            )
 
         papers = []
         issues = []
         for ordinal, fields, raw_record in records:
-            paper, record_issues = self._map_record(receipt, ordinal, fields, raw_record)
+            paper, record_issues = self._map_record(
+                receipt, ordinal, fields, raw_record
+            )
             issues.extend(record_issues)
             if paper is not None:
                 papers.append(paper)
-        return AcquisitionResult(receipt=receipt, papers=tuple(papers), issues=tuple(issues))
+        return AcquisitionResult(
+            receipt=receipt, papers=tuple(papers), issues=tuple(issues)
+        )
 
     @staticmethod
     def _parse_records(content: str):
@@ -102,13 +112,37 @@ class RISImporter:
         issues = []
         title = self._first(fields, "TI", "T1") or ""
         if not title:
-            issues.append(AcquisitionIssue("missing_title", "RIS record has no title", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "missing_title", "RIS record has no title", "warning", ordinal
+                )
+            )
         year, year_issue = self._year(self._first(fields, "PY", "Y1"), ordinal)
         if year_issue is not None:
             issues.append(year_issue)
-        known_tags = {"TY", "ER", "TI", "T1", "AU", "AB", "DO", "ID", "PM", "PY", "Y1", "JO", "JF", "T2", "UR"}
+        known_tags = {
+            "TY",
+            "ER",
+            "TI",
+            "T1",
+            "AU",
+            "AB",
+            "DO",
+            "ID",
+            "PM",
+            "PY",
+            "Y1",
+            "JO",
+            "JF",
+            "T2",
+            "UR",
+        }
         for tag in sorted(set(fields) - known_tags):
-            issues.append(AcquisitionIssue("unknown_field", f"Unsupported RIS field: {tag}", "warning", ordinal))
+            issues.append(
+                AcquisitionIssue(
+                    "unknown_field", f"Unsupported RIS field: {tag}", "warning", ordinal
+                )
+            )
         provenance = BibliographicProvenance(
             receipt=receipt,
             record_ordinal=ordinal,
@@ -122,7 +156,9 @@ class RISImporter:
             Paper(
                 id=uuid5(
                     UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8"),
-                    "|".join((str(receipt.batch_id), str(ordinal), sha256_text(raw_record))),
+                    "|".join(
+                        (str(receipt.batch_id), str(ordinal), sha256_text(raw_record))
+                    ),
                 ),
                 title=title,
                 authors=tuple(fields.get("AU", ())),
@@ -151,4 +187,9 @@ class RISImporter:
         try:
             return int(value[:4]), None
         except ValueError:
-            return None, AcquisitionIssue("invalid_year", f"Invalid RIS publication year: {value}", "warning", ordinal)
+            return None, AcquisitionIssue(
+                "invalid_year",
+                f"Invalid RIS publication year: {value}",
+                "warning",
+                ordinal,
+            )

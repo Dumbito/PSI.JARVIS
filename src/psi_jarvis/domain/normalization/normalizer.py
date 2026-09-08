@@ -9,7 +9,9 @@ class PaperNormalizer:
         return replace(
             paper,
             title=self._text(paper.title),
-            authors=tuple(self._text(author) for author in paper.authors if self._text(author)),
+            authors=tuple(
+                self._text(author) for author in paper.authors if self._text(author)
+            ),
             abstract=self._optional_text(paper.abstract),
             doi=self._normalize_doi(paper.doi),
             pmid=self._normalize_pmid(paper.pmid),
@@ -45,7 +47,7 @@ class PaperNormalizer:
         lowered = normalized.lower()
         for prefix in prefixes:
             if lowered.startswith(prefix):
-                normalized = normalized[len(prefix):].strip()
+                normalized = normalized[len(prefix) :].strip()
                 break
 
         return normalized or None

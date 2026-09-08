@@ -14,7 +14,10 @@ class ScreeningCriteriaVersion:
 
     @classmethod
     def from_criteria(cls, criteria) -> "ScreeningCriteriaVersion":
-        if criteria.inclusion_expression is None and criteria.exclusion_expression is None:
+        if (
+            criteria.inclusion_expression is None
+            and criteria.exclusion_expression is None
+        ):
             payload = "|".join(
                 (
                     criteria.topic.strip(),

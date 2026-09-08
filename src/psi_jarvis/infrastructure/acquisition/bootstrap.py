@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from psi_jarvis.infrastructure.acquisition.pubmed import build_pubmed_adapter
 from psi_jarvis.infrastructure.acquisition.pubmed_transport import PubMedTransportConfig
-from psi_jarvis.infrastructure.acquisition.registry import BibliographicAdapterRegistry, build_bibliographic_registry
+from psi_jarvis.infrastructure.acquisition.registry import (
+    BibliographicAdapterRegistry,
+    build_bibliographic_registry,
+)
 from psi_jarvis.infrastructure.acquisition.scopus import build_scopus_adapter
 from psi_jarvis.infrastructure.acquisition.scopus_transport import ScopusTransportConfig
 from psi_jarvis.infrastructure.acquisition.wos import build_wos_adapter
-from psi_jarvis.infrastructure.acquisition.wos_transport import WebOfScienceTransportConfig
+from psi_jarvis.infrastructure.acquisition.wos_transport import (
+    WebOfScienceTransportConfig,
+)
 from psi_jarvis.infrastructure.acquisition.zotero import build_zotero_adapter
 from psi_jarvis.infrastructure.acquisition.zotero_transport import ZoteroTransportConfig
 
@@ -32,9 +37,15 @@ def build_default_bibliographic_registry(
         )
     ]
     if scopus_config is not None:
-        adapters.append(build_scopus_adapter(config=scopus_config, clock=clock, opener=opener))
+        adapters.append(
+            build_scopus_adapter(config=scopus_config, clock=clock, opener=opener)
+        )
     if wos_config is not None:
-        adapters.append(build_wos_adapter(config=wos_config, clock=clock, opener=opener))
+        adapters.append(
+            build_wos_adapter(config=wos_config, clock=clock, opener=opener)
+        )
     if zotero_config is not None:
-        adapters.append(build_zotero_adapter(config=zotero_config, clock=clock, opener=opener))
+        adapters.append(
+            build_zotero_adapter(config=zotero_config, clock=clock, opener=opener)
+        )
     return build_bibliographic_registry(*adapters)

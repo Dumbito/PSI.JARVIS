@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 
@@ -37,14 +37,10 @@ class RuleAnalysis:
     @classmethod
     def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "RuleAnalysis":
         matched = Counter(
-            rule_id
-            for audit in audits
-            for rule_id in audit.matched_rule_ids
+            rule_id for audit in audits for rule_id in audit.matched_rule_ids
         )
         failed = Counter(
-            rule_id
-            for audit in audits
-            for rule_id in audit.failed_rule_ids
+            rule_id for audit in audits for rule_id in audit.failed_rule_ids
         )
         rule_ids = sorted(set(matched) | set(failed))
         return cls(

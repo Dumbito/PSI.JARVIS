@@ -2,7 +2,9 @@ from dataclasses import dataclass
 
 from psi_jarvis.application.pipeline.pipeline import PipelineResult
 from psi_jarvis.application.visualization.chart import SVGChartRenderer
-from psi_jarvis.application.visualization.screening_flow import ScreeningFlow, ScreeningFlowBuilder
+from psi_jarvis.application.visualization.screening_flow import (
+    ScreeningFlowBuilder,
+)
 
 
 @dataclass(frozen=True)
@@ -32,5 +34,7 @@ class VisualizationBuilder:
                 result.exclusion_reason_analysis
             ),
             screening_flow=self.renderer.render_screening_flow(flow),
-            criteria_analysis=self.renderer.render_criteria_analysis(result.criteria_analysis),
+            criteria_analysis=self.renderer.render_criteria_analysis(
+                result.criteria_analysis
+            ),
         )

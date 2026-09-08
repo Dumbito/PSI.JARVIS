@@ -4,7 +4,6 @@ from pathlib import Path
 from uuid import UUID
 
 from psi_jarvis.domain.paper import Paper
-from psi_jarvis.domain.paper_repository import PaperRepository
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 from psi_jarvis.infrastructure.sqlite_paper_mapper import paper_from_row
 
@@ -66,10 +65,15 @@ class SQLitePaperRepository:
                     ON CONFLICT(batch_id) DO NOTHING
                     """,
                     (
-                        str(receipt.batch_id), receipt.source_key, receipt.adapter_key,
-                        receipt.adapter_version, receipt.acquired_at.isoformat(),
-                        receipt.request_json, receipt.request_sha256,
-                        receipt.input_sha256, receipt.source_locator,
+                        str(receipt.batch_id),
+                        receipt.source_key,
+                        receipt.adapter_key,
+                        receipt.adapter_version,
+                        receipt.acquired_at.isoformat(),
+                        receipt.request_json,
+                        receipt.request_sha256,
+                        receipt.input_sha256,
+                        receipt.source_locator,
                     ),
                 )
                 connection.execute(
@@ -83,10 +87,15 @@ class SQLitePaperRepository:
                     DO NOTHING
                     """,
                     (
-                        provenance.key, str(paper.id), str(receipt.batch_id),
-                        provenance.record_ordinal, provenance.format_name,
-                        provenance.format_version, provenance.mapping_version,
-                        provenance.raw_record_sha256, provenance.source_record_id,
+                        provenance.key,
+                        str(paper.id),
+                        str(receipt.batch_id),
+                        provenance.record_ordinal,
+                        provenance.format_name,
+                        provenance.format_version,
+                        provenance.mapping_version,
+                        provenance.raw_record_sha256,
+                        provenance.source_record_id,
                     ),
                 )
 
@@ -120,9 +129,7 @@ class SQLitePaperRepository:
 
     def list_all(self) -> tuple[Paper, ...]:
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM papers ORDER BY rowid"
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM papers ORDER BY rowid").fetchall()
 
         with self._connect() as connection:
             return tuple(paper_from_row(connection, row) for row in rows)

@@ -21,17 +21,11 @@ class RuleConsistencyService:
         normalizer = self.normalizer or PaperNormalizer()
         deduplicator = self.deduplicator or PaperDeduplicator()
 
-        normalized_papers = tuple(
-            normalizer.normalize(paper)
-            for paper in papers
-        )
+        normalized_papers = tuple(normalizer.normalize(paper) for paper in papers)
         corpus = deduplicator.deduplicate(normalized_papers).papers
 
         engine = ScreeningEngine(criteria)
-        results = tuple(
-            engine.evaluate(paper)
-            for paper in corpus
-        )
+        results = tuple(engine.evaluate(paper) for paper in corpus)
 
         return RuleConsistency.from_results(
             criteria=criteria,

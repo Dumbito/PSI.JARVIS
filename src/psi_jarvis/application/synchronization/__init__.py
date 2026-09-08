@@ -4,8 +4,12 @@ from psi_jarvis.application.synchronization.contracts import (
     SyncConflict,
     SynchronizationResult,
 )
-from psi_jarvis.application.synchronization.external import ExternalBibliographicSynchronizationService
-from psi_jarvis.application.synchronization.service import BibliographicSynchronizationService
+from psi_jarvis.application.synchronization.external import (
+    ExternalBibliographicSynchronizationService,
+)
+from psi_jarvis.application.synchronization.service import (
+    BibliographicSynchronizationService,
+)
 
 __all__ = [
     "BibliographicSynchronizationService",

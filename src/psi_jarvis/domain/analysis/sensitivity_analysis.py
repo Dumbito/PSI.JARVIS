@@ -45,7 +45,9 @@ class SensitivityAnalysis:
             raise ValueError("Changed and unchanged decisions must equal total papers")
 
         if self.newly_included + self.newly_excluded != self.changed_decisions:
-            raise ValueError("Newly included and newly excluded decisions must equal changed decisions")
+            raise ValueError(
+                "Newly included and newly excluded decisions must equal changed decisions"
+            )
 
         if not self.base_criteria_version:
             raise ValueError("Base criteria version cannot be empty")
@@ -65,16 +67,18 @@ class SensitivityAnalysis:
         if len({result.paper_id for result in base_results}) != len(base_results):
             raise ValueError("Base results must not contain duplicate papers")
 
-        if len({result.paper_id for result in alternative_results}) != len(alternative_results):
+        if len({result.paper_id for result in alternative_results}) != len(
+            alternative_results
+        ):
             raise ValueError("Alternative results must not contain duplicate papers")
 
         base_by_id = {result.paper_id: result for result in base_results}
-        alternative_by_id = {
-            result.paper_id: result for result in alternative_results
-        }
+        alternative_by_id = {result.paper_id: result for result in alternative_results}
 
         if set(base_by_id) != set(alternative_by_id):
-            raise ValueError("Base and alternative results must contain the same papers")
+            raise ValueError(
+                "Base and alternative results must contain the same papers"
+            )
 
         base_versions = {result.criteria_version for result in base_by_id.values()}
         alternative_versions = {

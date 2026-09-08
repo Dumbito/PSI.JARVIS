@@ -29,9 +29,7 @@ class ConfigurationProfile:
             raise ValueError("Configuration counts cannot be negative")
 
         if self.included_papers + self.excluded_papers != self.total_papers:
-            raise ValueError(
-                "Included and excluded papers must equal total papers"
-            )
+            raise ValueError("Included and excluded papers must equal total papers")
 
         if not self.criteria_version:
             raise ValueError("Configuration criteria version cannot be empty")
@@ -58,10 +56,7 @@ class ConfigurationComparison:
         if len(set(versions)) != len(versions):
             raise ValueError("Configuration criteria versions must be unique")
 
-        if any(
-            profile.total_papers != self.total_papers
-            for profile in self.profiles
-        ):
+        if any(profile.total_papers != self.total_papers for profile in self.profiles):
             raise ValueError(
                 "All configuration profiles must use the same total papers"
             )
@@ -107,9 +102,7 @@ class ConfigurationComparison:
                     f"Configuration {index} results must not contain duplicate papers"
                 )
 
-            expected_version = ScreeningCriteriaVersion.from_criteria(
-                criteria
-            ).value
+            expected_version = ScreeningCriteriaVersion.from_criteria(criteria).value
 
             result_versions = {result.criteria_version for result in results}
 
@@ -122,9 +115,7 @@ class ConfigurationComparison:
                 paper_ids_reference = paper_ids
                 total_papers = len(results)
             elif paper_ids != paper_ids_reference:
-                raise ValueError(
-                    "All configurations must contain the same papers"
-                )
+                raise ValueError("All configurations must contain the same papers")
 
             included = sum(result.included for result in results)
             excluded = len(results) - included

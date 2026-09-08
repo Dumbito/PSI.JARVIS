@@ -24,22 +24,15 @@ class SensitivityAnalysisService:
         normalizer = self.normalizer or PaperNormalizer()
         deduplicator = self.deduplicator or PaperDeduplicator()
 
-        normalized_papers = tuple(
-            normalizer.normalize(paper)
-            for paper in papers
-        )
+        normalized_papers = tuple(normalizer.normalize(paper) for paper in papers)
         corpus = deduplicator.deduplicate(normalized_papers).papers
 
         base_engine = ScreeningEngine(base_criteria)
         alternative_engine = ScreeningEngine(alternative_criteria)
 
-        base_results = tuple(
-            base_engine.evaluate(paper)
-            for paper in corpus
-        )
+        base_results = tuple(base_engine.evaluate(paper) for paper in corpus)
         alternative_results = tuple(
-            alternative_engine.evaluate(paper)
-            for paper in corpus
+            alternative_engine.evaluate(paper) for paper in corpus
         )
 
         return SensitivityAnalysis.from_results(

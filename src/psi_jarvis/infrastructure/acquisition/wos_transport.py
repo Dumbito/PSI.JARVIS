@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Callable, Mapping
+from collections.abc import Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 

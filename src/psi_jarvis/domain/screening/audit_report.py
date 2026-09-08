@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 
@@ -29,11 +29,7 @@ class ScreeningAuditReport:
 
     @property
     def exclusion_reasons(self) -> tuple[str, ...]:
-        return tuple(
-            audit.reason
-            for audit in self.audits
-            if not audit.included
-        )
+        return tuple(audit.reason for audit in self.audits if not audit.included)
 
     @property
     def exclusion_reason_counts(self) -> dict[str, int]:
@@ -54,16 +50,16 @@ class ScreeningAuditReport:
     def matched_rule_id_counts(self) -> dict[str, int]:
         return dict(
             Counter(
-                rule_id
-                for audit in self.audits
-                for rule_id in audit.matched_rule_ids
+                rule_id for audit in self.audits for rule_id in audit.matched_rule_ids
             )
         )
 
     @classmethod
     def from_audits(cls, audits: Iterable[ScreeningAudit]) -> "ScreeningAuditReport":
         audits = tuple(audits)
-        versions = {audit.criteria_version for audit in audits if audit.criteria_version}
+        versions = {
+            audit.criteria_version for audit in audits if audit.criteria_version
+        }
         if len(versions) > 1:
             raise ValueError("All audits must use the same screening criteria version")
         criteria_version = next(iter(versions), "")

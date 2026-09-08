@@ -24,7 +24,11 @@ class ImportAndScreenService:
             AcquisitionRequest(location=str(path))
         )
         if not acquisition.success:
-            message = acquisition.issues[0].message if acquisition.issues else "Paper acquisition failed"
+            message = (
+                acquisition.issues[0].message
+                if acquisition.issues
+                else "Paper acquisition failed"
+            )
             raise ValueError(message)
         return self.pipeline.process(acquisition.papers, criteria)
 

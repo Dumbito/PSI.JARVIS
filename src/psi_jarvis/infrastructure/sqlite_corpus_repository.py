@@ -3,7 +3,6 @@ from pathlib import Path
 from uuid import UUID
 
 from psi_jarvis.domain.corpus import Corpus
-from psi_jarvis.domain.corpus_repository import CorpusRepository
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 from psi_jarvis.infrastructure.sqlite_paper_mapper import paper_from_row
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 from psi_jarvis.domain.paper import Paper
 
@@ -29,7 +29,9 @@ class JournalAnalysis:
             raise ValueError("Unique journals must equal journal distribution size")
 
         if sum(count for _, count in self.by_journal) != self.papers_with_journal:
-            raise ValueError("Journal distribution counts must equal papers with journal")
+            raise ValueError(
+                "Journal distribution counts must equal papers with journal"
+            )
 
         if any(not journal.strip() for journal, _ in self.by_journal):
             raise ValueError("Journal names cannot be empty")

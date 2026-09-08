@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class StatisticalSummary:
     total_input: int
@@ -27,12 +28,22 @@ class StatisticalSummary:
 
     @property
     def inclusion_rate(self) -> float:
-        return 0.0 if self.screened_papers == 0 else self.included_papers / self.screened_papers
+        return (
+            0.0
+            if self.screened_papers == 0
+            else self.included_papers / self.screened_papers
+        )
 
     @property
     def exclusion_rate(self) -> float:
-        return 0.0 if self.screened_papers == 0 else self.excluded_papers / self.screened_papers
+        return (
+            0.0
+            if self.screened_papers == 0
+            else self.excluded_papers / self.screened_papers
+        )
 
     @property
     def deduplication_rate(self) -> float:
-        return 0.0 if self.total_input == 0 else self.duplicates_removed / self.total_input
+        return (
+            0.0 if self.total_input == 0 else self.duplicates_removed / self.total_input
+        )

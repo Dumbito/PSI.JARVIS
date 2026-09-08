@@ -23,12 +23,12 @@ def evaluate_rule(rule: ScreeningRule, text: str) -> RuleEvaluation:
         matched = all(evaluation.matched for evaluation in evaluations)
         matched_ids = tuple(
             child.id
-            for child, evaluation in zip(rule.rules, evaluations)
+            for child, evaluation in zip(rule.rules, evaluations, strict=True)
             if evaluation.matched
         )
         failed_ids = tuple(
             child.id
-            for child, evaluation in zip(rule.rules, evaluations)
+            for child, evaluation in zip(rule.rules, evaluations, strict=True)
             if not evaluation.matched
         )
         return RuleEvaluation(
@@ -52,12 +52,12 @@ def evaluate_rule(rule: ScreeningRule, text: str) -> RuleEvaluation:
         matched = any(evaluation.matched for evaluation in evaluations)
         matched_ids = tuple(
             child.id
-            for child, evaluation in zip(rule.rules, evaluations)
+            for child, evaluation in zip(rule.rules, evaluations, strict=True)
             if evaluation.matched
         )
         failed_ids = tuple(
             child.id
-            for child, evaluation in zip(rule.rules, evaluations)
+            for child, evaluation in zip(rule.rules, evaluations, strict=True)
             if not evaluation.matched
         )
         return RuleEvaluation(

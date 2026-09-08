@@ -20,13 +20,17 @@ def _scopus_manager_from_environment():
     return ScopusConnectionManager(
         config.oauth,
         default_scopus_token_store(),
-        oauth_client=ScopusOAuthClient(config.oauth) if config.oauth is not None else None,
+        oauth_client=ScopusOAuthClient(config.oauth)
+        if config.oauth is not None
+        else None,
         transport_config=config.transport,
     )
 
 
 def _source_registry_from_environment():
-    from psi_jarvis.infrastructure.connections import build_default_source_connection_registry
+    from psi_jarvis.infrastructure.connections import (
+        build_default_source_connection_registry,
+    )
 
     return build_default_source_connection_registry(_scopus_manager_from_environment())
 

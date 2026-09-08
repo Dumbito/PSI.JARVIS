@@ -6,6 +6,7 @@ from psi_jarvis.domain.screening.execution import ScreeningExecution
 from psi_jarvis.domain.screening.result_repository import ScreeningResultRepository
 from psi_jarvis.domain.screening.run_repository import ScreeningRunRepository
 
+
 @dataclass(frozen=True)
 class ScreeningExecutionLoader:
     run_repository: ScreeningRunRepository

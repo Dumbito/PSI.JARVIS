@@ -16,7 +16,7 @@ class Corpus:
     def create(
         cls,
         project_id: UUID,
-        papers: tuple[Paper, ...] = (), 
+        papers: tuple[Paper, ...] = (),
     ) -> "Corpus":
         return cls(
             corpus_id=uuid4(),

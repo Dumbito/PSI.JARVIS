@@ -5,7 +5,6 @@ from psi_jarvis.domain.reporting import Report
 
 @dataclass(frozen=True)
 class MarkdownRenderer:
-
     def render(self, report: Report) -> str:
         lines = [
             f"# {report.title}",
@@ -66,71 +65,79 @@ class MarkdownRenderer:
             for field in report.metadata_quality.fields
         )
 
-        lines.extend([
-            "",
-            "## Authors",
-            "",
-            f"- Total papers: {report.author_analysis.total_papers}",
-            f"- Papers with authors: {report.author_analysis.papers_with_authors}",
-            f"- Papers without authors: {report.author_analysis.papers_without_authors}",
-            f"- Unique authors: {report.author_analysis.unique_authors}",
-            f"- Author coverage rate: {report.author_analysis.author_coverage_rate}",
-            "",
-            "| Author | Count |",
-            "|---|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Authors",
+                "",
+                f"- Total papers: {report.author_analysis.total_papers}",
+                f"- Papers with authors: {report.author_analysis.papers_with_authors}",
+                f"- Papers without authors: {report.author_analysis.papers_without_authors}",
+                f"- Unique authors: {report.author_analysis.unique_authors}",
+                f"- Author coverage rate: {report.author_analysis.author_coverage_rate}",
+                "",
+                "| Author | Count |",
+                "|---|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {author} | {count} |"
             for author, count in report.author_analysis.by_author
         )
 
-        lines.extend([
-            "",
-            "## Journals",
-            "",
-            f"- Total papers: {report.journal_analysis.total_papers}",
-            f"- Papers with journal: {report.journal_analysis.papers_with_journal}",
-            f"- Papers without journal: {report.journal_analysis.papers_without_journal}",
-            f"- Unique journals: {report.journal_analysis.unique_journals}",
-            f"- Journal coverage rate: {report.journal_analysis.journal_coverage_rate}",
-            "",
-            "| Journal | Count |",
-            "|---|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Journals",
+                "",
+                f"- Total papers: {report.journal_analysis.total_papers}",
+                f"- Papers with journal: {report.journal_analysis.papers_with_journal}",
+                f"- Papers without journal: {report.journal_analysis.papers_without_journal}",
+                f"- Unique journals: {report.journal_analysis.unique_journals}",
+                f"- Journal coverage rate: {report.journal_analysis.journal_coverage_rate}",
+                "",
+                "| Journal | Count |",
+                "|---|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {journal} | {count} |"
             for journal, count in report.journal_analysis.by_journal
         )
 
-        lines.extend([
-            "",
-            "## Publication Year",
-            "",
-            f"- Total papers: {report.publication_year_analysis.total_papers}",
-            f"- Papers with year: {report.publication_year_analysis.papers_with_year}",
-            f"- Papers without year: {report.publication_year_analysis.papers_without_year}",
-            f"- Minimum year: {report.publication_year_analysis.year_min}",
-            f"- Maximum year: {report.publication_year_analysis.year_max}",
-            f"- Year coverage rate: {report.publication_year_analysis.year_coverage_rate}",
-            "",
-            "| Year | Count |",
-            "|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Publication Year",
+                "",
+                f"- Total papers: {report.publication_year_analysis.total_papers}",
+                f"- Papers with year: {report.publication_year_analysis.papers_with_year}",
+                f"- Papers without year: {report.publication_year_analysis.papers_without_year}",
+                f"- Minimum year: {report.publication_year_analysis.year_min}",
+                f"- Maximum year: {report.publication_year_analysis.year_max}",
+                f"- Year coverage rate: {report.publication_year_analysis.year_coverage_rate}",
+                "",
+                "| Year | Count |",
+                "|---:|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {year} | {count} |"
             for year, count in report.publication_year_analysis.by_year
         )
 
-        lines.extend([
-            "",
-            "## Rules",
-            "",
-            "| Rule | Matched | Failed | Evaluated | Match rate | Failure rate |",
-            "|---|---:|---:|---:|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Rules",
+                "",
+                "| Rule | Matched | Failed | Evaluated | Match rate | Failure rate |",
+                "|---|---:|---:|---:|---:|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {rule.rule_id} | {rule.matched} | {rule.failed} | {rule.evaluated} | "
@@ -138,13 +145,15 @@ class MarkdownRenderer:
             for rule in report.rule_analysis.rules
         )
 
-        lines.extend([
-            "",
-            "## Criteria",
-            "",
-            "| Criterion | Matched | Failed | Evaluated | Match rate | Failure rate |",
-            "|---|---:|---:|---:|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Criteria",
+                "",
+                "| Criterion | Matched | Failed | Evaluated | Match rate | Failure rate |",
+                "|---|---:|---:|---:|---:|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {criterion.criterion_id} | {criterion.matched} | {criterion.failed} | "
@@ -152,13 +161,15 @@ class MarkdownRenderer:
             for criterion in report.criteria_analysis.criteria
         )
 
-        lines.extend([
-            "",
-            "## Exclusion Reasons",
-            "",
-            "| Reason | Count | Total excluded | Rate |",
-            "|---|---:|---:|---:|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Exclusion Reasons",
+                "",
+                "| Reason | Count | Total excluded | Rate |",
+                "|---|---:|---:|---:|",
+            ]
+        )
 
         lines.extend(
             f"| {reason.reason} | {reason.count} | {reason.total_excluded} | {reason.rate} |"

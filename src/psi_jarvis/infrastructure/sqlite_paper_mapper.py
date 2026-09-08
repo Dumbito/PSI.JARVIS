@@ -23,7 +23,9 @@ def paper_from_row(connection: sqlite3.Connection, row: sqlite3.Row) -> Paper:
         """,
         (row["paper_id"],),
     ).fetchall()
-    provenances = tuple(_provenance_from_row(provenance_row) for provenance_row in provenance_rows)
+    provenances = tuple(
+        _provenance_from_row(provenance_row) for provenance_row in provenance_rows
+    )
     return Paper(
         id=UUID(row["paper_id"]),
         title=row["title"],

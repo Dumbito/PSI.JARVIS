@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import UUID
 import json
 
@@ -21,19 +21,29 @@ class MetadataChange:
     after_json: str
 
     def __post_init__(self) -> None:
-        if self.changed_at.tzinfo is None or self.changed_at.utcoffset() != timezone.utc.utcoffset(self.changed_at):
+        if (
+            self.changed_at.tzinfo is None
+            or self.changed_at.utcoffset() != UTC.utcoffset(self.changed_at)
+        ):
             raise ValueError("Metadata change timestamp must be UTC")
         if not self.changed_fields:
             raise ValueError("Metadata change must contain at least one changed field")
         if self.source_key.strip() == "":
             raise ValueError("Metadata change source key cannot be empty")
-        for payload_name, payload in (("before", self.before_json), ("after", self.after_json)):
+        for payload_name, payload in (
+            ("before", self.before_json),
+            ("after", self.after_json),
+        ):
             try:
                 decoded = json.loads(payload)
             except json.JSONDecodeError as exc:
-                raise ValueError(f"Metadata change {payload_name} json is invalid") from exc
+                raise ValueError(
+                    f"Metadata change {payload_name} json is invalid"
+                ) from exc
             if not isinstance(decoded, dict):
-                raise ValueError(f"Metadata change {payload_name} json must be an object")
+                raise ValueError(
+                    f"Metadata change {payload_name} json must be an object"
+                )
 
     @property
     def key(self) -> str:
