@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from psi_jarvis.gui.data import GuiDataService
+from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.theme import apply_theme
 from psi_jarvis.gui.tutorial import TutorialDialog
 from psi_jarvis.gui.workflow import GuiWorkflowService, UnsupportedFileFormat
@@ -118,39 +119,6 @@ class ImportScreenDialog(QDialog):
         try: self.outcome = self.workflow.import_and_screen(UUID(self.project_box.currentData()), self.path_field.text()); self.accept()
         except (UnsupportedFileFormat, ValueError) as exc: self.error.setText(str(exc))
         except Exception as exc: self.error.setText(f"Import failed: {exc}")
-
-
-class ProjectWorkspaceDialog(QDialog):
-    def __init__(self, data: GuiDataService, project_id: str, open_screening: Callable[[str], None], parent: QWidget | None = None) -> None:
-        super().__init__(parent); self.data = data; self.project_id = project_id; self.open_screening = open_screening; self.setWindowTitle("Project workspace"); self.resize(900, 680); self._build()
-
-    def _build(self) -> None:
-        layout = QVBoxLayout(self); snapshot = self.data.project_snapshot(self.project_id)
-        if snapshot is None:
-            layout.addWidget(QLabel("This project is no longer available.")); buttons = QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); layout.addWidget(buttons); return
-        title = QLabel(snapshot.name); title.setObjectName("dialogTitle"); layout.addWidget(title)
-        subtitle = QLabel(f"Topic: {snapshot.topic} · Created: {snapshot.created_at}"); subtitle.setObjectName("pageSubtitle"); layout.addWidget(subtitle)
-        grid = QGridLayout(); grid.setSpacing(12); grid.addWidget(metric("Screening runs", snapshot.screening_runs, "Persisted runs"), 0, 0); grid.addWidget(metric("Screened papers", snapshot.screened_papers, "Results attached to this project's runs"), 0, 1); layout.addLayout(grid)
-        protocol, pl = card("Review protocol"); pl.addWidget(QLabel(f"Research question: {snapshot.research_question or '—'}")); pl.addWidget(QLabel("Inclusion: " + ("; ".join(snapshot.inclusion) if snapshot.inclusion else "—"))); pl.addWidget(QLabel("Exclusion: " + ("; ".join(snapshot.exclusion) if snapshot.exclusion else "—"))); layout.addWidget(protocol)
-        runs_frame, rl = card("Screening runs")
-        runs = tuple(run for run in self.data.screening_runs(limit=100000) if run.project_id == self.project_id)
-        if runs:
-            table = QTableWidget(len(runs), 5); table.setHorizontalHeaderLabels(["Started", "Criteria", "Input", "Unique", "Screened"]); table.horizontalHeader().setStretchLastSection(True); table.setSelectionBehavior(QTableWidget.SelectRows); table.setEditTriggers(QTableWidget.NoEditTriggers); table.setAlternatingRowColors(True); table.verticalHeader().setVisible(False)
-            for r, run in enumerate(runs):
-                values = (run.started_at, run.criteria_version, run.total_input, run.unique_papers, run.screened_papers)
-                for c, value in enumerate(values): table.setItem(r, c, QTableWidgetItem(str(value)))
-                table.item(r, 0).setData(Qt.UserRole, run.run_id)
-            table.doubleClicked.connect(lambda: self._open_selected_run(table)); rl.addWidget(table, 1)
-            hint = QLabel("Double-click a run to open its persisted screening results."); hint.setObjectName("pageSubtitle"); rl.addWidget(hint)
-        else:
-            rl.addWidget(QLabel("No screening runs are persisted for this project yet."))
-        layout.addWidget(runs_frame, 1)
-        note = QLabel("Project context is derived from persisted project and run records. The GUI remains read-only for scientific decisions."); note.setWordWrap(True); note.setObjectName("pageSubtitle"); layout.addWidget(note)
-        buttons = QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
-
-    def _open_selected_run(self, table: QTableWidget) -> None:
-        row = table.currentRow()
-        if row >= 0: self.open_screening(str(table.item(row, 0).data(Qt.UserRole))); self.accept()
 
 
 class DashboardPage(QWidget):
@@ -349,7 +317,12 @@ class MainWindow(QMainWindow):
         for page in (DashboardPage(self.data,self.refresh_all),ProjectsPage(self.data,self.workflow,self.refresh_all,self.open_project_workspace),PapersPage(self.data,self.workflow,self.refresh_all),SourcesPage(self.data),ScreeningPage(self.data),AnalysisPage(self.data),ReportsPage(self.data,self.workflow),AuditPage(self.data),SettingsPage(self.data)): self.pages.addWidget(page)
 
     def open_project_workspace(self, project_id: str) -> None:
-        ProjectWorkspaceDialog(self.data, project_id, self.open_screening_run, self).exec()
+        view = ProjectWorkspaceView(self.data, project_id, self.open_screening_run, self)
+        view.setWindowTitle("Project workspace")
+        view.resize(1050, 760)
+        view.setWindowModality(Qt.WindowModal)
+        view.show()
+        self._project_workspace = view
 
     def open_screening_run(self, run_id: str) -> None:
         self._select_page(4); screening=self.pages.widget(4); screening.set_run_context(run_id); self.statusBar().showMessage(f"Screening · run context {run_id}")
