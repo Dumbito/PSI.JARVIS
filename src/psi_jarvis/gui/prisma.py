@@ -26,7 +26,11 @@ class GuiPrismaService:
 
     def snapshot(self, run_id: str | None = None) -> PrismaReportSnapshot:
         runs = self.data.screening_runs(limit=100000)
-        run = next((item for item in runs if item.run_id == run_id), None) if run_id else (runs[0] if runs else None)
+        run = (
+            next((item for item in runs if item.run_id == run_id), None)
+            if run_id
+            else (runs[0] if runs else None)
+        )
         if run is None:
             return PrismaReportSnapshot(
                 flow=PrismaFlow(
@@ -52,6 +56,10 @@ class GuiPrismaService:
 
     def _screening_counts(self, run_id: str) -> tuple[int, int]:
         rows = self.data.screening_rows()
-        included = sum(row.decision == "Included" and row.run_id == run_id for row in rows)
-        excluded = sum(row.decision == "Excluded" and row.run_id == run_id for row in rows)
+        included = sum(
+            row.decision == "Included" and row.run_id == run_id for row in rows
+        )
+        excluded = sum(
+            row.decision == "Excluded" and row.run_id == run_id for row in rows
+        )
         return included, excluded
