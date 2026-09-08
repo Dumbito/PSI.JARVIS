@@ -6,6 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from psi_jarvis.gui.app import MainWindow
+from psi_jarvis.gui.audit_explorer import AuditExplorerView
 from psi_jarvis.gui.data import DashboardSnapshot, GuiDataService, MetadataQualitySnapshot
 from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.tutorial import STEPS, TutorialDialog
@@ -46,6 +47,7 @@ def test_main_window_builds_with_injected_data_service(tmp_path):
     assert window.windowTitle() == "PSI.JARVIS V.1"
     assert window.pages.count() == 9
     assert len(window.nav_buttons) == 9
+    assert isinstance(window.pages.widget(7), AuditExplorerView)
     window.close(); app.processEvents()
 
 
