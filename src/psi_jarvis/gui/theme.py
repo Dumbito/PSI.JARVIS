@@ -7,7 +7,6 @@ from PySide6.QtCore import (
     QPoint,
     QPropertyAnimation,
     QRect,
-    QTimer,
     Qt,
 )
 from PySide6.QtWidgets import (
@@ -112,7 +111,9 @@ class _UiAnimationFilter(QObject):
         return super().eventFilter(watched, event)
 
     def _on_show(self, watched: QObject) -> None:
-        if isinstance(watched, QStackedWidget):
+        if isinstance(watched, QStackedWidget) and not isinstance(
+            watched.parentWidget(), QTabWidget
+        ):
             self._watch_stack(watched)
         elif isinstance(watched, QTabWidget):
             self._watch_tabs(watched)
