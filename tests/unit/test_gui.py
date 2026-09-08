@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 
 from psi_jarvis.gui.app import MainWindow
 from psi_jarvis.gui.data import DashboardSnapshot, GuiDataService, MetadataQualitySnapshot
+from psi_jarvis.gui.workflow import GuiWorkflowService
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 
 
@@ -72,3 +73,43 @@ def test_main_window_builds_against_initialized_schema(tmp_path):
     assert window.data.metadata_quality() == MetadataQualitySnapshot()
     window.close()
     app.processEvents()
+
+
+def test_gui_workflow_creates_project_imports_and_screens_csv(tmp_path):
+    database_path = tmp_path / "psi.db"
+    csv_path = tmp_path / "papers.csv"
+    csv_path.write_text(
+        "title,authors,abstract,doi,pmid,publication_year,journal\n"
+        "Neural memory and cognition,Alice Smith;Bob Jones,Study of neural memory,,12345,2025,Journal of Cognition\n",
+        encoding="utf-8",
+    )
+
+    workflow = GuiWorkflowService(database_path)
+    project = workflow.create_project(
+        name="Memory review",
+        research_question="How does neural memory support cognition?",
+        topic="neural memory",
+        inclusion=("cognition",),
+        exclusion=(),
+    )
+
+    outcome = workflow.import_and_screen(project.project_id, csv_path)
+
+    assert outcome.total_input == 1
+    assert outcome.unique_papers == 1
+    assert outcome.duplicates_removed == 0
+    assert outcome.screened_papers == 1
+    assert outcome.included == 1
+    assert outcome.excluded == 0
+
+    service = GuiDataService(database_path)
+    snapshot = service.snapshot()
+    assert snapshot.projects == 1
+    assert snapshot.papers == 1
+    assert snapshot.screened == 1
+    assert snapshot.included == 1
+    assert snapshot.excluded == 0
+    assert len(service.screening_rows()) == 1
+    assert len(service.screening_runs()) == 1
+    assert service.metadata_quality().with_abstract == 1
+    assert service.metadata_quality().with_doi == 0
