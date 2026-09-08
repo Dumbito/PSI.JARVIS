@@ -18,7 +18,7 @@ class ProjectPaperDialog(QDialog):
         self.paper_id = paper_id
         self.open_screening = open_screening
         self.setWindowTitle("Paper details")
-        self.resize(900, 650)
+        self.resize(900, 680)
         self._build()
 
     def _build(self) -> None:
@@ -36,6 +36,7 @@ class ProjectPaperDialog(QDialog):
             tabs.addTab(self._abstract(details), "Abstract")
             tabs.addTab(self._screening(), "Screening")
             tabs.addTab(self._provenance(), "Provenance")
+            tabs.addTab(self._evidence(), "Evidence")
             root.addWidget(tabs, 1)
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
         buttons.rejected.connect(self.reject)
@@ -44,7 +45,7 @@ class ProjectPaperDialog(QDialog):
     def _metadata(self, details: dict) -> QWidget:
         page = QWidget()
         grid = QGridLayout(page)
-        fields = (("Authors", details.get("authors") or "—"), ("Year", details.get("publication_year") or "—"), ("Journal", details.get("journal") or "—"), ("DOI", details.get("doi") or "—"), ("PMID", details.get("pmid") or "—"), ("Provenance records", details.get("provenance_count", 0)))
+        fields = (("Authors", details.get("authors") or "—"), ("Year", details.get("year") or "—"), ("Journal", details.get("journal") or "—"), ("DOI", details.get("doi") or "—"), ("PMID", details.get("pmid") or "—"), ("Provenance records", details.get("provenance_count", 0)))
         for row, (label, value) in enumerate(fields):
             grid.addWidget(QLabel(f"{label}:"), row, 0)
             value_label = QLabel(str(value))
@@ -108,6 +109,30 @@ class ProjectPaperDialog(QDialog):
         layout.addWidget(table, 1)
         return page
 
+    def _evidence(self) -> QWidget:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        rows = tuple(row for row in self.data.project_screening_rows(self.project_id) if row.paper_id == self.paper_id)
+        if not rows:
+            layout.addWidget(QLabel("No persisted screening evidence is available for this paper in this project."))
+            layout.addStretch()
+            return page
+        for row in rows:
+            detail = self.data.screening_detail(self.paper_id, row.run_id)
+            if detail is None:
+                continue
+            block = QWidget()
+            block_layout = QVBoxLayout(block)
+            block_layout.addWidget(QLabel(f"Run: {detail.run_id or '—'} · Criteria: {detail.criteria_version or '—'}"))
+            block_layout.addWidget(QLabel(f"Decision: {detail.decision}"))
+            block_layout.addWidget(QLabel(f"Reason: {detail.reason or '—'}"))
+            block_layout.addWidget(QLabel("Matched rules: " + (", ".join(detail.matched_rules) if detail.matched_rules else "—")))
+            block_layout.addWidget(QLabel("Failed rules: " + (", ".join(detail.failed_rules) if detail.failed_rules else "—")))
+            block_layout.addWidget(QLabel(f"Audit ID: {detail.audit_id or '—'}"))
+            layout.addWidget(block)
+        layout.addStretch()
+        return page
+
 
 class ProjectWorkspaceView(QWidget):
     """Project-scoped read-only workspace over persisted PSI.JARVIS state."""
@@ -134,7 +159,9 @@ class ProjectWorkspaceView(QWidget):
         title.setObjectName("dialogTitle")
         header.addWidget(title)
         header.addStretch()
-        refresh = self._button("Refresh")
+        from PySide6.QtWidgets import QPushButton
+        refresh = QPushButton("Refresh")
+        refresh.setObjectName("secondary")
         refresh.clicked.connect(self.refresh)
         header.addWidget(refresh)
         root.addLayout(header)
@@ -151,13 +178,6 @@ class ProjectWorkspaceView(QWidget):
         note.setWordWrap(True)
         note.setObjectName("pageSubtitle")
         root.addWidget(note)
-
-    @staticmethod
-    def _button(text: str):
-        from PySide6.QtWidgets import QPushButton
-        button = QPushButton(text)
-        button.setObjectName("secondary")
-        return button
 
     @staticmethod
     def _table(headers: list[str], rows: list[tuple]) -> QTableWidget:
