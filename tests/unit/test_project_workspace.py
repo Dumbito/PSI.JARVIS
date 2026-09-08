@@ -2,7 +2,7 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QTableWidget
+from PySide6.QtWidgets import QApplication, QTabWidget, QTableWidget
 
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.project_workspace import ProjectPaperDialog, ProjectWorkspaceView
@@ -25,8 +25,7 @@ def test_project_workspace_paper_inspection(tmp_path):
     app = QApplication.instance() or QApplication([])
     opened = []
     view = ProjectWorkspaceView(service, str(project.project_id), opened.append)
-    papers_page = view.tabs.widget(1)
-    paper_table = papers_page.findChild(QTableWidget)
+    paper_table = view.tabs.widget(1).findChild(QTableWidget)
     assert paper_table is not None
     assert paper_table.rowCount() == 1
 
@@ -34,15 +33,13 @@ def test_project_workspace_paper_inspection(tmp_path):
     paper_table.doubleClicked.emit(paper_table.model().index(0, 1))
     assert isinstance(view._paper_dialog, ProjectPaperDialog)
     assert view._paper_dialog.paper_id == str(service.project_papers(str(project.project_id))[0].paper_id)
-    assert view._paper_dialog.findChild(QTableWidget) is not None
 
-    dialog = view._paper_dialog
-    dialog.close()
+    view._paper_dialog.close()
     view.close()
     app.processEvents()
 
 
-def test_project_paper_dialog_exposes_metadata_abstract_screening_and_provenance(tmp_path):
+def test_project_paper_dialog_exposes_evidence_and_run_navigation(tmp_path):
     database_path = tmp_path / "psi.db"
     csv_path = tmp_path / "papers.csv"
     csv_path.write_text(
@@ -54,24 +51,24 @@ def test_project_paper_dialog_exposes_metadata_abstract_screening_and_provenance
     project = workflow.create_project("Memory review", "Q", "neural memory", (), ())
     workflow.import_and_screen(project.project_id, csv_path)
     service = GuiDataService(database_path)
-    paper_id = str(service.project_papers(str(project.project_id))[0].paper_id)
+    project_id = str(project.project_id)
+    paper_id = str(service.project_papers(project_id)[0].paper_id)
 
     app = QApplication.instance() or QApplication([])
     opened = []
-    dialog = ProjectPaperDialog(service, str(project.project_id), paper_id, opened.append)
-    tabs = dialog.findChild(type(dialog.findChild(__import__('PySide6.QtWidgets', fromlist=['QTabWidget']).QTabWidget())))
-    tabs = dialog.findChild(__import__('PySide6.QtWidgets', fromlist=['QTabWidget']).QTabWidget)
+    dialog = ProjectPaperDialog(service, project_id, paper_id, opened.append)
+    tabs = dialog.findChild(QTabWidget)
     assert tabs is not None
     assert [tabs.tabText(i) for i in range(tabs.count())] == ["Metadata", "Abstract", "Screening", "Provenance"]
     assert service.paper_details(paper_id)["abstract"] == "Study of cognition"
-    assert len(service.project_provenance(str(project.project_id))) == 1
-    screening_page = tabs.widget(2)
-    screening_table = screening_page.findChild(QTableWidget)
+    assert len(tuple(row for row in service.project_provenance(project_id) if row.paper_id == paper_id)) == 1
+
+    screening_table = tabs.widget(2).findChild(QTableWidget)
     assert screening_table is not None
     assert screening_table.rowCount() == 1
     screening_table.selectRow(0)
     screening_table.doubleClicked.emit(screening_table.model().index(0, 3))
-    assert opened == [service.project_screening_rows(str(project.project_id))[0].run_id]
+    assert opened == [service.project_screening_rows(project_id)[0].run_id]
     dialog.close()
     app.processEvents()
 
