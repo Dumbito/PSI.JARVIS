@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QWidget
 
 from psi_jarvis.gui import app
 from psi_jarvis.gui.ai_assistant import AIAssistantDialog
@@ -12,6 +11,7 @@ from psi_jarvis.gui.toast import Toast
 
 class EnhancedPaperDialog(app.PaperDialog):
     def __init__(self, details: dict, parent: QWidget | None = None) -> None:
+        self._details = details
         super().__init__(details, parent)
         layout = self.layout()
         if layout is None:
@@ -19,38 +19,35 @@ class EnhancedPaperDialog(app.PaperDialog):
         assistant = QLabel("AI/NLP assistant")
         assistant.setObjectName("sectionTitle")
         layout.insertWidget(max(0, layout.count() - 1), assistant)
-        button = self._assistant_button()
-        layout.insertWidget(max(0, layout.count() - 1), button)
-
-    def _assistant_button(self):
-        from PySide6.QtWidgets import QPushButton
-
         button = QPushButton("Ask local AI for auxiliary observations…")
         button.setToolTip("Use a local Ollama model for auxiliary observations. This never changes the screening decision.")
         button.clicked.connect(self._open_assistant)
-        return button
+        layout.insertWidget(max(0, layout.count() - 1), button)
 
     def _open_assistant(self) -> None:
-        dialog = AIAssistantDialog(self.parentWidget() and self.parentWidget().findChild(QWidget) or self)
-        dialog.exec()
+        AIAssistantDialog(self._details, self).exec()
 
 
 class EnhancedDashboardPage(app.DashboardPage):
     def rebuild(self):
         super().rebuild()
         if self.data.snapshot().projects == 0:
-            empty = EmptyState(
-                "No review projects yet",
-                "Create your first review project to define a protocol before importing papers.",
-                "Create your first project",
-                self._create_project,
+            self.root.addWidget(
+                EmptyState(
+                    "No review projects yet",
+                    "Create your first review project to define a protocol before importing papers.",
+                    "Create your first project",
+                    self._create_project,
+                )
             )
-            self.root.addWidget(empty)
 
     def _create_project(self) -> None:
-        dialog = app.NewProjectDialog(self.workflow if hasattr(self, "workflow") else app.GuiWorkflowService(self.data.database_path), self)
-        if dialog.exec() == app.QDialog.Accepted:
-            self.refresh_all()
+        window = self.window()
+        if hasattr(window, "pages"):
+            window._select_page(1)
+            projects = window.pages.widget(1)
+            if hasattr(projects, "_new"):
+                projects._new()
 
 
 class EnhancedProjectsPage(app.ProjectsPage):
@@ -155,6 +152,7 @@ class EnhancedMainWindow(app.MainWindow):
     def _new_project(self) -> None:
         projects = self.pages.widget(1)
         if hasattr(projects, "_new"):
+            self._select_page(1)
             projects._new()
 
     def _focus_search(self) -> None:
@@ -199,10 +197,6 @@ class EnhancedMainWindow(app.MainWindow):
             search = getattr(page, "search", None)
             if isinstance(search, QLineEdit):
                 search.setText(self.session_search[key])
-
-
-class _Patch(QObject):
-    pass
 
 
 def install_presentation_patches() -> None:
