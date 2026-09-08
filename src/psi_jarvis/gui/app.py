@@ -271,7 +271,7 @@ class AnalysisPage(QWidget):
 
 class ReportsPage(QWidget):
     def __init__(self,data:GuiDataService,workflow:GuiWorkflowService):
-        super().__init__(data and workflow); self.data=data; self.workflow=workflow; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Reports","Export persisted screening evidence through the existing reporting layer.")); top=QHBoxLayout(); self.run_box=QComboBox(); self.runs=data.screening_runs()
+        super().__init__(); self.data=data; self.workflow=workflow; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); root.addLayout(page_header("Reports","Export persisted screening evidence through the existing reporting layer.")); top=QHBoxLayout(); self.run_box=QComboBox(); self.runs=data.screening_runs()
         for run in self.runs: self.run_box.addItem(f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened",run.run_id)
         top.addWidget(self.run_box,1); export=QPushButton("Export report…"); export.setToolTip("Generate JSON and Markdown from the selected run."); export.clicked.connect(self._export); top.addWidget(export); root.addLayout(top); frame,fl=card("Persisted runs")
         if self.runs:
