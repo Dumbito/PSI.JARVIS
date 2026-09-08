@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton
 
 from psi_jarvis.gui.ai_assistant import AIAssistantDialog
@@ -14,7 +15,7 @@ def test_empty_state_exposes_action(qtbot):
     widget.show()
     button = widget.findChild(QPushButton)
     assert button is not None
-    qtbot.mouseClick(button, button.LeftButton)
+    qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
     assert called == [True]
 
 
