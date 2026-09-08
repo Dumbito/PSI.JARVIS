@@ -5,7 +5,7 @@ from pathlib import Path
 
 def run_command(command: list[str]) -> int:
     """Ejecuta un comando y devuelve su código de salida."""
-    return subprocess.run(command).returncode
+    return subprocess.run(command, check=False).returncode
 
 
 def _scopus_manager_from_environment():
@@ -162,6 +162,7 @@ def doctor() -> int:
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
+            check=False,
         )
         git_clean = git_status.returncode == 0 and not git_status.stdout.strip()
     else:

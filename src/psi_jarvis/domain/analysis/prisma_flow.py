@@ -41,7 +41,10 @@ class PrismaFlow:
             raise ValueError(
                 "Identified records must equal screened records plus duplicates removed"
             )
-        if self.records_excluded + self.records_included_for_next_stage != self.records_screened:
+        if (
+            self.records_excluded + self.records_included_for_next_stage
+            != self.records_screened
+        ):
             raise ValueError(
                 "Screened records must equal excluded records plus records retained for the next stage"
             )

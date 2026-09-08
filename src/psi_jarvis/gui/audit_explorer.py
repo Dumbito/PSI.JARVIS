@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QGridLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QTableWidget,
@@ -13,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from psi_jarvis.gui.data import GuiDataService, AuditRow
+from psi_jarvis.gui.data import AuditRow, GuiDataService
 
 
 class AuditExplorerDialog(QDialog):
@@ -65,6 +66,7 @@ class AuditExplorerDialog(QDialog):
             ["Source", "Record ID", "Batch", "Ordinal", "Format", "Raw SHA-256"]
         )
         table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
@@ -108,6 +110,7 @@ class AuditExplorerView(QWidget):
             ["Changed at", "Paper ID", "Source", "Source record", "Changed fields"]
         )
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setAlternatingRowColors(True)

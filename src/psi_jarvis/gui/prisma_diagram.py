@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from itertools import pairwise
+
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -10,7 +12,9 @@ from psi_jarvis.gui.prisma import GuiPrismaService
 class PrismaStageCard(QFrame):
     """Compact read-only PRISMA stage card."""
 
-    def __init__(self, title: str, value: int, detail: str, enabled: bool = True) -> None:
+    def __init__(
+        self, title: str, value: int, detail: str, enabled: bool = True
+    ) -> None:
         super().__init__()
         self.setObjectName("prismaStage")
         self.setProperty("enabledStage", enabled)
@@ -91,8 +95,10 @@ class PrismaDiagram(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(self.palette().mid().color())
-        cards = [self.stage_row.itemAt(i).widget() for i in range(self.stage_row.count())]
-        for left, right in zip(cards, cards[1:]):
+        cards = [
+            self.stage_row.itemAt(i).widget() for i in range(self.stage_row.count())
+        ]
+        for left, right in pairwise(cards):
             if left is None or right is None:
                 continue
             y = (left.geometry().center().y() + right.geometry().center().y()) // 2

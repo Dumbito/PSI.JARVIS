@@ -5,6 +5,6 @@ produce suggestions and provenance, but it cannot represent or mutate a
 scientific screening decision.
 """
 
-from psi_jarvis.domain.ai.assistance import AIAssistanceSuggestion, AIAssistanceRequest
+from psi_jarvis.domain.ai.assistance import AIAssistanceRequest, AIAssistanceSuggestion
 
 __all__ = ["AIAssistanceRequest", "AIAssistanceSuggestion"]

@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 from getpass import getpass
 from pathlib import Path
 
-
 DEFAULT_SCOPUS_CONFIG_PATH = (
     Path.home() / ".config" / "psi-jarvis" / "connections" / "scopus_config.json"
 )

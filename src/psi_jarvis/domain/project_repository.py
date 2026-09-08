@@ -1,5 +1,4 @@
 from typing import Protocol
-
 from uuid import UUID
 
 from psi_jarvis.domain.project import ReviewProject

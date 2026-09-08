@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from psi_jarvis.gui.data import GuiDataService
+from psi_jarvis.gui.formatting import format_timestamp_str
 from psi_jarvis.gui.prisma import GuiPrismaService
 
 
@@ -43,7 +44,7 @@ class PrismaFlowView(QWidget):
 
         flow = snapshot.flow
         self.run.setText(
-            f"Run {snapshot.run.run_id} · {snapshot.run.criteria_version} · {snapshot.run.started_at}"
+            f"Run {snapshot.run.run_id} · {snapshot.run.criteria_version} · {format_timestamp_str(snapshot.run.started_at)}"
         )
         self.stages.setText(
             "\n".join(

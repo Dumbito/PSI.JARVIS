@@ -1,14 +1,14 @@
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from psi_jarvis.application.pipeline.pipeline import PipelineResult
 from psi_jarvis.application.reporting import (
     JSONRenderer,
     MarkdownRenderer,
     ReportBuilder,
 )
 from psi_jarvis.application.visualization import SVGChartRenderer, VisualizationBuilder
-from psi_jarvis.application.pipeline.pipeline import PipelineResult
 
 
 @dataclass(frozen=True)
@@ -24,11 +24,11 @@ class ReproducibleReportPackage:
 
 @dataclass(frozen=True)
 class ReportPackageBuilder:
-    report_builder: ReportBuilder = ReportBuilder()
-    markdown_renderer: MarkdownRenderer = MarkdownRenderer()
-    json_renderer: JSONRenderer = JSONRenderer()
-    visualization_builder: VisualizationBuilder = VisualizationBuilder(
-        SVGChartRenderer()
+    report_builder: ReportBuilder = field(default_factory=ReportBuilder)
+    markdown_renderer: MarkdownRenderer = field(default_factory=MarkdownRenderer)
+    json_renderer: JSONRenderer = field(default_factory=JSONRenderer)
+    visualization_builder: VisualizationBuilder = field(
+        default_factory=lambda: VisualizationBuilder(SVGChartRenderer())
     )
 
     def execute(self, result: PipelineResult) -> ReproducibleReportPackage:

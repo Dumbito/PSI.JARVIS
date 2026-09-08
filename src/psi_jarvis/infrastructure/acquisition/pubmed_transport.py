@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree
@@ -11,7 +11,6 @@ from psi_jarvis.infrastructure.acquisition.remote_base import (
     RemoteAcquisitionResponse,
     read_remote_response,
 )
-
 
 DEFAULT_EUTILS_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 MAX_PUBMED_ESEARCH_RESULTS = 10_000

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import (
-    QEvent,
     QEasingCurve,
+    QEvent,
     QObject,
     QPoint,
     QPropertyAnimation,
@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTabWidget,
 )
-
 
 STYLE = """
 QWidget { background: #0a111c; color: #dce7f5; font-family: Inter, Noto Sans, sans-serif; font-size: 13px; }
@@ -196,7 +195,9 @@ class _UiAnimationFilter(QObject):
     def _configure_table(self, table: QTableWidget) -> None:
         header = table.horizontalHeader()
         for section in range(header.count()):
-            header.setSectionResizeMode(section, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(
+                section, QHeaderView.ResizeMode.ResizeToContents
+            )
         header.setStretchLastSection(True)
         viewport = table.viewport()
         viewport.setMouseTracking(True)

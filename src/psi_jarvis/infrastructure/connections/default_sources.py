@@ -16,7 +16,6 @@ from psi_jarvis.infrastructure.connections.source_connections import (
     SourceConnectionStatus,
 )
 
-
 PUBMED_SOURCE = SourceConnectionDefinition(
     key="pubmed",
     display_name="PubMed",

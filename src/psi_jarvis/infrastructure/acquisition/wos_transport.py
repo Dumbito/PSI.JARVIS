@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from collections.abc import Callable
+from dataclasses import dataclass
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -11,7 +11,6 @@ from psi_jarvis.infrastructure.acquisition.remote_base import (
     RemoteAcquisitionResponse,
     read_remote_response,
 )
-
 
 DEFAULT_WOS_STARTER_BASE_URL = "https://api.clarivate.com/apis/wos-starter/v1"
 

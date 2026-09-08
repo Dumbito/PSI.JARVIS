@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from psi_jarvis.application.acquisition.contracts import (
     AcquisitionResult,
     BibliographicQuery,
 )
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
-
 
 DEFAULT_MAX_REMOTE_RESPONSE_BYTES = 128 * 1024 * 1024
 

@@ -8,16 +8,18 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QGridLayout,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
-    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from psi_jarvis.gui.data import GuiDataService, ProjectSnapshot
+from psi_jarvis.gui.formatting import format_timestamp_str
 
 
 class ProjectPaperDialog(QDialog):
@@ -95,6 +97,7 @@ class ProjectPaperDialog(QDialog):
         table = QTableWidget(len(rows), len(headers))
         table.setHorizontalHeaderLabels(headers)
         table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
@@ -269,7 +272,7 @@ class ScreeningRunDialog(QDialog):
         root.addWidget(title)
         summary = QGridLayout()
         values = (
-            ("Started", run.started_at),
+            ("Started", format_timestamp_str(run.started_at)),
             ("Criteria", run.criteria_version or "—"),
             ("Input", run.total_input),
             ("Unique", run.unique_papers),
@@ -290,6 +293,7 @@ class ScreeningRunDialog(QDialog):
             ["Paper", "Year", "Decision", "Reason", "Criteria version"]
         )
         table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
@@ -399,6 +403,7 @@ class ProjectWorkspaceView(QWidget):
         table = QTableWidget(len(rows), len(headers))
         table.setHorizontalHeaderLabels(headers)
         table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
@@ -568,7 +573,7 @@ class ProjectWorkspaceView(QWidget):
             ["Started", "Criteria", "Input", "Unique", "Duplicates", "Screened"],
             [
                 (
-                    r.started_at,
+                    format_timestamp_str(r.started_at),
                     r.criteria_version,
                     r.total_input,
                     r.unique_papers,

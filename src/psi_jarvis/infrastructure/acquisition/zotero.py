@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from re import search
-from collections.abc import Callable
 from uuid import UUID, uuid5
 
 from psi_jarvis.application.acquisition.contracts import (
@@ -25,7 +25,6 @@ from psi_jarvis.infrastructure.acquisition.zotero_transport import (
     ZoteroTransportConfig,
     ZoteroWebApiTransport,
 )
-
 
 _PAPER_ID_NAMESPACE = UUID("6ba7b814-9dad-11d1-80b4-00c04fd430c8")
 

@@ -1,6 +1,5 @@
 import sqlite3
 
-
 CURRENT_SCHEMA_VERSION = 7
 
 

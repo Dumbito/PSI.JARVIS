@@ -1,6 +1,6 @@
 from collections import Counter
-from dataclasses import dataclass
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 

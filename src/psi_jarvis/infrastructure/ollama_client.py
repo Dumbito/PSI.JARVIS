@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 
 from psi_jarvis.domain.ai.assistance import AIAssistanceRequest, AIAssistanceSuggestion
 
@@ -35,7 +35,7 @@ class OllamaConfig:
             raise ValueError("Ollama timeout_seconds must be positive")
 
     @classmethod
-    def from_environment(cls) -> "OllamaConfig":
+    def from_environment(cls) -> OllamaConfig:
         """Build local-provider settings without storing credentials in the repo."""
         raw_timeout = os.environ.get("PSI_OLLAMA_TIMEOUT", "60")
         try:
@@ -58,10 +58,16 @@ class OllamaClient:
         payload = self._request("/api/tags", {})
         models = payload.get("models", [])
         if not isinstance(models, list):
-            raise OllamaResponseError("Ollama /api/tags returned an invalid models field")
+            raise OllamaResponseError(
+                "Ollama /api/tags returned an invalid models field"
+            )
         names = []
         for model in models:
-            if isinstance(model, dict) and isinstance(model.get("name"), str) and model["name"].strip():
+            if (
+                isinstance(model, dict)
+                and isinstance(model.get("name"), str)
+                and model["name"].strip()
+            ):
                 names.append(model["name"].strip())
         return tuple(names)
 
@@ -84,7 +90,9 @@ class OllamaClient:
         )
         output = payload.get("response")
         if not isinstance(output, str) or not output.strip():
-            raise OllamaResponseError("Ollama /api/generate returned no textual response")
+            raise OllamaResponseError(
+                "Ollama /api/generate returned no textual response"
+            )
         return AIAssistanceSuggestion(
             paper_id=request.paper_id,
             model=request.model,
@@ -103,12 +111,18 @@ class OllamaClient:
             method="POST",
         )
         if path == "/api/tags":
-            request = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
+            request = urllib.request.Request(
+                url, headers={"Accept": "application/json"}, method="GET"
+            )
         try:
-            with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request, timeout=self.config.timeout_seconds
+            ) as response:
                 raw = response.read().decode("utf-8")
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise OllamaUnavailableError(f"Cannot reach Ollama at {self.config.base_url}") from exc
+            raise OllamaUnavailableError(
+                f"Cannot reach Ollama at {self.config.base_url}"
+            ) from exc
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as exc:

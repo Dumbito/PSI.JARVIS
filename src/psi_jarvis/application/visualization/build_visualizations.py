@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from psi_jarvis.application.pipeline.pipeline import PipelineResult
 from psi_jarvis.application.visualization.chart import SVGChartRenderer
@@ -19,7 +19,9 @@ class VisualizationBundle:
 @dataclass(frozen=True)
 class VisualizationBuilder:
     renderer: SVGChartRenderer
-    screening_flow_builder: ScreeningFlowBuilder = ScreeningFlowBuilder()
+    screening_flow_builder: ScreeningFlowBuilder = field(
+        default_factory=ScreeningFlowBuilder
+    )
 
     def execute(self, result: PipelineResult) -> VisualizationBundle:
         flow = self.screening_flow_builder.execute(result)

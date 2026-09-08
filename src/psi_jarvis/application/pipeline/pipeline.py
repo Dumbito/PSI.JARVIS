@@ -1,24 +1,24 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from psi_jarvis.domain.criteria.screening import ScreeningCriteria
-from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
-from psi_jarvis.domain.analysis.deduplication_analysis import DeduplicationAnalysis
-from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
-from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
-from psi_jarvis.domain.analysis.metadata_quality import MetadataQuality
 from psi_jarvis.domain.analysis.author_analysis import AuthorAnalysis
+from psi_jarvis.domain.analysis.criteria_analysis import CriteriaAnalysis
+from psi_jarvis.domain.analysis.decision_distribution import DecisionDistribution
+from psi_jarvis.domain.analysis.deduplication_analysis import DeduplicationAnalysis
+from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReasonAnalysis
 from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
+from psi_jarvis.domain.analysis.metadata_quality import MetadataQuality
 from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
 from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
 from psi_jarvis.domain.analysis.statistics import StatisticalSummary
+from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.deduplication.deduplicator import PaperDeduplicator
 from psi_jarvis.domain.normalization.normalizer import PaperNormalizer
 from psi_jarvis.domain.paper import Paper
 from psi_jarvis.domain.screening.audit import ScreeningAudit
-from psi_jarvis.domain.screening.audit_repository import ScreeningAuditRepository
 from psi_jarvis.domain.screening.audit_report import ScreeningAuditReport
+from psi_jarvis.domain.screening.audit_repository import ScreeningAuditRepository
 from psi_jarvis.domain.screening.engine import ScreeningEngine
 from psi_jarvis.domain.screening.execution import ScreeningExecution
 from psi_jarvis.domain.screening.execution_repository import (
@@ -31,14 +31,14 @@ from psi_jarvis.domain.screening.run_repository import ScreeningRunRepository
 from psi_jarvis.infrastructure.screening_audit_repository import (
     InMemoryScreeningAuditRepository,
 )
+from psi_jarvis.infrastructure.screening_execution_repository import (
+    InMemoryScreeningExecutionRepository,
+)
 from psi_jarvis.infrastructure.screening_result_repository import (
     InMemoryScreeningResultRepository,
 )
 from psi_jarvis.infrastructure.screening_run_repository import (
     InMemoryScreeningRunRepository,
-)
-from psi_jarvis.infrastructure.screening_execution_repository import (
-    InMemoryScreeningExecutionRepository,
 )
 
 

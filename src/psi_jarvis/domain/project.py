@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria

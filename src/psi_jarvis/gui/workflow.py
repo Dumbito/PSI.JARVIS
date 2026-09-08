@@ -34,8 +34,8 @@ from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYear
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
 from psi_jarvis.domain.analysis.screening_metrics import ScreeningMetrics
 from psi_jarvis.domain.analysis.statistics import StatisticalSummary
-from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.corpus import Corpus
+from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.reporting import Report
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 from psi_jarvis.infrastructure.acquisition import RISImporter

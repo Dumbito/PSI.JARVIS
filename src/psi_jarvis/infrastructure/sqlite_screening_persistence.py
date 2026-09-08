@@ -3,8 +3,8 @@ import sqlite3
 
 from psi_jarvis.domain.screening.audit import ScreeningAudit
 from psi_jarvis.domain.screening.result import ScreeningResult
-from psi_jarvis.domain.screening.run import ScreeningRun
 from psi_jarvis.domain.screening.rules.trace import RuleTrace
+from psi_jarvis.domain.screening.run import ScreeningRun
 
 
 def save_run(connection: sqlite3.Connection, run: ScreeningRun) -> None:

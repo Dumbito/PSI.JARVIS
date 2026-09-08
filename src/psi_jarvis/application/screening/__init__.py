@@ -6,6 +6,6 @@ from psi_jarvis.application.screening.sensitivity import SensitivityAnalysisServ
 
 __all__ = [
     "ConfigurationComparisonService",
-    "SensitivityAnalysisService",
     "RuleConsistencyService",
+    "SensitivityAnalysisService",
 ]

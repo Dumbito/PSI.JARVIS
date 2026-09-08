@@ -2,16 +2,16 @@ import sqlite3
 from uuid import UUID
 
 from psi_jarvis.domain.screening.execution import ScreeningExecution
-from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
 from psi_jarvis.infrastructure import sqlite_screening_persistence as persistence
-from psi_jarvis.infrastructure.sqlite_screening_run_repository import (
-    SQLiteScreeningRunRepository,
+from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
+from psi_jarvis.infrastructure.sqlite_screening_audit_repository import (
+    SQLiteScreeningAuditRepository,
 )
 from psi_jarvis.infrastructure.sqlite_screening_result_repository import (
     SQLiteScreeningResultRepository,
 )
-from psi_jarvis.infrastructure.sqlite_screening_audit_repository import (
-    SQLiteScreeningAuditRepository,
+from psi_jarvis.infrastructure.sqlite_screening_run_repository import (
+    SQLiteScreeningRunRepository,
 )
 
 

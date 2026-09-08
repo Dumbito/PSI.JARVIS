@@ -7,16 +7,15 @@ import json
 import secrets
 import threading
 import webbrowser
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from collections.abc import Callable, Mapping
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from psi_jarvis.infrastructure.acquisition.remote_base import read_remote_response
-
 
 DEFAULT_REDIRECT_HOST = "127.0.0.1"
 DEFAULT_REDIRECT_PATH = "/oauth/callback"
@@ -70,9 +69,7 @@ class ScopusOAuthToken:
 
     @property
     def is_expired(self) -> bool:
-        return self.expires_at is not None and self.expires_at <= datetime.now(
-            UTC
-        )
+        return self.expires_at is not None and self.expires_at <= datetime.now(UTC)
 
 
 class JsonTokenStore:

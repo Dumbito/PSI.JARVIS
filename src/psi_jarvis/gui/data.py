@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -13,6 +13,7 @@ from psi_jarvis.domain.analysis.exclusion_reason_analysis import ExclusionReason
 from psi_jarvis.domain.analysis.journal_analysis import JournalAnalysis
 from psi_jarvis.domain.analysis.publication_year_analysis import PublicationYearAnalysis
 from psi_jarvis.domain.analysis.rule_analysis import RuleAnalysis
+from psi_jarvis.gui.formatting import format_timestamp
 from psi_jarvis.infrastructure.auth import (
     ScopusConnectionManager,
     ScopusOAuthClient,
@@ -290,7 +291,7 @@ class GuiDataService:
             return ()
         return tuple(
             AuditRow(
-                change.changed_at.isoformat(),
+                format_timestamp(change.changed_at),
                 str(change.paper_id),
                 change.source_key,
                 change.source_record_id,
@@ -407,7 +408,7 @@ class GuiDataService:
             project.criteria.topic,
             tuple(project.criteria.inclusion),
             tuple(project.criteria.exclusion),
-            project.created_at.isoformat(),
+            format_timestamp(project.created_at),
             len(runs),
             sum(run.screened_papers for run in runs),
         )

@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from psi_jarvis.gui.data import GuiDataService
+from psi_jarvis.gui.formatting import format_timestamp_str
 from psi_jarvis.gui.prisma_diagram import PrismaDiagram
 
 
@@ -34,7 +42,7 @@ class PrismaReportPanel(QWidget):
             self.run_box.clear()
             for run in self.data.screening_runs():
                 self.run_box.addItem(
-                    f"{run.started_at} · {run.criteria_version} · {run.screened_papers:,} screened",
+                    f"{format_timestamp_str(run.started_at)} · {run.criteria_version} · {run.screened_papers:,} screened",
                     run.run_id,
                 )
             if selected_run_id is not None:

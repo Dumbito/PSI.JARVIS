@@ -1,8 +1,8 @@
-from dataclasses import dataclass, replace
-from datetime import datetime, UTC
 import json
-from typing import Protocol
 from collections.abc import Callable
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
+from typing import Protocol
 
 from psi_jarvis.application.synchronization.contracts import (
     MetadataChange,

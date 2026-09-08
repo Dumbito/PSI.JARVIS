@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from psi_jarvis.application.reporting.json_renderer import JSONRenderer
@@ -9,8 +9,8 @@ from psi_jarvis.domain.reporting import Report
 @dataclass(frozen=True)
 class ReportExporter:
     output_dir: Path
-    json_renderer: JSONRenderer = JSONRenderer()
-    markdown_renderer: MarkdownRenderer = MarkdownRenderer()
+    json_renderer: JSONRenderer = field(default_factory=JSONRenderer)
+    markdown_renderer: MarkdownRenderer = field(default_factory=MarkdownRenderer)
 
     def __post_init__(self) -> None:
         if not str(self.output_dir).strip():

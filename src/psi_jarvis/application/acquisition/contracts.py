@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt

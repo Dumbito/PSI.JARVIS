@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 from psi_jarvis.application.visualization.screening_flow import ScreeningFlow
 from psi_jarvis.domain.analysis import (
+    CriteriaAnalysis,
     DecisionDistribution,
     ExclusionReasonAnalysis,
     PublicationYearAnalysis,
-    CriteriaAnalysis,
 )
 
 
@@ -89,28 +89,22 @@ class SVGChartRenderer:
                 bar_height = 0 if maximum == 0 else value / maximum * plot_height
                 y = baseline - bar_height
                 parts.append(
-
-                        f'<rect x="{x:.2f}" y="{y:.2f}" '
-                        f'width="{bar_width:.2f}" '
-                        f'height="{bar_height:.2f}"/>'
-
+                    f'<rect x="{x:.2f}" y="{y:.2f}" '
+                    f'width="{bar_width:.2f}" '
+                    f'height="{bar_height:.2f}"/>'
                 )
                 parts.append(
-
-                        f'<text x="{x + bar_width / 2:.2f}" '
-                        f'y="{max(y - 6, 50):.2f}" '
-                        f'text-anchor="middle" font-size="12">'
-                        f"{value}</text>"
-
+                    f'<text x="{x + bar_width / 2:.2f}" '
+                    f'y="{max(y - 6, 50):.2f}" '
+                    f'text-anchor="middle" font-size="12">'
+                    f"{value}</text>"
                 )
 
             parts.append(
-
-                    f'<text x="{group_x + group_width / 2:.2f}" '
-                    f'y="{baseline + 20}" '
-                    f'text-anchor="middle" font-size="12">'
-                    f"{_escape(label)}</text>"
-
+                f'<text x="{group_x + group_width / 2:.2f}" '
+                f'y="{baseline + 20}" '
+                f'text-anchor="middle" font-size="12">'
+                f"{_escape(label)}</text>"
             )
 
         parts.append("</svg>")
@@ -198,30 +192,24 @@ class SVGChartRenderer:
             center = x + bar_width / 2
 
             parts.append(
-
-                    f'<rect x="{x:.2f}" y="{y:.2f}" '
-                    f'width="{bar_width:.2f}" '
-                    f'height="{bar_height:.2f}"/>'
-
+                f'<rect x="{x:.2f}" y="{y:.2f}" '
+                f'width="{bar_width:.2f}" '
+                f'height="{bar_height:.2f}"/>'
             )
 
             parts.append(
-
-                    f'<text x="{center:.2f}" '
-                    f'y="{baseline + 20}" '
-                    f'text-anchor="middle" '
-                    f'font-size="12">'
-                    f"{_escape(label)}</text>"
-
+                f'<text x="{center:.2f}" '
+                f'y="{baseline + 20}" '
+                f'text-anchor="middle" '
+                f'font-size="12">'
+                f"{_escape(label)}</text>"
             )
 
             parts.append(
-
-                    f'<text x="{center:.2f}" '
-                    f'y="{max(y - 6, 50):.2f}" '
-                    f'text-anchor="middle" '
-                    f'font-size="12">{value}</text>'
-
+                f'<text x="{center:.2f}" '
+                f'y="{max(y - 6, 50):.2f}" '
+                f'text-anchor="middle" '
+                f'font-size="12">{value}</text>'
             )
 
         parts.append("</svg>")

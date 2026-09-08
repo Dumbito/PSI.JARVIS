@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from re import search
-from collections.abc import Callable
 from uuid import UUID, uuid5
 from xml.etree import ElementTree
 
@@ -17,15 +17,14 @@ from psi_jarvis.domain.bibliography.provenance import (
     sha256_text,
 )
 from psi_jarvis.domain.paper import Paper
-from psi_jarvis.infrastructure.acquisition.remote_base import (
-    RemoteAcquisitionResponse,
-    RemoteBibliographicAdapter,
-)
 from psi_jarvis.infrastructure.acquisition.pubmed_transport import (
     PubMedEUtilsTransport,
     PubMedTransportConfig,
 )
-
+from psi_jarvis.infrastructure.acquisition.remote_base import (
+    RemoteAcquisitionResponse,
+    RemoteBibliographicAdapter,
+)
 
 _PAPER_ID_NAMESPACE = UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
 
