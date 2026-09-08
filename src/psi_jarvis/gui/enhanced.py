@@ -1,7 +1,18 @@
 from __future__ import annotations
 
+from pathlib import Path
+from uuid import UUID
+
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QWidget,
+)
 
 from psi_jarvis.gui import app
 from psi_jarvis.gui.ai_assistant import AIAssistantDialog
@@ -26,6 +37,20 @@ class EnhancedPaperDialog(app.PaperDialog):
 
     def _open_assistant(self) -> None:
         AIAssistantDialog(self._details, self).exec()
+
+
+class EnhancedPapersPage(app.PapersPage):
+    """Papers page that supplies the stable paper identity to the assistant dialog."""
+
+    def _open(self):
+        row = self.table.currentRow()
+        if row < 0:
+            return
+        paper_id = str(self.table.item(row, 0).data(app.Qt.UserRole))
+        details = self.data.paper_details(paper_id)
+        if details:
+            details["paper_id"] = paper_id
+            EnhancedPaperDialog(details, self).exec()
 
 
 class EnhancedDashboardPage(app.DashboardPage):
@@ -65,7 +90,8 @@ class EnhancedProjectsPage(app.ProjectsPage):
 
     def populate(self):
         super().populate()
-        self._update_empty_state()
+        if hasattr(self, "empty_state"):
+            self._update_empty_state()
 
     def _update_empty_state(self):
         self.empty_state.setVisible(self.table.rowCount() == 0)
@@ -139,8 +165,21 @@ class EnhancedReportsPage(app.ReportsPage):
                 button.clicked.connect(lambda: Toast.show_message(self, "PRISMA view refreshed"))
 
     def _export(self):
-        super()._export()
-        Toast.show_message(self, "Report export action completed")
+        if not self.runs:
+            QMessageBox.warning(self, "No runs", "There are no persisted screening runs to export yet.")
+            return
+        directory = QFileDialog.getExistingDirectory(self, "Choose export folder", str(Path.home()))
+        if not directory:
+            return
+        try:
+            paths = self.workflow.export_report(UUID(self.run_box.currentData()), directory)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export failed", str(exc))
+            return
+        if paths is None:
+            QMessageBox.warning(self, "Nothing to export", "No audit evidence was found for this run.")
+            return
+        Toast.show_message(self, "Report exported successfully")
 
 
 class EnhancedMainWindow(app.MainWindow):
@@ -214,6 +253,7 @@ class EnhancedMainWindow(app.MainWindow):
 def install_presentation_patches() -> None:
     """Patch only GUI classes; deterministic/domain behavior remains untouched."""
     app.PaperDialog = EnhancedPaperDialog
+    app.PapersPage = EnhancedPapersPage
     app.DashboardPage = EnhancedDashboardPage
     app.ProjectsPage = EnhancedProjectsPage
     app.SourcesPage = EnhancedSourcesPage
