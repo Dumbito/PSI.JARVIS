@@ -11,6 +11,10 @@ class Toast(QFrame):
         super().__init__(parent)
         self.setObjectName("toast")
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setStyleSheet(
+            "QFrame#toast { background: #13253a; border: 1px solid #3a5d7d; border-radius: 8px; }"
+            "QFrame#toast QLabel { background: transparent; color: #eaf2fb; padding: 1px; }"
+        )
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 10, 14, 10)
         label = QLabel(message)
