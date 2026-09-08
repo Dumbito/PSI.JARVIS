@@ -21,7 +21,7 @@ PSI.JARVIS is a modular, reproducible and auditable platform for scientific lite
 
 ## Status
 
-Development — foundation, acquisition, external synchronization, persisted screening evidence and professional desktop GUI layers implemented. The current architecture also reserves an isolated AI/NLP assistant boundary for future local or remote providers without granting those providers scientific authority.
+Development — foundation, acquisition, external synchronization, persisted screening evidence and professional desktop GUI layers implemented. The current architecture also provides an isolated AI/NLP assistant boundary for local Ollama inference without granting the provider scientific authority.
 
 ## Scientific UX contract
 
@@ -58,7 +58,7 @@ The `PrismaFlow` domain object validates stage relationships so inconsistent cou
 
 ## AI/NLP assistant boundary
 
-AI/NLP is an auxiliary capability, not the scientific authority. The domain contains an explicit assistant contract for future providers:
+AI/NLP is an auxiliary capability, not the scientific authority. The domain contains an explicit assistant contract and the infrastructure contains a provider adapter for local Ollama inference:
 
 - suggestions are separate from `ScreeningResult` and `ScreeningAudit`
 - model identity and prompt version are captured with the suggestion
@@ -66,8 +66,13 @@ AI/NLP is an auxiliary capability, not the scientific authority. The domain cont
 - optional confidence is range-validated
 - assistant output carries a fixed `assistant-only` authority label
 - promotion of an assistant suggestion into a scientific screening decision is explicitly rejected
+- Ollama connectivity is isolated behind `OllamaClient`
+- model discovery uses Ollama's local `/api/tags` endpoint
+- generation uses the local `/api/generate` endpoint with streaming disabled for deterministic response handling
+- connection settings can be supplied through `PSI_OLLAMA_BASE_URL` and `PSI_OLLAMA_TIMEOUT`
+- no Ollama dependency is required; the adapter uses Python's standard library HTTP client
 
-This boundary is provider-neutral and is suitable for a future local Ollama integration. No Ollama dependency is required for the deterministic screening application, and no model output is allowed to silently modify primary screening.
+The current Ollama integration is provider-level and deliberately read-only with respect to scientific state. It does not persist or promote model output into screening results. A future GUI assistant can consume the same contract without weakening the scientific boundary.
 
 ## GUI engineering and robustness
 
@@ -105,6 +110,20 @@ Launch locally with:
 
 ```text
 psi-gui
+```
+
+## Testing and development dependencies
+
+Install the project with the test suite dependencies using:
+
+```text
+python -m pip install -e '.[test]'
+```
+
+Development tooling can be installed with:
+
+```text
+python -m pip install -e '.[dev]'
 ```
 
 ## Bibliographic sources
