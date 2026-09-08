@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -19,14 +18,14 @@ class PrismaStageCard(QFrame):
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(3)
         heading = QLabel(title)
-        heading.setObjectName("sectionTitle")
+        heading.setObjectName("prismaStageTitle")
         heading.setWordWrap(True)
         layout.addWidget(heading)
         count = QLabel(f"{value:,}")
-        count.setObjectName("metricValue")
+        count.setObjectName("prismaStageCount")
         layout.addWidget(count)
         label = QLabel(detail)
-        label.setObjectName("pageSubtitle")
+        label.setObjectName("prismaStageDetail")
         label.setWordWrap(True)
         layout.addWidget(label)
 
@@ -46,7 +45,7 @@ class PrismaDiagram(QWidget):
         self.stage_row.setSpacing(8)
         root.addLayout(self.stage_row)
         self.note = QLabel()
-        self.note.setObjectName("pageSubtitle")
+        self.note.setObjectName("prismaBoundaryNote")
         self.note.setWordWrap(True)
         root.addWidget(self.note)
         self.refresh()
@@ -73,11 +72,16 @@ class PrismaDiagram(QWidget):
         for title, value, detail, enabled in stages:
             self.stage_row.addWidget(PrismaStageCard(title, value, detail, enabled))
         if snapshot.run is None:
-            self.note.setText("No persisted run is selected. The diagram is intentionally empty of inferred later-stage data.")
+            self.note.setText(
+                "No persisted run is selected. The diagram is intentionally empty of inferred later-stage data."
+            )
         else:
             self.note.setText(
-                "Only persisted identification, deduplication and title/abstract screening are represented. Full-text retrieval and study-level assessment remain unavailable until those stages are persisted."
+                "Only persisted identification, deduplication and title/abstract screening are represented. "
+                "Full-text retrieval and study-level assessment remain unavailable until those stages are persisted."
             )
+        self.updateGeometry()
+        self.update()
 
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
