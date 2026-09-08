@@ -25,6 +25,12 @@ class FakeRun:
         self.screened_papers = screened_papers
 
 
+class FakeRow:
+    def __init__(self, run_id: str, decision: str):
+        self.run_id = run_id
+        self.decision = decision
+
+
 class FakeData:
     def screening_runs(self, limit=100000):
         return [
@@ -33,7 +39,11 @@ class FakeData:
         ]
 
     def screening_rows(self):
-        return []
+        return [
+            FakeRow("run-2", "Included"),
+            FakeRow("run-2", "Included"),
+            *[FakeRow("run-2", "Excluded") for _ in range(16)],
+        ]
 
 
 def test_panel_exposes_run_selector_and_diagram(qtbot):
@@ -46,6 +56,8 @@ def test_panel_exposes_run_selector_and_diagram(qtbot):
     assert panel.run_box.itemData(1) == "run-1"
     assert panel.flow_view.stage_row.count() == 5
     assert panel.flow_view._flow.records_identified == 20
+    assert panel.flow_view._flow.records_excluded == 16
+    assert panel.flow_view._flow.records_included_for_next_stage == 2
 
 
 def test_panel_refresh_repopulates_run_selector(qtbot):
