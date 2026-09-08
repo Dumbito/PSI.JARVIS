@@ -44,14 +44,7 @@ class ProjectPaperDialog(QDialog):
     def _metadata(self, details: dict) -> QWidget:
         page = QWidget()
         grid = QGridLayout(page)
-        fields = (
-            ("Authors", details.get("authors") or "—"),
-            ("Year", details.get("publication_year") or "—"),
-            ("Journal", details.get("journal") or "—"),
-            ("DOI", details.get("doi") or "—"),
-            ("PMID", details.get("pmid") or "—"),
-            ("Provenance records", details.get("provenance_count", 0)),
-        )
+        fields = (("Authors", details.get("authors") or "—"), ("Year", details.get("publication_year") or "—"), ("Journal", details.get("journal") or "—"), ("DOI", details.get("doi") or "—"), ("PMID", details.get("pmid") or "—"), ("Provenance records", details.get("provenance_count", 0)))
         for row, (label, value) in enumerate(fields):
             grid.addWidget(QLabel(f"{label}:"), row, 0)
             value_label = QLabel(str(value))
@@ -79,7 +72,6 @@ class ProjectPaperDialog(QDialog):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
-        table.setSortingEnabled(True)
         for row, values in enumerate(rows):
             for column, value in enumerate(values):
                 table.setItem(row, column, QTableWidgetItem(str(value)))
@@ -89,10 +81,7 @@ class ProjectPaperDialog(QDialog):
         page = QWidget()
         layout = QVBoxLayout(page)
         rows = tuple(row for row in self.data.project_screening_rows(self.project_id) if row.paper_id == self.paper_id)
-        table = self._table(
-            ["Decision", "Reason", "Criteria version", "Run"],
-            [(row.decision, row.reason, row.criteria_version or "—", row.run_id or "—") for row in rows],
-        )
+        table = self._table(["Decision", "Reason", "Criteria version", "Run"], [(row.decision, row.reason, row.criteria_version or "—", row.run_id or "—") for row in rows])
         for index, row in enumerate(rows):
             table.item(index, 3).setData(Qt.UserRole, row.run_id)
         table.doubleClicked.connect(lambda: self._open_run(table))
@@ -114,13 +103,7 @@ class ProjectPaperDialog(QDialog):
         page = QWidget()
         layout = QVBoxLayout(page)
         rows = tuple(row for row in self.data.project_provenance(self.project_id) if row.paper_id == self.paper_id)
-        table = self._table(
-            ["Source", "Record ID", "Batch", "Ordinal", "Format", "Mapping", "Raw SHA-256"],
-            [
-                (row.source_key, row.source_record_id or "—", row.batch_id, row.record_ordinal, f"{row.format_name} {row.format_version}", row.mapping_version, row.raw_record_sha256)
-                for row in rows
-            ],
-        )
+        table = self._table(["Source", "Record ID", "Batch", "Ordinal", "Format", "Mapping", "Raw SHA-256"], [(row.source_key, row.source_record_id or "—", row.batch_id, row.record_ordinal, f"{row.format_name} {row.format_version}", row.mapping_version, row.raw_record_sha256) for row in rows])
         layout.addWidget(QLabel(f"Acquisition provenance · {len(rows):,} record(s)"))
         layout.addWidget(table, 1)
         return page
@@ -138,8 +121,6 @@ class ProjectWorkspaceView(QWidget):
         self._paper_dialog: ProjectPaperDialog | None = None
         self._paper_search: QLineEdit | None = None
         self._screening_search: QLineEdit | None = None
-        self._papers_table: QTableWidget | None = None
-        self._screening_table: QTableWidget | None = None
         self._build()
 
     def _build(self) -> None:
@@ -187,7 +168,6 @@ class ProjectWorkspaceView(QWidget):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
-        table.setSortingEnabled(True)
         for r, values in enumerate(rows):
             for c, value in enumerate(values):
                 table.setItem(r, c, QTableWidgetItem(str(value)))
@@ -221,8 +201,9 @@ class ProjectWorkspaceView(QWidget):
         search.setPlaceholderText("Search this project's papers by title, journal, DOI, or PMID…")
         self._paper_search = search
         table = self._table(["#", "Title", "Year", "Journal", "DOI", "PMID"], [(p.position + 1, p.title, p.year or "—", p.journal or "—", p.doi or "—", p.pmid or "—") for p in papers])
-        self._papers_table = table
-        table.doubleClicked.connect(lambda: self._open_paper_for_row(table, papers))
+        for row, paper in enumerate(papers):
+            table.item(row, 1).setData(Qt.UserRole, str(paper.paper_id))
+        table.doubleClicked.connect(lambda: self._open_paper_for_row(table))
         search.textChanged.connect(lambda text: self._filter_table(table, text))
         layout.addWidget(search)
         layout.addWidget(QLabel(f"Canonical corpus · {len(papers):,} papers · Double-click a paper to inspect it"))
@@ -236,17 +217,17 @@ class ProjectWorkspaceView(QWidget):
             haystack = " ".join(table.item(row, col).text() if table.item(row, col) else "" for col in range(table.columnCount())).casefold()
             table.setRowHidden(row, bool(needle) and needle not in haystack)
 
-    def _open_paper_for_row(self, table: QTableWidget, papers) -> None:
+    def _open_paper_for_row(self, table: QTableWidget) -> None:
         row = table.currentRow()
         if row < 0:
             return
         title = table.item(row, 1)
         if title is None:
             return
-        paper = next((paper for paper in papers if paper.title == title.text()), None)
-        if paper is None:
+        paper_id = title.data(Qt.UserRole)
+        if not paper_id:
             return
-        self._paper_dialog = ProjectPaperDialog(self.data, self.project_id, str(paper.paper_id), self.open_screening, self)
+        self._paper_dialog = ProjectPaperDialog(self.data, self.project_id, str(paper_id), self.open_screening, self)
         self._paper_dialog.show()
         self._paper_dialog.raise_()
         self._paper_dialog.activateWindow()
@@ -259,7 +240,6 @@ class ProjectWorkspaceView(QWidget):
         search.setPlaceholderText("Search this project's screening results…")
         self._screening_search = search
         table = self._table(["Paper", "Year", "Decision", "Reason", "Criteria version"], [(x.title, x.year or "—", x.decision, x.reason, x.criteria_version or "—") for x in rows])
-        self._screening_table = table
         for r, x in enumerate(rows):
             table.item(r, 0).setData(Qt.UserRole, x.run_id)
         table.doubleClicked.connect(lambda: self._open_run_for_row(table))
@@ -311,8 +291,6 @@ class ProjectWorkspaceView(QWidget):
             widget.deleteLater()
         self._paper_search = None
         self._screening_search = None
-        self._papers_table = None
-        self._screening_table = None
         snapshot = self.data.project_snapshot(self.project_id)
         if snapshot is None:
             return
