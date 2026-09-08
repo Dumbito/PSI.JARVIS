@@ -59,7 +59,7 @@ def test_project_paper_dialog_exposes_evidence_and_run_navigation(tmp_path):
     dialog = ProjectPaperDialog(service, project_id, paper_id, opened.append)
     tabs = dialog.findChild(QTabWidget)
     assert tabs is not None
-    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Metadata", "Abstract", "Screening", "Provenance"]
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Metadata", "Abstract", "Screening", "Provenance", "Evidence"]
     assert service.paper_details(paper_id)["abstract"] == "Study of cognition"
     assert len(tuple(row for row in service.project_provenance(project_id) if row.paper_id == paper_id)) == 1
 
