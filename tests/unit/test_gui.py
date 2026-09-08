@@ -5,8 +5,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
-from psi_jarvis.gui.app import MainWindow, ProjectWorkspaceDialog
+from psi_jarvis.gui.app import MainWindow
 from psi_jarvis.gui.data import DashboardSnapshot, GuiDataService, MetadataQualitySnapshot
+from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.tutorial import STEPS, TutorialDialog
 from psi_jarvis.gui.workflow import GuiWorkflowService
 from psi_jarvis.infrastructure.sqlite_migrations import initialize_schema
@@ -130,12 +131,13 @@ def test_project_workspace_exposes_persisted_run_context(tmp_path):
     run_id = service.screening_runs()[0].run_id
     assert len(service.project_papers(str(project.project_id))) == 1
     app = QApplication.instance() or QApplication([])
-    dialog = ProjectWorkspaceDialog(service, str(project.project_id), lambda _: None)
-    assert dialog.windowTitle() == "Project workspace"
+    view = ProjectWorkspaceView(service, str(project.project_id), lambda _: None)
+    assert view.tabs.count() == 5
+    assert [view.tabs.tabText(i) for i in range(view.tabs.count())] == ["Overview", "Papers", "Screening", "Runs", "Provenance"]
     window = MainWindow(data_service=service)
     window.open_screening_run(run_id)
     screening_page = window.pages.widget(4)
     assert screening_page.context_run_id == run_id
     assert screening_page.context_label.text() == f"Run context: {run_id}"
     assert screening_page.table.rowCount() == 1
-    window.close(); dialog.close(); app.processEvents()
+    window.close(); view.close(); app.processEvents()
