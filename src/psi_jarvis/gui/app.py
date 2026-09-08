@@ -68,28 +68,18 @@ class ScreeningDetailDialog(QDialog):
         layout = QVBoxLayout(self)
         title = QLabel(detail.title); title.setObjectName("dialogTitle"); title.setWordWrap(True); layout.addWidget(title)
         summary, sl = card("Decision")
-        sl.addWidget(QLabel(f"Decision: {detail.decision}"))
-        sl.addWidget(QLabel(f"Reason: {detail.reason or '—'}"))
-        sl.addWidget(QLabel(f"Criteria version: {detail.criteria_version or '—'}"))
-        sl.addWidget(QLabel(f"Run ID: {detail.run_id or '—'}"))
-        sl.addWidget(QLabel(f"Audit: {detail.audit_id or '—'}"))
-        layout.addWidget(summary)
+        sl.addWidget(QLabel(f"Decision: {detail.decision}")); sl.addWidget(QLabel(f"Reason: {detail.reason or '—'}")); sl.addWidget(QLabel(f"Criteria version: {detail.criteria_version or '—'}")); sl.addWidget(QLabel(f"Run ID: {detail.run_id or '—'}")); sl.addWidget(QLabel(f"Audit: {detail.audit_id or '—'}")); layout.addWidget(summary)
         rules, rl = card("Rule evidence")
-        matched = ", ".join(detail.matched_rules) if detail.matched_rules else "None recorded"
-        failed = ", ".join(detail.failed_rules) if detail.failed_rules else "None recorded"
-        rl.addWidget(QLabel(f"Matched rules: {matched}"))
-        rl.addWidget(QLabel(f"Failed rules: {failed}"))
-        layout.addWidget(rules)
-        note = QLabel("Read-only evidence from the persisted screening result and audit record. Scientific decisions are not edited here.")
-        note.setWordWrap(True); note.setObjectName("pageSubtitle"); layout.addWidget(note)
+        matched = ", ".join(detail.matched_rules) if detail.matched_rules else "None recorded"; failed = ", ".join(detail.failed_rules) if detail.failed_rules else "None recorded"
+        rl.addWidget(QLabel(f"Matched rules: {matched}")); rl.addWidget(QLabel(f"Failed rules: {failed}")); layout.addWidget(rules)
+        note = QLabel("Read-only evidence from the persisted screening result and audit record. Scientific decisions are not edited here."); note.setWordWrap(True); note.setObjectName("pageSubtitle"); layout.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
 
 
 class NewProjectDialog(QDialog):
     def __init__(self, workflow: GuiWorkflowService, parent: QWidget | None = None) -> None:
         super().__init__(parent); self.workflow = workflow; self.created_project = None; self.setWindowTitle("New review project"); self.resize(540, 500)
-        layout = QVBoxLayout(self)
-        self.name = self._field(layout, "Project name"); self.question = self._field(layout, "Research question"); self.topic = self._field(layout, "Topic (required)")
+        layout = QVBoxLayout(self); self.name = self._field(layout, "Project name"); self.question = self._field(layout, "Research question"); self.topic = self._field(layout, "Topic (required)")
         layout.addWidget(QLabel("Inclusion rules (one per line)")); self.inclusion = QTextEdit(); self.inclusion.setFixedHeight(90); layout.addWidget(self.inclusion)
         layout.addWidget(QLabel("Exclusion rules (one per line)")); self.exclusion = QTextEdit(); self.exclusion.setFixedHeight(90); layout.addWidget(self.exclusion)
         self.error = QLabel(""); self.error.setObjectName("pageSubtitle"); self.error.setWordWrap(True); layout.addWidget(self.error)
@@ -130,6 +120,39 @@ class ImportScreenDialog(QDialog):
         except Exception as exc: self.error.setText(f"Import failed: {exc}")
 
 
+class ProjectWorkspaceDialog(QDialog):
+    def __init__(self, data: GuiDataService, project_id: str, open_screening: Callable[[str], None], parent: QWidget | None = None) -> None:
+        super().__init__(parent); self.data = data; self.project_id = project_id; self.open_screening = open_screening; self.setWindowTitle("Project workspace"); self.resize(900, 680); self._build()
+
+    def _build(self) -> None:
+        layout = QVBoxLayout(self); snapshot = self.data.project_snapshot(self.project_id)
+        if snapshot is None:
+            layout.addWidget(QLabel("This project is no longer available.")); buttons = QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); layout.addWidget(buttons); return
+        title = QLabel(snapshot.name); title.setObjectName("dialogTitle"); layout.addWidget(title)
+        subtitle = QLabel(f"Topic: {snapshot.topic} · Created: {snapshot.created_at}"); subtitle.setObjectName("pageSubtitle"); layout.addWidget(subtitle)
+        grid = QGridLayout(); grid.setSpacing(12); grid.addWidget(metric("Screening runs", snapshot.screening_runs, "Persisted runs"), 0, 0); grid.addWidget(metric("Screened papers", snapshot.screened_papers, "Results attached to this project's runs"), 0, 1); layout.addLayout(grid)
+        protocol, pl = card("Review protocol"); pl.addWidget(QLabel(f"Research question: {snapshot.research_question or '—'}")); pl.addWidget(QLabel("Inclusion: " + ("; ".join(snapshot.inclusion) if snapshot.inclusion else "—"))); pl.addWidget(QLabel("Exclusion: " + ("; ".join(snapshot.exclusion) if snapshot.exclusion else "—"))); layout.addWidget(protocol)
+        runs_frame, rl = card("Screening runs")
+        runs = tuple(run for run in self.data.screening_runs(limit=100000) if run.project_id == self.project_id)
+        if runs:
+            table = QTableWidget(len(runs), 5); table.setHorizontalHeaderLabels(["Started", "Criteria", "Input", "Unique", "Screened"]); table.horizontalHeader().setStretchLastSection(True); table.setSelectionBehavior(QTableWidget.SelectRows); table.setEditTriggers(QTableWidget.NoEditTriggers); table.setAlternatingRowColors(True); table.verticalHeader().setVisible(False)
+            for r, run in enumerate(runs):
+                values = (run.started_at, run.criteria_version, run.total_input, run.unique_papers, run.screened_papers)
+                for c, value in enumerate(values): table.setItem(r, c, QTableWidgetItem(str(value)))
+                table.item(r, 0).setData(Qt.UserRole, run.run_id)
+            table.doubleClicked.connect(lambda: self._open_selected_run(table)); rl.addWidget(table, 1)
+            hint = QLabel("Double-click a run to open its persisted screening results."); hint.setObjectName("pageSubtitle"); rl.addWidget(hint)
+        else:
+            rl.addWidget(QLabel("No screening runs are persisted for this project yet."))
+        layout.addWidget(runs_frame, 1)
+        note = QLabel("Project context is derived from persisted project and run records. The GUI remains read-only for scientific decisions."); note.setWordWrap(True); note.setObjectName("pageSubtitle"); layout.addWidget(note)
+        buttons = QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
+
+    def _open_selected_run(self, table: QTableWidget) -> None:
+        row = table.currentRow()
+        if row >= 0: self.open_screening(str(table.item(row, 0).data(Qt.UserRole))); self.accept()
+
+
 class DashboardPage(QWidget):
     def __init__(self, data: GuiDataService, refresh: Callable[[], None]) -> None:
         super().__init__(); self.data = data; self.refresh = refresh; self.root = QVBoxLayout(self); self.root.setContentsMargins(28,24,28,28); self.root.setSpacing(14); self.rebuild()
@@ -151,13 +174,18 @@ class DashboardPage(QWidget):
 
 
 class ProjectsPage(QWidget):
-    def __init__(self, data: GuiDataService, workflow: GuiWorkflowService, refresh_all: Callable[[], None]) -> None:
-        super().__init__(); self.data=data; self.workflow=workflow; self.refresh_all=refresh_all; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); top=QHBoxLayout(); top.addLayout(page_header("Projects","Review protocols persisted in the project repository.")); top.addStretch(); button=QPushButton("New project"); button.setToolTip("Create a review protocol."); button.clicked.connect(self._new); top.addWidget(button); root.addLayout(top); self.table=QTableWidget(0,4); self.table.setHorizontalHeaderLabels(["Project","Topic","Research question","Created"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); root.addWidget(self.table,1); note=QLabel("Protocol semantics stay in the application/domain layer."); note.setObjectName("pageSubtitle"); root.addWidget(note); self.populate()
+    def __init__(self, data: GuiDataService, workflow: GuiWorkflowService, refresh_all: Callable[[], None], open_project: Callable[[str], None]) -> None:
+        super().__init__(); self.data=data; self.workflow=workflow; self.refresh_all=refresh_all; self.open_project=open_project; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(14); top=QHBoxLayout(); top.addLayout(page_header("Projects","Review protocols persisted in the project repository.")); top.addStretch(); button=QPushButton("New project"); button.setToolTip("Create a review protocol."); button.clicked.connect(self._new); top.addWidget(button); root.addLayout(top); self.table=QTableWidget(0,4); self.table.setHorizontalHeaderLabels(["Project","Topic","Research question","Created"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.verticalHeader().setVisible(False); self.table.doubleClicked.connect(self._open); root.addWidget(self.table,1); note=QLabel("Double-click a project to open its workspace and persisted screening runs. Protocol semantics stay in the application/domain layer."); note.setObjectName("pageSubtitle"); note.setWordWrap(True); root.addWidget(note); self.populate()
 
     def populate(self):
         projects=self.data.projects(); self.table.setRowCount(len(projects))
         for r,p in enumerate(projects):
             for c,v in enumerate((p.name,p.criteria.topic,p.research_question,p.created_at.isoformat())): self.table.setItem(r,c,QTableWidgetItem(str(v)))
+            self.table.item(r,0).setData(Qt.UserRole,str(p.project_id))
+
+    def _open(self):
+        row=self.table.currentRow()
+        if row>=0: self.open_project(str(self.table.item(row,0).data(Qt.UserRole)))
 
     def _new(self):
         dialog=NewProjectDialog(self.workflow,self)
@@ -202,36 +230,37 @@ class SourcesPage(QWidget):
 
 class ScreeningPage(QWidget):
     def __init__(self,data:GuiDataService):
-        super().__init__(); self.data=data; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12); top=QHBoxLayout(); top.addLayout(page_header("Screening","Persisted scientific decisions and their evidence.")); top.addStretch(); self.filter=QComboBox(); self.filter.addItems(["All decisions","Included","Excluded"]); self.filter.currentTextChanged.connect(self.apply_filter); top.addWidget(self.filter); root.addLayout(top)
-        controls = QHBoxLayout(); self.search=QLineEdit(); self.search.setPlaceholderText("Search paper, reason, criteria version…"); self.search.textChanged.connect(self.apply_search); controls.addWidget(self.search,1); refresh=QPushButton("Refresh"); refresh.setObjectName("secondary"); refresh.clicked.connect(self.refresh); controls.addWidget(refresh); root.addLayout(controls)
+        super().__init__(); self.data=data; self.context_run_id=None; root=QVBoxLayout(self); root.setContentsMargins(28,24,28,28); root.setSpacing(12); top=QHBoxLayout(); top.addLayout(page_header("Screening","Persisted scientific decisions and their evidence.")); top.addStretch(); self.context_label=QLabel("All persisted results"); self.context_label.setObjectName("pageSubtitle"); top.addWidget(self.context_label); self.filter=QComboBox(); self.filter.addItems(["All decisions","Included","Excluded"]); self.filter.currentTextChanged.connect(self.apply_filter); top.addWidget(self.filter); root.addLayout(top)
+        controls = QHBoxLayout(); self.search=QLineEdit(); self.search.setPlaceholderText("Search paper, reason, criteria version…"); self.search.textChanged.connect(self.apply_search); controls.addWidget(self.search,1); clear=QPushButton("All runs"); clear.setObjectName("secondary"); clear.clicked.connect(self.clear_context); controls.addWidget(clear); refresh=QPushButton("Refresh"); refresh.setObjectName("secondary"); refresh.clicked.connect(self.refresh); controls.addWidget(refresh); root.addLayout(controls)
         root.addWidget(QLabel("Read-only evidence: the GUI does not create or alter scientific decisions. Double-click a row to inspect its persisted evidence.")); self.table=QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Paper","Year","Decision","Reason","Criteria version"]); self.table.horizontalHeader().setStretchLastSection(True); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setAlternatingRowColors(True); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.verticalHeader().setVisible(False); self.table.doubleClicked.connect(self._open_detail); root.addWidget(self.table,1); self.rows=data.screening_rows(); self.populate()
 
     def populate(self):
-        self.table.setRowCount(len(self.rows))
-        for r,x in enumerate(self.rows):
+        visible_rows=tuple(x for x in self.rows if self.context_run_id is None or x.run_id==self.context_run_id)
+        self.table.setRowCount(len(visible_rows))
+        for r,x in enumerate(visible_rows):
             for c,v in enumerate((x.title,x.year or "—",x.decision,x.reason,x.criteria_version or "—")): self.table.setItem(r,c,QTableWidgetItem(str(v)))
             self.table.item(r,0).setData(Qt.UserRole,(x.paper_id,x.run_id))
         self.apply_search(self.search.text())
 
-    def apply_filter(self,value):
-        self.apply_search(self.search.text())
+    def apply_filter(self,value): self.apply_search(self.search.text())
 
     def apply_search(self,text):
         decision=self.filter.currentText(); q=text.casefold().strip()
         for r in range(self.table.rowCount()):
-            row_text=" ".join(self.table.item(r,c).text() for c in range(self.table.columnCount())).casefold()
-            decision_ok=decision=="All decisions" or self.table.item(r,2).text()==decision
-            search_ok=not q or q in row_text
-            self.table.setRowHidden(r,not (decision_ok and search_ok))
+            row_text=" ".join(self.table.item(r,c).text() for c in range(self.table.columnCount())).casefold(); decision_ok=decision=="All decisions" or self.table.item(r,2).text()==decision; search_ok=not q or q in row_text; self.table.setRowHidden(r,not (decision_ok and search_ok))
 
-    def refresh(self):
-        self.rows=self.data.screening_rows(); self.populate()
+    def set_run_context(self, run_id: str) -> None:
+        self.context_run_id=run_id; self.context_label.setText(f"Run context: {run_id}"); self.populate()
+
+    def clear_context(self) -> None:
+        self.context_run_id=None; self.context_label.setText("All persisted results"); self.populate()
+
+    def refresh(self): self.rows=self.data.screening_rows(); self.populate()
 
     def _open_detail(self):
         r=self.table.currentRow()
         if r<0: return
-        paper_id,run_id=self.table.item(r,0).data(Qt.UserRole)
-        detail=self.data.screening_detail(paper_id,run_id)
+        paper_id,run_id=self.table.item(r,0).data(Qt.UserRole); detail=self.data.screening_detail(paper_id,run_id)
         if detail: ScreeningDetailDialog(detail,self).exec()
 
 
@@ -264,7 +293,7 @@ class AnalysisPage(QWidget):
 
     @staticmethod
     def _table_page(title,widget):
-        page=QWidget(); l=QVBoxLayout(page); 
+        page=QWidget(); l=QVBoxLayout(page)
         if title: l.addWidget(QLabel(title))
         l.addWidget(widget,1); return page
 
@@ -317,7 +346,13 @@ class MainWindow(QMainWindow):
     def _build_pages(self):
         while self.pages.count():
             widget=self.pages.widget(0); self.pages.removeWidget(widget); widget.deleteLater()
-        for page in (DashboardPage(self.data,self.refresh_all),ProjectsPage(self.data,self.workflow,self.refresh_all),PapersPage(self.data,self.workflow,self.refresh_all),SourcesPage(self.data),ScreeningPage(self.data),AnalysisPage(self.data),ReportsPage(self.data,self.workflow),AuditPage(self.data),SettingsPage(self.data)): self.pages.addWidget(page)
+        for page in (DashboardPage(self.data,self.refresh_all),ProjectsPage(self.data,self.workflow,self.refresh_all,self.open_project_workspace),PapersPage(self.data,self.workflow,self.refresh_all),SourcesPage(self.data),ScreeningPage(self.data),AnalysisPage(self.data),ReportsPage(self.data,self.workflow),AuditPage(self.data),SettingsPage(self.data)): self.pages.addWidget(page)
+
+    def open_project_workspace(self, project_id: str) -> None:
+        ProjectWorkspaceDialog(self.data, project_id, self.open_screening_run, self).exec()
+
+    def open_screening_run(self, run_id: str) -> None:
+        self._select_page(4); screening=self.pages.widget(4); screening.set_run_context(run_id); self.statusBar().showMessage(f"Screening · run context {run_id}")
 
     def _select_page(self,index:int):
         self.pages.setCurrentIndex(index)
