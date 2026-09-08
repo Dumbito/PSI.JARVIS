@@ -54,10 +54,41 @@ class ProjectPaperDialog(QDialog):
         layout.addStretch(); return page
 
 
+class ScreeningRunDialog(QDialog):
+    """Read-only inspection of one persisted screening run."""
+    def __init__(self,data:GuiDataService,project_id:str,run_id:str,open_paper:Callable[[str],None]|None=None,open_screening:Callable[[str],None]|None=None,parent:QWidget|None=None)->None:
+        super().__init__(parent); self.data=data; self.project_id=project_id; self.run_id=run_id; self.open_paper=open_paper; self.open_screening=open_screening; self.setWindowTitle("Screening run"); self.resize(1000,700); self._build()
+    def _build(self)->None:
+        root=QVBoxLayout(self); run=next((x for x in self.data.screening_runs(limit=100000) if x.run_id==self.run_id),None)
+        if run is None: root.addWidget(QLabel("This screening run is no longer available.")); self._close(root); return
+        title=QLabel(f"Screening run · {run.run_id}"); title.setObjectName("dialogTitle"); title.setWordWrap(True); root.addWidget(title)
+        summary=QGridLayout(); values=(("Started",run.started_at),("Criteria",run.criteria_version or "—"),("Input",run.total_input),("Unique",run.unique_papers),("Duplicates removed",run.duplicates_removed),("Screened",run.screened_papers))
+        for row,(label,value) in enumerate(values): summary.addWidget(QLabel(f"{label}:"),row//2*1,row%2*2); summary.addWidget(QLabel(str(value)),row//2,row%2*2+1)
+        root.addLayout(summary)
+        rows=tuple(x for x in self.data.project_screening_rows(self.project_id) if x.run_id==self.run_id); table=QTableWidget(len(rows),5); table.setHorizontalHeaderLabels(["Paper","Year","Decision","Reason","Criteria version"]); table.horizontalHeader().setStretchLastSection(True); table.setSelectionBehavior(QTableWidget.SelectRows); table.setEditTriggers(QTableWidget.NoEditTriggers); table.setAlternatingRowColors(True); table.verticalHeader().setVisible(False)
+        for r,item in enumerate(rows):
+            for c,value in enumerate((item.title,item.year or "—",item.decision,item.reason,item.criteria_version or "—")): table.setItem(r,c,QTableWidgetItem(str(value)))
+            table.item(r,0).setData(Qt.UserRole,item.paper_id)
+        table.doubleClicked.connect(lambda:self._open_selected(table)); root.addWidget(QLabel(f"Persisted results in this run · {len(rows):,} result(s) · Double-click a paper to inspect it")); root.addWidget(table,1)
+        actions=QHBoxLayout()
+        if self.open_screening is not None:
+            from PySide6.QtWidgets import QPushButton
+            button=QPushButton("Open in Screening"); button.clicked.connect(lambda:self.open_screening(self.run_id)); actions.addWidget(button)
+        actions.addStretch(); close=QDialogButtonBox(QDialogButtonBox.Close); close.rejected.connect(self.reject); actions.addWidget(close); root.addLayout(actions)
+    def _close(self,root:QVBoxLayout)->None:
+        buttons=QDialogButtonBox(QDialogButtonBox.Close); buttons.rejected.connect(self.reject); root.addWidget(buttons)
+    def _open_selected(self,table:QTableWidget)->None:
+        if self.open_paper is None:return
+        row=table.currentRow()
+        if row>=0:
+            paper_id=table.item(row,0).data(Qt.UserRole)
+            if paper_id:self.open_paper(str(paper_id))
+
+
 class ProjectWorkspaceView(QWidget):
     """Project-scoped read-only workspace over persisted PSI.JARVIS state."""
     def __init__(self,data:GuiDataService,project_id:str,open_screening:Callable[[str],None]|None=None,parent:QWidget|None=None)->None:
-        super().__init__(parent); self.data=data; self.project_id=project_id; self.open_screening=open_screening; self.tabs=QTabWidget(); self._paper_dialog=None; self._build()
+        super().__init__(parent); self.data=data; self.project_id=project_id; self.open_screening=open_screening; self.tabs=QTabWidget(); self._paper_dialog=None; self._run_dialog=None; self._build()
     def _build(self)->None:
         root=QVBoxLayout(self); snapshot=self.data.project_snapshot(self.project_id)
         if snapshot is None: root.addWidget(QLabel("This project is no longer available.")); return
@@ -100,15 +131,16 @@ class ProjectWorkspaceView(QWidget):
         if row<0:return
         value=table.item(row,0).data(Qt.UserRole)
         if not value:return
-        paper_id,run_id=value
-        self._paper_dialog=ProjectPaperDialog(self.data,self.project_id,str(paper_id),self.open_screening,self); self._paper_dialog.show(); self._paper_dialog.raise_(); self._paper_dialog.activateWindow()
+        paper_id,run_id=value; self._paper_dialog=ProjectPaperDialog(self.data,self.project_id,str(paper_id),self.open_screening,self); self._paper_dialog.show(); self._paper_dialog.raise_(); self._paper_dialog.activateWindow()
         if self.open_screening is not None and run_id:self.open_screening(str(run_id))
     def _runs(self)->QWidget:
-        page=QWidget(); layout=QVBoxLayout(page); runs=tuple(run for run in self.data.screening_runs(limit=100000) if run.project_id==self.project_id); table=self._table(["Started","Criteria","Input","Unique","Duplicates","Screened"],[(r.started_at,r.criteria_version,r.total_input,r.unique_papers,r.duplicates_removed,r.screened_papers) for r in runs]); table.doubleClicked.connect(lambda:self._open_run_from_table(table,runs)); layout.addWidget(QLabel(f"Screening run history · {len(runs):,} run(s) · Double-click to open run")); layout.addWidget(table,1); return page
+        page=QWidget(); layout=QVBoxLayout(page); runs=tuple(run for run in self.data.screening_runs(limit=100000) if run.project_id==self.project_id); table=self._table(["Started","Criteria","Input","Unique","Duplicates","Screened"],[(r.started_at,r.criteria_version,r.total_input,r.unique_papers,r.duplicates_removed,r.screened_papers) for r in runs]); table.doubleClicked.connect(lambda:self._open_run_from_table(table,runs)); layout.addWidget(QLabel(f"Screening run history · {len(runs):,} run(s) · Double-click to inspect run")); layout.addWidget(table,1); return page
     def _open_run_from_table(self,table:QTableWidget,runs)->None:
-        if self.open_screening is None:return
         row=table.currentRow()
-        if row>=0:self.open_screening(str(runs[row].run_id))
+        if row<0:return
+        run_id=str(runs[row].run_id); self._run_dialog=ScreeningRunDialog(self.data,self.project_id,run_id,self._open_paper,self.open_screening,self); self._run_dialog.show(); self._run_dialog.raise_(); self._run_dialog.activateWindow()
+    def _open_paper(self,paper_id:str)->None:
+        self._paper_dialog=ProjectPaperDialog(self.data,self.project_id,paper_id,self.open_screening,self); self._paper_dialog.show(); self._paper_dialog.raise_(); self._paper_dialog.activateWindow()
     def _provenance(self)->QWidget:
         page=QWidget(); layout=QVBoxLayout(page); rows=self.data.project_provenance(self.project_id); table=self._table(["Paper","Source","Record ID","Batch","Ordinal","Format","Mapping","Raw SHA-256"],[(x.title,x.source_key,x.source_record_id or "—",x.batch_id,x.record_ordinal,f"{x.format_name} {x.format_version}",x.mapping_version,x.raw_record_sha256) for x in rows]); layout.addWidget(QLabel(f"Acquisition provenance · {len(rows):,} record(s)")); layout.addWidget(table,1); return page
     def refresh(self)->None:
