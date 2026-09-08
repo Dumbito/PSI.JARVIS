@@ -14,6 +14,7 @@ class PrismaStageCard(QFrame):
         super().__init__()
         self.setObjectName("prismaStage")
         self.setProperty("enabledStage", enabled)
+        self.setProperty("stageKey", title.casefold().replace(" ", "_"))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(3)
@@ -63,14 +64,14 @@ class PrismaDiagram(QWidget):
         self._clear()
         flow = snapshot.flow
         stages = (
-            ("Identified", flow.records_identified, "records", True),
-            ("Deduplicated", flow.unique_records, "unique records", True),
-            ("Screened", flow.records_screened, "title/abstract stage", True),
-            ("Excluded", flow.records_excluded, "screening exclusions", True),
-            ("Retained", flow.records_included_for_next_stage, "next-stage candidates", True),
+            ("Identified", flow.records_identified, "records"),
+            ("Deduplicated", flow.unique_records, "unique records"),
+            ("Screened", flow.records_screened, "title/abstract stage"),
+            ("Excluded", flow.records_excluded, "screening exclusions"),
+            ("Retained", flow.records_included_for_next_stage, "next-stage candidates"),
         )
-        for title, value, detail, enabled in stages:
-            self.stage_row.addWidget(PrismaStageCard(title, value, detail, enabled))
+        for title, value, detail in stages:
+            self.stage_row.addWidget(PrismaStageCard(title, value, detail))
         if snapshot.run is None:
             self.note.setText(
                 "No persisted run is selected. The diagram is intentionally empty of inferred later-stage data."
