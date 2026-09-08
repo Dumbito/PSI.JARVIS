@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtWidgets import QApplication, QDialog, QStackedWidget, QTabWidget, QTableWidget, QWidget
+from PySide6.QtWidgets import QDialog, QStackedWidget, QTabWidget, QTableWidget, QWidget
 
 from psi_jarvis.gui.theme import _UiAnimationFilter, apply_theme
 
 
-@pytest.fixture(scope="module")
-def qt_app():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+@pytest.fixture
+def qt_app(qapp):
+    apply_theme(qapp)
+    return qapp
 
 
 def test_theme_does_not_install_graphics_effects_on_pages(qt_app):
