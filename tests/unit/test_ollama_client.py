@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import io
 import json
 import urllib.error
 
@@ -70,7 +69,7 @@ def test_generate_returns_assistant_only_suggestion(monkeypatch):
     assert suggestion.prompt_version == "assistant-v1"
     assert suggestion.input_hash == "abc123"
     assert suggestion.authority == "assistant-only"
-    assert "include" not in captured["payload"]["prompt"].lower()
+    assert "final screening decision" in captured["payload"]["prompt"]
     assert captured["payload"]["stream"] is False
 
 
