@@ -9,14 +9,13 @@ from psi_jarvis.gui.reports import ReportsPage as _ReportsPage
 
 _app.ReportsPage = _ReportsPage
 
-from psi_jarvis.gui.enhanced import EnhancedMainWindow, install_presentation_patches
-from psi_jarvis.gui.theme import apply_theme
-from psi_jarvis.gui.tutorial import TutorialDialog
-
-install_presentation_patches()
-
 
 def main() -> int:
+    from psi_jarvis.gui.enhanced import EnhancedMainWindow, install_presentation_patches
+    from psi_jarvis.gui.theme import apply_theme
+    from psi_jarvis.gui.tutorial import TutorialDialog
+
+    install_presentation_patches()
     application = QApplication.instance() or QApplication(sys.argv)
     apply_theme(application)
     window = EnhancedMainWindow()
