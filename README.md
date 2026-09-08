@@ -21,7 +21,7 @@ PSI.JARVIS is a modular, reproducible and auditable platform for scientific lite
 
 ## Status
 
-Development — foundation, acquisition, external synchronization and professional desktop GUI layers implemented. AI/NLP assistance remains the planned roadmap phase.
+Development — foundation, acquisition, external synchronization, persisted screening evidence and professional desktop GUI layers implemented. AI/NLP assistance remains a planned auxiliary phase and cannot replace deterministic scientific decisions.
 
 ## Desktop GUI
 
@@ -34,6 +34,7 @@ PSI.JARVIS includes a PySide6 desktop workspace with a read-only presentation la
 - Persisted screening decisions and filters
 - Metadata-change audit history
 - Analysis and reporting capability surfaces without duplicating domain logic
+- A run-scoped PRISMA-style flow view derived only from persisted screening evidence
 - Runtime settings and methodological safeguards
 
 The GUI does not replace the deterministic screening engine, resolve synchronization conflicts, or silently alter audited scientific decisions.
@@ -43,6 +44,12 @@ Launch locally with:
 ```text
 psi-gui
 ```
+
+## PRISMA flow
+
+The current PRISMA representation is deliberately limited to stages that PSI.JARVIS persists as scientific state: records identified, duplicates removed, records screened, screening exclusions, and records retained for the next stage. Full-text retrieval, report retrieval failures, study-level eligibility assessment and final study inclusion are not inferred when their underlying events are absent.
+
+The Reports workspace provides a run selector and a read-only PRISMA-style diagram. Counts are derived from the selected persisted screening run and its screening decisions, preserving the project's provenance and deterministic-authority model.
 
 ## Bibliographic sources
 
