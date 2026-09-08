@@ -39,6 +39,14 @@ def request() -> AIAssistanceRequest:
     )
 
 
+def test_environment_configuration(monkeypatch):
+    monkeypatch.setenv("PSI_OLLAMA_BASE_URL", "http://localhost:9999/")
+    monkeypatch.setenv("PSI_OLLAMA_TIMEOUT", "7.5")
+    config = OllamaConfig.from_environment()
+    assert config.base_url == "http://localhost:9999/"
+    assert config.timeout_seconds == 7.5
+
+
 def test_list_models_uses_ollama_tags(monkeypatch):
     def fake_urlopen(req, timeout):
         assert req.full_url == "http://127.0.0.1:11434/api/tags"
