@@ -21,7 +21,6 @@ from psi_jarvis.infrastructure.sqlite_project_repository import SQLiteProjectRep
 from psi_jarvis.infrastructure.sqlite_screening_audit_repository import SQLiteScreeningAuditRepository
 from psi_jarvis.infrastructure.sqlite_screening_run_repository import SQLiteScreeningRunRepository
 
-
 @dataclass(frozen=True)
 class DashboardSnapshot:
     projects: int = 0; papers: int = 0; screened: int = 0; pending: int = 0; included: int = 0; excluded: int = 0; conflicts: int = 0; source_counts: tuple[tuple[str, int], ...] = ()
@@ -59,7 +58,6 @@ def default_database_path() -> Path:
     if configured: return Path(configured).expanduser()
     return Path.home() / ".local" / "share" / "psi-jarvis" / "psi.db"
 
-
 class GuiDataService:
     """Read-only facade over persisted PSI.JARVIS state."""
     def __init__(self, database_path: str | Path | None = None) -> None: self.database_path = Path(database_path or default_database_path()).expanduser()
@@ -92,15 +90,13 @@ class GuiDataService:
     def screening_rows(self) -> tuple[ScreeningRow, ...]:
         if not self.database_path.exists(): return ()
         try:
-            with self._connect() as connection:
-                rows = connection.execute("SELECT sr.paper_id, p.title, p.publication_year, sr.included, sr.reason, sr.run_id, sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id = sr.paper_id ORDER BY p.title COLLATE NOCASE").fetchall()
+            with self._connect() as connection: rows = connection.execute("SELECT sr.paper_id, p.title, p.publication_year, sr.included, sr.reason, sr.run_id, sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id = sr.paper_id ORDER BY p.title COLLATE NOCASE").fetchall()
         except sqlite3.OperationalError: return ()
         return tuple(ScreeningRow(row["paper_id"], row["title"], row["publication_year"], "Included" if row["included"] else "Excluded", row["reason"], row["run_id"], row["criteria_version"]) for row in rows)
     def screening_runs(self, limit: int = 100) -> tuple[ScreeningRunSnapshot, ...]:
         if not self.database_path.exists(): return ()
         try:
-            with self._connect() as connection:
-                rows = connection.execute("SELECT run_id, project_id, criteria_version, started_at, total_input, unique_papers, duplicates_removed, screened_papers FROM screening_runs ORDER BY started_at DESC LIMIT ?", (max(1, int(limit)),)).fetchall()
+            with self._connect() as connection: rows = connection.execute("SELECT run_id, project_id, criteria_version, started_at, total_input, unique_papers, duplicates_removed, screened_papers FROM screening_runs ORDER BY started_at DESC LIMIT ?", (max(1, int(limit)),)).fetchall()
         except (sqlite3.OperationalError, ValueError): return ()
         return tuple(ScreeningRunSnapshot(row["run_id"], row["project_id"], row["criteria_version"], row["started_at"], row["total_input"], row["unique_papers"], row["duplicates_removed"], row["screened_papers"]) for row in rows)
     def metadata_quality(self) -> MetadataQualitySnapshot:
@@ -119,6 +115,13 @@ class GuiDataService:
             with self._connect() as connection: provenance_count = connection.execute("SELECT COUNT(*) FROM paper_provenances WHERE paper_id = ?", (paper_id,)).fetchone()[0]
             return {"title":paper.title,"authors":", ".join(paper.authors),"abstract":paper.abstract or "","doi":paper.doi or "","pmid":paper.pmid or "","journal":paper.journal or "","year":paper.publication_year or "","provenance_count":int(provenance_count)}
         except (sqlite3.OperationalError, ValueError): return None
+    def paper_provenance(self, paper_id: str) -> tuple[ProjectProvenanceSnapshot, ...]:
+        if not self.database_path.exists(): return ()
+        try:
+            with self._connect() as connection:
+                rows=connection.execute("SELECT pp.paper_id,p.title,pp.batch_id,ab.source_key,pp.source_record_id,pp.record_ordinal,pp.format_name,pp.format_version,pp.mapping_version,pp.raw_record_sha256 FROM paper_provenances pp JOIN papers p ON p.paper_id=pp.paper_id JOIN acquisition_batches ab ON ab.batch_id=pp.batch_id WHERE pp.paper_id=? ORDER BY pp.record_ordinal",(paper_id,)).fetchall()
+        except (sqlite3.OperationalError, ValueError): return ()
+        return tuple(ProjectProvenanceSnapshot(row["paper_id"],row["title"],row["batch_id"],row["source_key"],row["source_record_id"],row["record_ordinal"],row["format_name"],row["format_version"],row["mapping_version"],row["raw_record_sha256"]) for row in rows)
     def all_audits(self):
         if not self.database_path.exists(): return ()
         try: return SQLiteScreeningAuditRepository(self.database_path).list_all()
@@ -141,27 +144,21 @@ class GuiDataService:
         runs=tuple(run for run in self.screening_runs(limit=100000) if run.project_id==str(project.project_id))
         return ProjectSnapshot(str(project.project_id),project.name,project.research_question,project.criteria.topic,tuple(project.criteria.inclusion),tuple(project.criteria.exclusion),project.created_at.isoformat(),len(runs),sum(run.screened_papers for run in runs))
     def project_papers(self, project_id: str) -> tuple[ProjectPaperSnapshot, ...]:
-        """Return the canonical papers explicitly persisted in a project's corpus."""
         if not self.database_path.exists(): return ()
         try:
-            with self._connect() as connection:
-                rows=connection.execute("SELECT p.paper_id,p.title,p.publication_year,p.journal,p.doi,p.pmid,cp.position FROM corpora c JOIN corpus_papers cp ON cp.corpus_id=c.corpus_id JOIN papers p ON p.paper_id=cp.paper_id WHERE c.project_id=? ORDER BY cp.position",(project_id,)).fetchall()
+            with self._connect() as connection: rows=connection.execute("SELECT p.paper_id,p.title,p.publication_year,p.journal,p.doi,p.pmid,cp.position FROM corpora c JOIN corpus_papers cp ON cp.corpus_id=c.corpus_id JOIN papers p ON p.paper_id=cp.paper_id WHERE c.project_id=? ORDER BY cp.position",(project_id,)).fetchall()
         except (sqlite3.OperationalError, ValueError): return ()
         return tuple(ProjectPaperSnapshot(row["paper_id"],row["title"],row["publication_year"],row["journal"],row["doi"],row["pmid"],row["position"]) for row in rows)
     def project_screening_rows(self, project_id: str) -> tuple[ScreeningRow, ...]:
-        """Return screening results whose runs belong to the project."""
         if not self.database_path.exists(): return ()
         try:
-            with self._connect() as connection:
-                rows=connection.execute("SELECT sr.paper_id,p.title,p.publication_year,sr.included,sr.reason,sr.run_id,sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id JOIN screening_runs run ON run.run_id=sr.run_id WHERE run.project_id=? ORDER BY p.title COLLATE NOCASE",(project_id,)).fetchall()
+            with self._connect() as connection: rows=connection.execute("SELECT sr.paper_id,p.title,p.publication_year,sr.included,sr.reason,sr.run_id,sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id JOIN screening_runs run ON run.run_id=sr.run_id WHERE run.project_id=? ORDER BY p.title COLLATE NOCASE",(project_id,)).fetchall()
         except (sqlite3.OperationalError, ValueError): return ()
         return tuple(ScreeningRow(row["paper_id"],row["title"],row["publication_year"],"Included" if row["included"] else "Excluded",row["reason"],row["run_id"],row["criteria_version"]) for row in rows)
     def project_provenance(self, project_id: str) -> tuple[ProjectProvenanceSnapshot, ...]:
-        """Return acquisition provenance records attached to the project's corpus."""
         if not self.database_path.exists(): return ()
         try:
-            with self._connect() as connection:
-                rows=connection.execute("SELECT pp.paper_id,p.title,pp.batch_id,ab.source_key,pp.source_record_id,pp.record_ordinal,pp.format_name,pp.format_version,pp.mapping_version,pp.raw_record_sha256 FROM corpora c JOIN corpus_papers cp ON cp.corpus_id=c.corpus_id JOIN paper_provenances pp ON pp.paper_id=cp.paper_id JOIN papers p ON p.paper_id=pp.paper_id JOIN acquisition_batches ab ON ab.batch_id=pp.batch_id WHERE c.project_id=? ORDER BY cp.position,pp.record_ordinal",(project_id,)).fetchall()
+            with self._connect() as connection: rows=connection.execute("SELECT pp.paper_id,p.title,pp.batch_id,ab.source_key,pp.source_record_id,pp.record_ordinal,pp.format_name,pp.format_version,pp.mapping_version,pp.raw_record_sha256 FROM corpora c JOIN corpus_papers cp ON cp.corpus_id=c.corpus_id JOIN paper_provenances pp ON pp.paper_id=cp.paper_id JOIN papers p ON p.paper_id=pp.paper_id JOIN acquisition_batches ab ON ab.batch_id=pp.batch_id WHERE c.project_id=? ORDER BY cp.position,pp.record_ordinal",(project_id,)).fetchall()
         except (sqlite3.OperationalError, ValueError): return ()
         return tuple(ProjectProvenanceSnapshot(row["paper_id"],row["title"],row["batch_id"],row["source_key"],row["source_record_id"],row["record_ordinal"],row["format_name"],row["format_version"],row["mapping_version"],row["raw_record_sha256"]) for row in rows)
     def screening_detail(self, paper_id: str, run_id: str | None = None) -> ScreeningDetail | None:
