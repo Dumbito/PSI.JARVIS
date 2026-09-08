@@ -106,8 +106,6 @@ class _UiAnimationFilter(QObject):
             self._watch_stack(watched)
         elif isinstance(watched, QTableWidget):
             self._configure_table(watched)
-        elif isinstance(watched, QFrame) and watched.objectName() == "card":
-            QTimer.singleShot(0, lambda widget=watched: self._fade_in(widget, 240))
         elif isinstance(watched, QPushButton) and watched.text() == "Import & screen…":
             watched.setText("Import && screen…")
 
@@ -163,11 +161,8 @@ class _UiAnimationFilter(QObject):
                 "QFrame#tableHoverOverlay { background: rgba(97, 176, 255, 0.045); "
                 "border: 1px solid rgba(97, 176, 255, 0.16); border-radius: 4px; }"
             )
-            effect = QGraphicsOpacityEffect(overlay)
-            overlay.setGraphicsEffect(effect)
             overlay.hide()
             viewport._psi_hover_overlay = overlay
-            viewport._psi_hover_effect = effect
             viewport._psi_hover_animation = None
 
     def _table_hover_move(self, viewport: QObject, position: QPoint) -> None:
@@ -186,16 +181,18 @@ class _UiAnimationFilter(QObject):
         rect.setRight(viewport.width() - 1)
         if overlay.geometry() == rect and overlay.isVisible():
             return
-        overlay.setGeometry(rect)
-        overlay.show()
-        effect = viewport._psi_hover_effect
+        was_visible = overlay.isVisible()
+        if not was_visible:
+            overlay.setGeometry(rect)
+            overlay.show()
+            return
         animation = getattr(viewport, "_psi_hover_animation", None)
         if animation is not None:
             animation.stop()
-        animation = QPropertyAnimation(effect, b"opacity", overlay)
+        animation = QPropertyAnimation(overlay, b"geometry", overlay)
         animation.setDuration(120)
-        animation.setStartValue(0.0)
-        animation.setEndValue(1.0)
+        animation.setStartValue(overlay.geometry())
+        animation.setEndValue(rect)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         viewport._psi_hover_animation = animation
         animation.start()
@@ -203,20 +200,13 @@ class _UiAnimationFilter(QObject):
     @staticmethod
     def _table_hover_leave(viewport: QObject) -> None:
         overlay = getattr(viewport, "_psi_hover_overlay", None)
-        effect = getattr(viewport, "_psi_hover_effect", None)
-        if overlay is None or effect is None:
+        if overlay is None:
             return
         animation = getattr(viewport, "_psi_hover_animation", None)
         if animation is not None:
             animation.stop()
-        animation = QPropertyAnimation(effect, b"opacity", overlay)
-        animation.setDuration(100)
-        animation.setStartValue(effect.opacity())
-        animation.setEndValue(0.0)
-        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        animation.finished.connect(overlay.hide)
-        viewport._psi_hover_animation = animation
-        animation.start()
+        overlay.hide()
+        viewport._psi_hover_animation = None
 
 
 _ANIMATION_FILTER: _UiAnimationFilter | None = None
