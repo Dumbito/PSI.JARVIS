@@ -3,7 +3,7 @@
 This module never re-implements screening, deduplication, provenance or
 synchronization logic. It only wires together the *same* application
 services and SQLite repositories used by the CLI and the integration
- tests (see ``tests/integration/test_review_project_end_to_end.py``), so
+tests (see ``tests/integration/test_review_project_end_to_end.py``), so
 that anything created from the GUI is fully interoperable with the rest
 of PSI.JARVIS.
 """
