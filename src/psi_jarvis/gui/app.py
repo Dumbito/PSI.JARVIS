@@ -83,7 +83,9 @@ def metric(label: str, value: int, accent: str) -> QFrame:
     value_label = QLabel(f"{value:,}")
     value_label.setObjectName("metricValue")
     layout.addWidget(value_label)
-    layout.addWidget(QLabel(label))
+    metric_label = QLabel(label)
+    metric_label.setObjectName("metricLabel")
+    layout.addWidget(metric_label)
     accent_label = QLabel(accent)
     accent_label.setObjectName("metricAccent")
     layout.addWidget(accent_label)
@@ -342,6 +344,7 @@ class DashboardPage(QWidget):
         progress, pl = card("Screening progress")
         percent = int(snap.screened / snap.papers * 100) if snap.papers else 0
         bar = QProgressBar()
+        bar.setProperty("empty", percent == 0)
         bar.setValue(percent)
         bar.setFormat(f"{percent}%")
         pl.addWidget(bar)
@@ -937,6 +940,7 @@ class MainWindow(QMainWindow):
         side.addLayout(brand)
         tagline = QLabel("Scientific Paper Screening\n& Analysis System")
         tagline.setObjectName("tagline")
+        tagline.setWordWrap(True)
         side.addWidget(tagline)
         side.addSpacing(16)
         for i, (label, icon) in enumerate(NAV_ITEMS):
@@ -950,11 +954,13 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append(button)
             side.addWidget(button)
         side.addStretch()
-        side.addWidget(
-            QLabel(
-                "Human methodological authority\n\nDeterministic · Traceable\nReproducible"
-            )
+        footer = QLabel(
+            "Human methodological authority\n\nDeterministic · Traceable\nReproducible"
         )
+        footer.setObjectName("sidebarFooter")
+        footer.setWordWrap(True)
+        footer.setMinimumWidth(0)
+        side.addWidget(footer)
         layout.addWidget(sidebar)
         content = QWidget()
         cl = QVBoxLayout(content)
