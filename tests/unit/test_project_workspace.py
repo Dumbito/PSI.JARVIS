@@ -1,5 +1,4 @@
 import os
-import sqlite3
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -35,7 +34,6 @@ def test_project_workspace_has_scoped_tabs(tmp_path):
 
     assert view.tabs.count() == 5
     assert [view.tabs.tabText(i) for i in range(view.tabs.count())] == ["Overview", "Papers", "Screening", "Runs", "Provenance"]
-    assert view.tabs.widget(1).findChild(type(view.tabs.widget(1))) is not None or True
     assert service.project_papers(str(project.project_id))
     assert service.project_screening_rows(str(project.project_id))
     assert service.project_provenance(str(project.project_id))
