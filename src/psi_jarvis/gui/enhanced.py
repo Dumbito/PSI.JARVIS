@@ -131,6 +131,18 @@ class EnhancedAuditView(app.AuditExplorerView):
         self.empty_state.setVisible(self.table.rowCount() == 0)
 
 
+class EnhancedReportsPage(app.ReportsPage):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for button in self.findChildren(QPushButton):
+            if button.text().replace("&", "").strip().startswith("Refresh PRISMA"):
+                button.clicked.connect(lambda: Toast.show_message(self, "PRISMA view refreshed"))
+
+    def _export(self):
+        super()._export()
+        Toast.show_message(self, "Report export action completed")
+
+
 class EnhancedMainWindow(app.MainWindow):
     """Existing scientific window with presentation-only UX enhancements."""
 
@@ -207,3 +219,4 @@ def install_presentation_patches() -> None:
     app.SourcesPage = EnhancedSourcesPage
     app.ScreeningPage = EnhancedScreeningPage
     app.AuditExplorerView = EnhancedAuditView
+    app.ReportsPage = EnhancedReportsPage
