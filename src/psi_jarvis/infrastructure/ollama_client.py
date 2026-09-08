@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -33,12 +34,25 @@ class OllamaConfig:
         if self.timeout_seconds <= 0:
             raise ValueError("Ollama timeout_seconds must be positive")
 
+    @classmethod
+    def from_environment(cls) -> "OllamaConfig":
+        """Build local-provider settings without storing credentials in the repo."""
+        raw_timeout = os.environ.get("PSI_OLLAMA_TIMEOUT", "60")
+        try:
+            timeout = float(raw_timeout)
+        except ValueError as exc:
+            raise ValueError("PSI_OLLAMA_TIMEOUT must be numeric") from exc
+        return cls(
+            base_url=os.environ.get("PSI_OLLAMA_BASE_URL", cls.base_url),
+            timeout_seconds=timeout,
+        )
+
 
 class OllamaClient:
-    """Small provider adapter; it never creates or changes screening decisions."""
+    """Provider adapter; it never creates or changes screening decisions."""
 
     def __init__(self, config: OllamaConfig | None = None) -> None:
-        self.config = config or OllamaConfig()
+        self.config = config or OllamaConfig.from_environment()
 
     def list_models(self) -> tuple[str, ...]:
         payload = self._request("/api/tags", {})
@@ -89,11 +103,7 @@ class OllamaClient:
             method="POST",
         )
         if path == "/api/tags":
-            request = urllib.request.Request(
-                url,
-                headers={"Accept": "application/json"},
-                method="GET",
-            )
+            request = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
         try:
             with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
                 raw = response.read().decode("utf-8")
