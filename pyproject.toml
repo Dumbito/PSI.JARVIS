@@ -19,6 +19,16 @@ authors = [
     { name = "PSI.JARVIS Development Team" }
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-qt>=4.4",
+]
+dev = [
+    "psi-jarvis[test]",
+    "ruff>=0.12",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
