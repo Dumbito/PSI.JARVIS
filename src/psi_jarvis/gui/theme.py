@@ -1,4 +1,15 @@
-from PySide6.QtWidgets import QApplication
+from __future__ import annotations
+
+from PySide6.QtCore import QEvent, QEasingCurve, QObject, QPoint, QPropertyAnimation, QTimer, Qt
+from PySide6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QGraphicsOpacityEffect,
+    QHeaderView,
+    QPushButton,
+    QStackedWidget,
+    QTableWidget,
+)
 
 
 STYLE = """
@@ -71,6 +82,156 @@ QStatusBar { background: #08101a; color: #6f879f; border-top: 1px solid #1d3045;
 """
 
 
+class _UiAnimationFilter(QObject):
+    """Subtle, non-blocking interaction animations shared by the GUI."""
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        event_type = event.type()
+        if event_type == QEvent.Type.Show:
+            self._on_show(watched)
+        elif event_type == QEvent.Type.MouseMove and getattr(
+            watched, "_psi_hover_hooked", False
+        ):
+            self._table_hover_move(watched, event.position().toPoint())
+        elif event_type == QEvent.Type.Leave and getattr(
+            watched, "_psi_hover_hooked", False
+        ):
+            self._table_hover_leave(watched)
+        elif event_type == QEvent.Type.Resize and isinstance(watched, QTableWidget):
+            self._configure_table(watched)
+        return super().eventFilter(watched, event)
+
+    def _on_show(self, watched: QObject) -> None:
+        if isinstance(watched, QStackedWidget):
+            self._watch_stack(watched)
+        elif isinstance(watched, QTableWidget):
+            self._configure_table(watched)
+        elif isinstance(watched, QFrame) and watched.objectName() == "card":
+            QTimer.singleShot(0, lambda widget=watched: self._fade_in(widget, 240))
+        elif isinstance(watched, QPushButton) and watched.text() == "Import & screen…":
+            watched.setText("Import && screen…")
+
+    def _watch_stack(self, stack: QStackedWidget) -> None:
+        if getattr(stack, "_psi_animation_hooked", False):
+            return
+        stack._psi_animation_hooked = True
+        stack.currentChanged.connect(
+            lambda index, widget=stack: self._animate_stack_page(widget, index)
+        )
+        self._animate_stack_page(stack, stack.currentIndex())
+
+    def _animate_stack_page(self, stack: QStackedWidget, index: int) -> None:
+        if index < 0:
+            return
+        page = stack.widget(index)
+        if page is not None:
+            self._fade_in(page, 180)
+
+    def _fade_in(self, widget: QObject, duration: int) -> None:
+        if not hasattr(widget, "setGraphicsEffect"):
+            return
+        effect = getattr(widget, "_psi_opacity_effect", None)
+        if effect is None:
+            effect = QGraphicsOpacityEffect(widget)
+            widget._psi_opacity_effect = effect
+            widget.setGraphicsEffect(effect)
+        animation = getattr(widget, "_psi_opacity_animation", None)
+        if animation is not None:
+            animation.stop()
+        animation = QPropertyAnimation(effect, b"opacity", widget)
+        animation.setDuration(duration)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        widget._psi_opacity_animation = animation
+        animation.start()
+
+    def _configure_table(self, table: QTableWidget) -> None:
+        header = table.horizontalHeader()
+        for section in range(header.count()):
+            header.setSectionResizeMode(section, QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+        viewport = table.viewport()
+        viewport.setMouseTracking(True)
+        if not getattr(viewport, "_psi_hover_hooked", False):
+            viewport._psi_hover_hooked = True
+            viewport.installEventFilter(self)
+            overlay = QFrame(viewport)
+            overlay.setObjectName("tableHoverOverlay")
+            overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            overlay.setStyleSheet(
+                "QFrame#tableHoverOverlay { background: rgba(97, 176, 255, 0.045); "
+                "border: 1px solid rgba(97, 176, 255, 0.16); border-radius: 4px; }"
+            )
+            effect = QGraphicsOpacityEffect(overlay)
+            overlay.setGraphicsEffect(effect)
+            overlay.hide()
+            viewport._psi_hover_overlay = overlay
+            viewport._psi_hover_effect = effect
+            viewport._psi_hover_animation = None
+
+    def _table_hover_move(self, viewport: QObject, position: QPoint) -> None:
+        table = viewport.parentWidget()
+        if not isinstance(table, QTableWidget):
+            return
+        overlay = getattr(viewport, "_psi_hover_overlay", None)
+        if overlay is None:
+            return
+        index = table.indexAt(position)
+        if not index.isValid():
+            self._table_hover_leave(viewport)
+            return
+        rect = table.visualRect(index)
+        rect.setLeft(0)
+        rect.setRight(viewport.width() - 1)
+        if overlay.geometry() == rect and overlay.isVisible():
+            return
+        overlay.setGeometry(rect)
+        overlay.show()
+        effect = viewport._psi_hover_effect
+        animation = getattr(viewport, "_psi_hover_animation", None)
+        if animation is not None:
+            animation.stop()
+        animation = QPropertyAnimation(effect, b"opacity", overlay)
+        animation.setDuration(120)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        viewport._psi_hover_animation = animation
+        animation.start()
+
+    @staticmethod
+    def _table_hover_leave(viewport: QObject) -> None:
+        overlay = getattr(viewport, "_psi_hover_overlay", None)
+        effect = getattr(viewport, "_psi_hover_effect", None)
+        if overlay is None or effect is None:
+            return
+        animation = getattr(viewport, "_psi_hover_animation", None)
+        if animation is not None:
+            animation.stop()
+        animation = QPropertyAnimation(effect, b"opacity", overlay)
+        animation.setDuration(100)
+        animation.setStartValue(effect.opacity())
+        animation.setEndValue(0.0)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        animation.finished.connect(overlay.hide)
+        viewport._psi_hover_animation = animation
+        animation.start()
+
+
+_ANIMATION_FILTER: _UiAnimationFilter | None = None
+
+
 def apply_theme(app: QApplication) -> None:
+    global _ANIMATION_FILTER
     app.setStyle("Fusion")
     app.setStyleSheet(STYLE)
+    if _ANIMATION_FILTER is None:
+        _ANIMATION_FILTER = _UiAnimationFilter(app)
+        app.installEventFilter(_ANIMATION_FILTER)
+
+    for widget in app.allWidgets():
+        if isinstance(widget, QTableWidget):
+            _ANIMATION_FILTER._configure_table(widget)
+        if isinstance(widget, QPushButton) and widget.text() == "Import & screen…":
+            widget.setText("Import && screen…")

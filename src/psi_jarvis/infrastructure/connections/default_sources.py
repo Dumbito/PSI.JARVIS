@@ -60,7 +60,7 @@ def build_default_source_connection_registry(
             source=PUBMED_SOURCE,
             status=SourceConnectionStatus.AVAILABLE,
             credential_method=CredentialMethod.NONE,
-            detail="Fuente pública sin autenticación.",
+            detail="Public source without authentication.",
         ),
     )
     registry.register(SCOPUS_SOURCE, lambda: _scopus_state(scopus_manager))
@@ -69,7 +69,7 @@ def build_default_source_connection_registry(
         lambda: _configured_api_state(
             WOS_SOURCE,
             wos_config is not None,
-            "Credencial configurada; falta verificar el acceso efectivo a la API.",
+            "Credential configured; effective API access still needs verification.",
         ),
     )
     registry.register(
@@ -77,7 +77,7 @@ def build_default_source_connection_registry(
         lambda: _configured_api_state(
             ZOTERO_SOURCE,
             zotero_config is not None,
-            "Credencial configurada; falta verificar el acceso efectivo a la API.",
+            "Credential configured; effective API access still needs verification.",
         ),
     )
     return registry
@@ -98,7 +98,7 @@ def _configured_api_state(
     return SourceConnectionState(
         source=source,
         status=SourceConnectionStatus.UNAVAILABLE,
-        detail="Conector disponible, pero no hay credencial configurada.",
+        detail="Connector available, but no credential is configured.",
     )
 
 
@@ -109,7 +109,7 @@ def _scopus_state(manager: ScopusConnectionManager) -> SourceConnectionState:
             source=SCOPUS_SOURCE,
             status=SourceConnectionStatus.AVAILABLE,
             credential_method=CredentialMethod.OAUTH,
-            detail="OAuth conectado; acceso API sujeto a los permisos de Elsevier.",
+            detail="OAuth connected; API access subject to Elsevier permissions.",
         )
     if connection.status is ScopusConnectionStatus.CONFIGURED:
         method = (
@@ -122,23 +122,23 @@ def _scopus_state(manager: ScopusConnectionManager) -> SourceConnectionState:
             source=SCOPUS_SOURCE,
             status=SourceConnectionStatus.CONFIGURED,
             credential_method=method,
-            detail="Credencial configurada; falta verificar el acceso efectivo a la API.",
+            detail="Credential configured; effective API access still needs verification.",
         )
     if connection.status is ScopusConnectionStatus.EXPIRED:
         return SourceConnectionState(
             source=SCOPUS_SOURCE,
             status=SourceConnectionStatus.AUTH_EXPIRED,
             credential_method=CredentialMethod.OAUTH,
-            detail="La sesión OAuth expiró.",
+            detail="OAuth session expired.",
         )
     if connection.status is ScopusConnectionStatus.DISCONNECTED:
         return SourceConnectionState(
             source=SCOPUS_SOURCE,
             status=SourceConnectionStatus.AUTH_REQUIRED,
-            detail="Configura una credencial de Scopus para habilitar la fuente.",
+            detail="Configure a Scopus credential to enable the source.",
         )
     return SourceConnectionState(
         source=SCOPUS_SOURCE,
         status=SourceConnectionStatus.UNAVAILABLE,
-        detail="Scopus no está configurado.",
+        detail="Scopus is not configured.",
     )
