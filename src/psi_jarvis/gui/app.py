@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
-    QProgressBar,
     QPushButton,
     QStackedWidget,
     QStatusBar,
@@ -38,6 +37,7 @@ from psi_jarvis.gui.audit_explorer import AuditExplorerView
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.formatting import format_timestamp, format_timestamp_str
 from psi_jarvis.gui.nav_icons import nav_icon
+from psi_jarvis.gui.progress_ring import ProgressRing
 from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.theme import apply_theme
 from psi_jarvis.gui.tutorial import TutorialDialog
@@ -337,16 +337,19 @@ class DashboardPage(QWidget):
         lower = QGridLayout()
         lower.setSpacing(12)
         progress, pl = card("Screening progress")
-        bar = QProgressBar()
-        bar.setProperty("empty", snap.papers == 0)
-        bar.setRange(0, max(snap.papers, 1))
-        bar.setValue(snap.screened)
-        pl.addWidget(bar)
-        pl.addWidget(
+        ring_row = QHBoxLayout()
+        ring = ProgressRing()
+        ring.set_value(snap.screened, snap.papers)
+        ring_row.addWidget(ring)
+        ring_text = QVBoxLayout()
+        ring_text.addWidget(
             QLabel(
                 f"{snap.screened:,} of {snap.papers:,} papers have persisted screening results."
             )
         )
+        ring_text.addStretch()
+        ring_row.addLayout(ring_text, 1)
+        pl.addLayout(ring_row)
         lower.addWidget(progress, 0, 0)
         sources, sl = card("Acquisition footprint")
         if snap.source_counts:
