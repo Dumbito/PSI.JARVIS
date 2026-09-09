@@ -30,10 +30,31 @@ def _candidate(value: str) -> bool:
     return any(ch.isalpha() for ch in value)
 
 
+def _joined_template(node: ast.JoinedStr) -> str:
+    parts: list[str] = []
+    for part in node.values:
+        if isinstance(part, ast.Constant) and isinstance(part.value, str):
+            parts.append(part.value)
+        elif isinstance(part, ast.FormattedValue):
+            expression = ast.unparse(part.value)
+            conversion = f"!{chr(part.conversion)}" if part.conversion != -1 else ""
+            format_spec = ""
+            if part.format_spec is not None:
+                if isinstance(part.format_spec, ast.JoinedStr):
+                    format_spec = "".join(
+                        ast.unparse(x.value) if isinstance(x, ast.FormattedValue) else str(x.value)
+                        for x in part.format_spec.values
+                    )
+                else:
+                    format_spec = ast.unparse(part.format_spec)
+            parts.append("{" + expression + conversion + (":" + format_spec if format_spec else "") + "}")
+    return "".join(parts)
+
+
 def extract_gui_strings() -> list[str]:
-    """Extract literal user-facing GUI strings without hard-coding widget names."""
+    """Extract all user-visible literal and f-string templates from the GUI tree."""
     found: set[str] = set()
-    for path in GUI_ROOT.glob("*.py"):
+    for path in GUI_ROOT.rglob("*.py"):
         if path.name == Path(__file__).name:
             continue
         try:
@@ -41,12 +62,14 @@ def extract_gui_strings() -> list[str]:
         except (OSError, SyntaxError):
             continue
         for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and isinstance(node.value, str) and _candidate(node.value):
-                found.add(node.value)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                value = node.value
+                if _candidate(value):
+                    found.add(value)
             elif isinstance(node, ast.JoinedStr):
-                for part in node.values:
-                    if isinstance(part, ast.Constant) and isinstance(part.value, str) and _candidate(part.value):
-                        found.add(part.value)
+                value = _joined_template(node)
+                if _candidate(value):
+                    found.add(value)
     return sorted(found, key=lambda value: (value.lower(), value))
 
 
@@ -64,18 +87,29 @@ def _load_catalog(language: str) -> dict[str, str]:
 def _ollama_translate(model: str, language_name: str, entries: list[str], base_url: str) -> dict[str, str]:
     numbered = {str(index): value for index, value in enumerate(entries)}
     prompt = (
-        "You translate a scientific desktop application's UI. Return ONLY a valid JSON object mapping each numeric ID "
-        "to its translation. Preserve technical product names such as PSI.JARVIS, Ollama, ScreeningEngine, PRISMA, "
-        "CSV, Excel, RIS, JSON and Markdown. Preserve placeholders like {0}, {step.page}, punctuation and line breaks. "
-        f"Translate into {language_name}. Do not add commentary.\n\nINPUT:\n{json.dumps(numbered, ensure_ascii=False)}"
+        "You translate a scientific desktop application's complete visible UI. Return ONLY a valid JSON object mapping each numeric ID "
+        "to its translation. Translate labels, buttons, subtitles, descriptions, explanatory prose, help, tooltips, dialogs, tutorial text, "
+        "empty states, status messages, progress text, table headers and dynamic messages. Preserve technical product names such as PSI.JARVIS, "
+        "Ollama, ScreeningEngine, PRISMA, CSV, Excel, RIS, JSON and Markdown. Preserve every placeholder in braces exactly, including its "
+        "expression/format specifier, and preserve punctuation, emojis, arrows, numbers and line breaks. Do not omit, merge or explain any item. "
+        f"Translate into {language_name}.\n\nINPUT:\n{json.dumps(numbered, ensure_ascii=False)}"
     )
-    request = Request(base_url, data=json.dumps({"model": model, "prompt": prompt, "stream": False, "format": "json"}).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+    request = Request(
+        base_url,
+        data=json.dumps({"model": model, "prompt": prompt, "stream": False, "format": "json"}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
     with urlopen(request, timeout=300) as response:
         payload = json.loads(response.read().decode("utf-8"))
     result = json.loads(str(payload.get("response", "{}")))
     if not isinstance(result, dict):
         raise ValueError("Ollama returned a non-object translation payload")
-    return {entries[int(key)]: str(value) for key, value in result.items() if str(key).isdigit() and int(key) < len(entries)}
+    return {
+        entries[int(key)]: str(value)
+        for key, value in result.items()
+        if str(key).isdigit() and int(key) < len(entries) and isinstance(value, str) and value.strip()
+    }
 
 
 class TranslationWorker(QThread):
@@ -107,7 +141,7 @@ class TranslationWorker(QThread):
             existing.update(translated)
             path = _catalog_path(self.language)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(existing, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            path.write_text(json.dumps(existing, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             self.completed.emit(self.language, len(translated))
         except (OSError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
             self.failed.emit(f"{self.language}: {exc}")
@@ -162,7 +196,7 @@ class TranslationDialog(QDialog):
         self.progress.setValue(100)
         self.status.setText(f"Updated {count} translation entries for {dict(LANGUAGES)[language]}.")
         self.generate.setEnabled(True)
-        self.manager.set_language(self.manager.language)
+        self.manager._generation_completed(language, count)
 
     def _failed(self, message: str) -> None:
         self.status.setText(f"Translation generation failed: {message}")
