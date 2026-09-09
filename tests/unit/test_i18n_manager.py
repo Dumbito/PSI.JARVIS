@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QGroupBox, QLabel, QLineEdit, QMainWindow, QPushButton, QTabWidget
 
-from psi_jarvis.gui.i18n_manager import LANGUAGES, LanguageManager
+from psi_jarvis.gui.i18n_manager import LANGUAGES, LanguageManager, _translate_dynamic
 
 
 def test_supported_languages_are_available(qapp):
@@ -48,3 +48,12 @@ def test_language_manager_translates_entire_widget_tree(qapp):
     assert tabs.tabText(0) == "Overview"
     assert action.text() == "Refresh"
     window.close()
+
+
+def test_dynamic_f_string_template_preserves_runtime_values():
+    catalog = {
+        "{snap.screened:,} of {snap.papers:,} papers have persisted screening results.":
+            "{snap.screened:,} de {snap.papers:,} artículos tienen resultados de screening persistidos."
+    }
+    text = "12 of 30 papers have persisted screening results."
+    assert _translate_dynamic(text, catalog) == "12 de 30 artículos tienen resultados de screening persistidos."
