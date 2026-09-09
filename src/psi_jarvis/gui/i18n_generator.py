@@ -4,11 +4,10 @@ import ast
 import json
 import re
 from pathlib import Path
-from typing import Callable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, QObject
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 
 from psi_jarvis.gui.i18n_manager import LANGUAGES, _catalog_path
@@ -107,6 +106,8 @@ class TranslationWorker(QThread):
             translated: dict[str, str] = {}
             batch_size = 25
             for start in range(0, len(missing), batch_size):
+                if self.isInterruptionRequested():
+                    return
                 batch = missing[start : start + batch_size]
                 translated.update(_ollama_translate(self.model, dict(LANGUAGES)[self.language], batch, self.base_url))
                 self.progress.emit(min(start + len(batch), len(missing)), len(missing), self.language)
