@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
-from PySide6.QtWidgets import QComboBox, QLineEdit, QListWidget, QPushButton, QTabWidget, QTableWidget, QLabel, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTableWidget,
+    QTabWidget,
+    QWidget,
+)
 
 LANGUAGES: tuple[tuple[str, str], ...] = (
     ("en", "English"),
@@ -56,7 +64,11 @@ class LanguageManager:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return {}
-        return {str(k): str(v) for k, v in payload.items()} if isinstance(payload, dict) else {}
+        return (
+            {str(k): str(v) for k, v in payload.items()}
+            if isinstance(payload, dict)
+            else {}
+        )
 
     def _capture_sources(self) -> None:
         for widget in self._widgets():
@@ -91,7 +103,12 @@ class LanguageManager:
                 sources = [widget.tabText(i) for i in range(widget.count())]
                 widget.setProperty("_psi_i18n_tabs", sources)
         if isinstance(widget, QTableWidget):
-            headers = [widget.horizontalHeaderItem(i).text() if widget.horizontalHeaderItem(i) else "" for i in range(widget.columnCount())]
+            headers = [
+                widget.horizontalHeaderItem(i).text()
+                if widget.horizontalHeaderItem(i)
+                else ""
+                for i in range(widget.columnCount())
+            ]
             if headers:
                 widget.setProperty("_psi_i18n_headers", headers)
 

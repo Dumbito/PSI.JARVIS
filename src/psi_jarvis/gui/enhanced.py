@@ -4,7 +4,15 @@ from pathlib import Path
 from uuid import UUID
 
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QLineEdit, QMessageBox, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QWidget,
+)
 
 from psi_jarvis.gui import app
 from psi_jarvis.gui.ai_assistant import AIAssistantDialog
@@ -23,7 +31,9 @@ class EnhancedPaperDialog(app.PaperDialog):
         assistant.setObjectName("sectionTitle")
         layout.insertWidget(max(0, layout.count() - 1), assistant)
         button = QPushButton("Ask local AI for auxiliary observations…")
-        button.setToolTip("Use a local Ollama model for auxiliary observations. This never changes the screening decision.")
+        button.setToolTip(
+            "Use a local Ollama model for auxiliary observations. This never changes the screening decision."
+        )
         button.clicked.connect(self._open_assistant)
         layout.insertWidget(max(0, layout.count() - 1), button)
 
@@ -47,7 +57,14 @@ class EnhancedDashboardPage(app.DashboardPage):
     def rebuild(self):
         super().rebuild()
         if self.data.snapshot().projects == 0:
-            self.root.addWidget(EmptyState("No review projects yet", "Create your first review project to define a protocol before importing papers.", "Create your first project", self._create_project))
+            self.root.addWidget(
+                EmptyState(
+                    "No review projects yet",
+                    "Create your first review project to define a protocol before importing papers.",
+                    "Create your first project",
+                    self._create_project,
+                )
+            )
 
     def _create_project(self) -> None:
         window = self.window()
@@ -61,7 +78,13 @@ class EnhancedDashboardPage(app.DashboardPage):
 class EnhancedProjectsPage(app.ProjectsPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.empty_state = EmptyState("No review projects", "Create a project to define your research question and screening criteria.", "New project", self._new, self)
+        self.empty_state = EmptyState(
+            "No review projects",
+            "Create a project to define your research question and screening criteria.",
+            "New project",
+            self._new,
+            self,
+        )
         self.layout().addWidget(self.empty_state)
         self._update_empty_state()
 
@@ -77,7 +100,11 @@ class EnhancedProjectsPage(app.ProjectsPage):
 class EnhancedSourcesPage(app.SourcesPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.empty_state = EmptyState("No source status available", "Bibliographic connection details will appear here when source adapters are available.", parent=self)
+        self.empty_state = EmptyState(
+            "No source status available",
+            "Bibliographic connection details will appear here when source adapters are available.",
+            parent=self,
+        )
         self.layout().addWidget(self.empty_state)
         self._update_empty_state()
 
@@ -93,7 +120,11 @@ class EnhancedSourcesPage(app.SourcesPage):
 class EnhancedScreeningPage(app.ScreeningPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.empty_state = EmptyState("No screening results", "Import a bibliographic file and run the deterministic screening pipeline to populate this workspace.", parent=self)
+        self.empty_state = EmptyState(
+            "No screening results",
+            "Import a bibliographic file and run the deterministic screening pipeline to populate this workspace.",
+            parent=self,
+        )
         self.layout().addWidget(self.empty_state)
         self._update_empty_state()
 
@@ -109,7 +140,11 @@ class EnhancedScreeningPage(app.ScreeningPage):
 class EnhancedAuditView(app.AuditExplorerView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.empty_state = EmptyState("No audit events", "Metadata-change history will appear here after synchronized metadata changes are persisted.", parent=self)
+        self.empty_state = EmptyState(
+            "No audit events",
+            "Metadata-change history will appear here after synchronized metadata changes are persisted.",
+            parent=self,
+        )
         self.layout().addWidget(self.empty_state)
         self._update_empty_state()
 
@@ -127,36 +162,52 @@ class EnhancedReportsPage(app.ReportsPage):
         super().__init__(*args, **kwargs)
         for button in self.findChildren(QPushButton):
             if button.text().replace("&", "").strip().startswith("Refresh PRISMA"):
-                button.clicked.connect(lambda: Toast.show_message(self, "PRISMA view refreshed"))
+                button.clicked.connect(
+                    lambda: Toast.show_message(self, "PRISMA view refreshed")
+                )
 
     def _export(self):
         if not self.runs:
-            QMessageBox.warning(self, "No runs", "There are no persisted screening runs to export yet.")
+            QMessageBox.warning(
+                self, "No runs", "There are no persisted screening runs to export yet."
+            )
             return
-        directory = QFileDialog.getExistingDirectory(self, "Choose export folder", str(Path.home()))
+        directory = QFileDialog.getExistingDirectory(
+            self, "Choose export folder", str(Path.home())
+        )
         if not directory:
             return
         try:
-            paths = self.workflow.export_report(UUID(self.run_box.currentData()), directory)
+            paths = self.workflow.export_report(
+                UUID(self.run_box.currentData()), directory
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))
             return
         if paths is None:
-            QMessageBox.warning(self, "Nothing to export", "No audit evidence was found for this run.")
+            QMessageBox.warning(
+                self, "Nothing to export", "No audit evidence was found for this run."
+            )
             return
         Toast.show_message(self, "Report exported successfully")
 
 
 class EnhancedMainWindow(app.MainWindow):
     def __init__(self, *args, **kwargs):
-        self.session_search: dict[str, str] = {"papers": "", "screening": "", "audit": ""}
+        self.session_search: dict[str, str] = {
+            "papers": "",
+            "screening": "",
+            "audit": "",
+        }
         super().__init__(*args, **kwargs)
         self._install_shortcuts()
         self._install_ai_button()
 
     def _install_ai_button(self) -> None:
         self._ai_button = QPushButton("🤖 JARVIS AI")
-        self._ai_button.setToolTip("Open the local AI assistant. Select a paper in Papers to analyze it.")
+        self._ai_button.setToolTip(
+            "Open the local AI assistant. Select a paper in Papers to analyze it."
+        )
         self._ai_button.clicked.connect(self._open_ai_from_workspace)
         self.statusBar().addPermanentWidget(self._ai_button)
 

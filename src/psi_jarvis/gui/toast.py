@@ -31,7 +31,9 @@ class Toast(QFrame):
         self.move(x, y)
 
     @classmethod
-    def show_message(cls, parent: QWidget, message: str, duration_ms: int = 2400) -> "Toast":
+    def show_message(
+        cls, parent: QWidget, message: str, duration_ms: int = 2400
+    ) -> Toast:
         window = parent.window()
         toast = cls(window, message, duration_ms)
         toast.show()
