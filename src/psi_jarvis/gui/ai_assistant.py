@@ -3,16 +3,7 @@ from __future__ import annotations
 import hashlib
 
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QTextEdit,
-    QVBoxLayout,
-)
+from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout
 
 from psi_jarvis.domain.ai.assistance import AIAssistanceRequest, AIAssistanceSuggestion
 from psi_jarvis.infrastructure.ollama_client import OllamaClient, OllamaError
@@ -20,41 +11,41 @@ from psi_jarvis.infrastructure.ollama_client import OllamaClient, OllamaError
 PROMPT_VERSION = "jarvis-agent-v2-es"
 
 MODES: tuple[tuple[str, str], ...] = (
-    ("Observaciones generales", "Identifica observaciones relevantes del artículo sin emitir una decisión de screening."),
-    ("PICO", "Extrae Población/Problema, Intervención/Exposición, Comparador y Outcomes si están explícitos o razonablemente identificables. Marca como no informado lo que no aparezca."),
-    ("Metodología", "Resume diseño, población, métodos, variables, intervención/exposición, comparador y análisis estadístico cuando estén descritos."),
-    ("Población", "Caracteriza la población estudiada, tamaño muestral, criterios relevantes y contexto. No inventes datos ausentes."),
-    ("Resultados relevantes", "Resume únicamente resultados que estén presentes en el texto proporcionado. Distingue resultados de conclusiones."),
-    ("Posibles criterios de exclusión", "Compara el artículo de forma orientativa con los criterios del proyecto si están disponibles, explicando qué evidencia apoya o contradice cada punto. No decidas excluirlo."),
-    ("Resumen científico", "Produce un resumen estructurado y fiel del título y abstract, señalando limitaciones de información."),
+    ("General observations", "Identify relevant observations from the paper without making a screening decision."),
+    ("PICO", "Extract Population/Problem, Intervention/Exposure, Comparator and Outcomes when explicit or reasonably identifiable. Mark information that is not reported."),
+    ("Methodology", "Summarize study design, population, methods, variables, intervention/exposure, comparator and statistical analysis when described."),
+    ("Population", "Characterize the study population, sample size, relevant criteria and context. Do not invent missing data."),
+    ("Relevant results", "Summarize only results present in the supplied text. Distinguish results from conclusions."),
+    ("Possible exclusion criteria", "Compare the paper orientatively with project criteria when available, explaining evidence supporting or contradicting each point. Do not decide to exclude it."),
+    ("Scientific summary", "Produce a structured, faithful summary of the title and abstract, noting information limitations."),
 )
 
 
 def _build_prompt(mode: str, task: str, title: str, abstract: str, criteria: str) -> str:
-    return f"""Eres JARVIS, un agente auxiliar de análisis científico dentro de PSI.JARVIS.
+    return f"""You are JARVIS, an auxiliary scientific-analysis agent inside PSI.JARVIS.
 
-REGLAS OBLIGATORIAS:
-- Responde en español.
-- Trabaja exclusivamente con la información proporcionada.
-- No inventes datos, resultados, criterios ni referencias.
-- No emitas una decisión final de inclusión/exclusión.
-- No modifiques ni sugieras modificar silenciosamente ninguna decisión científica persistida.
-- Diferencia claramente evidencia textual, inferencia prudente y ausencia de información.
-- Si la información es insuficiente, dilo explícitamente.
+MANDATORY RULES:
+- Respond in Spanish.
+- Work exclusively with the information provided.
+- Do not invent data, results, criteria or references.
+- Do not issue a final inclusion/exclusion decision.
+- Do not modify or silently suggest modifying any persisted scientific decision.
+- Clearly distinguish textual evidence, cautious inference and missing information.
+- If information is insufficient, state it explicitly.
 
-MODO: {mode}
-OBJETIVO: {task}
+MODE: {mode}
+OBJECTIVE: {task}
 
-CRITERIOS DEL PROYECTO (si están disponibles):
-{criteria or 'No proporcionados.'}
+PROJECT CRITERIA (if available):
+{criteria or 'Not provided.'}
 
-TÍTULO:
-{title or 'No informado.'}
+TITLE:
+{title or 'Not reported.'}
 
 ABSTRACT:
-{abstract or 'No hay abstract almacenado.'}
+{abstract or 'No abstract stored.'}
 
-Entrega una respuesta estructurada, concisa y útil para un investigador humano. Termina con una sección 'Límite de la asistencia' indicando que la salida no es una decisión de screening."""
+Provide a structured, concise response useful to a human researcher. End with a section 'Límite de la asistencia' stating that the output is not a screening decision."""
 
 
 class _AssistantWorker(QThread):
@@ -72,7 +63,7 @@ class _AssistantWorker(QThread):
         except OllamaError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:
-            self.failed.emit(f"Error del agente IA: {exc}")
+            self.failed.emit(f"AI agent error: {exc}")
 
 
 class _ModelWorker(QThread):
@@ -89,11 +80,11 @@ class _ModelWorker(QThread):
         except OllamaError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:
-            self.failed.emit(f"Error al consultar Ollama: {exc}")
+            self.failed.emit(f"Error while querying Ollama: {exc}")
 
 
 class AIAssistantDialog(QDialog):
-    """Agente IA local para asistencia científica; nunca edita decisiones."""
+    """Local AI assistant for scientific support; it never edits decisions."""
 
     def __init__(self, details: dict, parent=None) -> None:
         super().__init__(parent)
@@ -101,56 +92,54 @@ class AIAssistantDialog(QDialog):
         self.client = OllamaClient()
         self.worker: _AssistantWorker | None = None
         self.model_worker: _ModelWorker | None = None
-        self.setWindowTitle("JARVIS · Agente IA local")
+        self.setWindowTitle("JARVIS · Local AI assistant")
         self.resize(820, 680)
 
         root = QVBoxLayout(self)
-        heading = QLabel("JARVIS · Agente IA local")
+        heading = QLabel("JARVIS · Local AI assistant")
         heading.setObjectName("dialogTitle")
         root.addWidget(heading)
-        note = QLabel(
-            "Asistencia científica auxiliar mediante Ollama. JARVIS no sustituye al ScreeningEngine ni modifica decisiones persistidas."
-        )
+        note = QLabel("Auxiliary scientific assistance through Ollama. JARVIS does not replace ScreeningEngine or modify persisted decisions.")
         note.setWordWrap(True)
         note.setObjectName("pageSubtitle")
         root.addWidget(note)
-        root.addWidget(QLabel(f"Artículo: {details.get('title') or 'Sin título'}"))
+        root.addWidget(QLabel(f"Paper: {details.get('title') or 'Untitled'}"))
 
-        root.addWidget(QLabel("Modelo local"))
+        root.addWidget(QLabel("Local model"))
         model_row = QHBoxLayout()
         self.models = QComboBox()
-        self.models.addItem("Selecciona un modelo local…")
+        self.models.addItem("Select a local model…")
         model_row.addWidget(self.models, 1)
-        refresh = QPushButton("Actualizar modelos")
+        refresh = QPushButton("Refresh models")
         refresh.clicked.connect(self._refresh_models)
         model_row.addWidget(refresh)
         root.addLayout(model_row)
 
-        root.addWidget(QLabel("Modo de análisis"))
+        root.addWidget(QLabel("Analysis mode"))
         self.mode = QComboBox()
         for name, _ in MODES:
             self.mode.addItem(name)
         root.addWidget(self.mode)
 
-        root.addWidget(QLabel("Instrucción adicional (opcional)"))
+        root.addWidget(QLabel("Additional instruction (optional)"))
         self.task = QLineEditCompat()
-        self.task.setPlaceholderText("Ej.: céntrate en la población y los outcomes…")
+        self.task.setPlaceholderText("e.g. focus on the population and outcomes…")
         root.addWidget(self.task)
 
-        self.ask = QPushButton("🤖 Analizar con JARVIS")
+        self.ask = QPushButton("🤖 Analyze with JARVIS")
         self.ask.setEnabled(False)
-        self.ask.setToolTip("Ejecuta el análisis local sin alterar el screening científico.")
+        self.ask.setToolTip("Run local analysis without altering scientific screening.")
         self.ask.clicked.connect(self._ask)
         root.addWidget(self.ask)
 
-        self.status = QLabel("Comprobando modelos locales de Ollama…")
+        self.status = QLabel("Checking local Ollama models…")
         self.status.setObjectName("pageSubtitle")
         self.status.setWordWrap(True)
         root.addWidget(self.status)
 
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setPlaceholderText("La respuesta de JARVIS aparecerá aquí como asistencia auxiliar.")
+        self.output.setPlaceholderText("JARVIS's response will appear here as auxiliary assistance.")
         root.addWidget(self.output, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
@@ -163,7 +152,7 @@ class AIAssistantDialog(QDialog):
             return
         self.models.setEnabled(False)
         self.ask.setEnabled(False)
-        self.status.setText("Comprobando modelos locales de Ollama…")
+        self.status.setText("Checking local Ollama models…")
         self.model_worker = _ModelWorker(self.client)
         self.model_worker.succeeded.connect(self._models_success)
         self.model_worker.failed.connect(self._models_failure)
@@ -174,13 +163,13 @@ class AIAssistantDialog(QDialog):
         self.models.clear()
         self.models.addItems(names)
         self.ask.setEnabled(bool(names))
-        self.status.setText(f"{len(names)} modelo(s) local(es) disponible(s). La IA es solo auxiliar.")
+        self.status.setText(f"{len(names)} local model(s) available. AI is auxiliary only.")
 
     def _models_failure(self, message: str) -> None:
         self.models.clear()
-        self.models.addItem("No hay modelos locales disponibles")
+        self.models.addItem("No local models available")
         self.ask.setEnabled(False)
-        self.status.setText(f"Ollama no está disponible: {message}")
+        self.status.setText(f"Ollama is unavailable: {message}")
 
     def _model_worker_finished(self) -> None:
         self.models.setEnabled(True)
@@ -190,33 +179,25 @@ class AIAssistantDialog(QDialog):
         if self.worker is not None and self.worker.isRunning():
             return
         model = self.models.currentText().strip()
-        if not model or model.startswith("Selecciona") or model.startswith("No hay"):
-            self.status.setText("Selecciona un modelo local disponible primero.")
+        if not model or model.startswith("Select") or model.startswith("No local"):
+            self.status.setText("Select an available local model first.")
             return
         paper_id = str(self.details.get("paper_id") or "")
         if not paper_id:
-            self.status.setText("No se dispone de una identidad estable del artículo; no se envió la solicitud.")
+            self.status.setText("No stable paper identity is available; the request was not sent.")
             return
-
         title = str(self.details.get("title") or "")
         abstract = str(self.details.get("abstract") or "")
         criteria = str(self.details.get("criteria") or "")
         mode, mode_task = MODES[self.mode.currentIndex()]
         extra = self.task.text().strip()
-        task = f"{mode_task}\n\nInstrucción adicional: {extra or 'Ninguna.'}"
+        task = f"{mode_task}\n\nAdditional instruction: {extra or 'None.'}"
         prompt = _build_prompt(mode, task, title, abstract, criteria)
         digest = hashlib.sha256(f"{title}\n{abstract}\n{criteria}".encode("utf-8")).hexdigest()
-        request = AIAssistanceRequest(
-            paper_id=paper_id,
-            title=title,
-            abstract=f"{prompt}\n\nFuente para el modelo:\n{abstract}",
-            model=model,
-            prompt_version=PROMPT_VERSION,
-            input_hash=digest,
-        )
+        request = AIAssistanceRequest(paper_id=paper_id, title=title, abstract=f"{prompt}\n\nSource for model:\n{abstract}", model=model, prompt_version=PROMPT_VERSION, input_hash=digest)
         self.output.clear()
         self.ask.setEnabled(False)
-        self.status.setText("JARVIS está analizando localmente…")
+        self.status.setText("JARVIS is analyzing locally…")
         self.worker = _AssistantWorker(self.client, request)
         self.worker.succeeded.connect(self._success)
         self.worker.failed.connect(self._failure)
@@ -225,30 +206,24 @@ class AIAssistantDialog(QDialog):
 
     def _success(self, suggestion: AIAssistanceSuggestion) -> None:
         self.output.setPlainText(suggestion.output)
-        self.status.setText(
-            f"Asistencia auxiliar · modelo: {suggestion.model} · prompt: {suggestion.prompt_version} · autoridad: {suggestion.authority}"
-        )
+        self.status.setText(f"Auxiliary assistance · model: {suggestion.model} · prompt: {suggestion.prompt_version} · authority: {suggestion.authority}")
 
     def _failure(self, message: str) -> None:
         self.status.setText(message)
 
     def _worker_finished(self) -> None:
-        self.ask.setEnabled(self.models.count() > 0 and not self.models.currentText().startswith("No hay"))
+        self.ask.setEnabled(self.models.count() > 0 and not self.models.currentText().startswith("No local"))
         self.worker = None
 
     def closeEvent(self, event) -> None:
-        if (self.worker is not None and self.worker.isRunning()) or (
-            self.model_worker is not None and self.model_worker.isRunning()
-        ):
+        if (self.worker is not None and self.worker.isRunning()) or (self.model_worker is not None and self.model_worker.isRunning()):
             event.ignore()
-            self.status.setText("Espera a que termine la solicitud local antes de cerrar este diálogo.")
+            self.status.setText("Wait for the local request to finish before closing this dialog.")
             return
         super().closeEvent(event)
 
 
 class QLineEditCompat(QTextEdit):
-    """Small single-line editor without adding another Qt import to the dialog."""
-
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setFixedHeight(34)
