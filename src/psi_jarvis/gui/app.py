@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -34,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from psi_jarvis.gui.audit_explorer import AuditExplorerView
+from psi_jarvis.gui.command_palette import Command, CommandPalette
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.formatting import format_timestamp, format_timestamp_str
 from psi_jarvis.gui.nav_icons import nav_icon
@@ -301,10 +303,16 @@ class ImportScreenDialog(QDialog):
 
 
 class DashboardPage(QWidget):
-    def __init__(self, data: GuiDataService, refresh_all: Callable[[], None]):
+    def __init__(
+        self,
+        data: GuiDataService,
+        refresh_all: Callable[[], None],
+        new_project: Callable[[], None] | None = None,
+    ):
         super().__init__()
         self.data = data
         self.refresh_all = refresh_all
+        self.new_project = new_project
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(28, 24, 28, 28)
         self.root.setSpacing(14)
@@ -323,6 +331,21 @@ class DashboardPage(QWidget):
             )
         )
         snap = self.data.snapshot()
+        if snap.projects == 0 and self.new_project is not None:
+            empty, el = card("Get started")
+            el.addWidget(
+                QLabel(
+                    "No projects yet. Create a review protocol to start "
+                    "importing, screening and tracking papers."
+                )
+            )
+            start = QPushButton("Create your first project")
+            start.setObjectName("primary")
+            start.clicked.connect(self.new_project)
+            el.addWidget(start, 0, Qt.AlignLeft)
+            self.root.addWidget(empty)
+            self.root.addStretch()
+            return
         metrics = QGridLayout()
         metrics.setSpacing(12)
         metrics.addWidget(metric("Projects", snap.projects, "Review protocols"), 0, 0)
@@ -917,7 +940,63 @@ class MainWindow(QMainWindow):
         self.pages.setObjectName("mainPageStack")
         self.nav_buttons = []
         self._build_ui()
+        self._build_shortcuts()
         self.statusBar().showMessage("Ready · deterministic scientific workspace")
+
+    def _build_shortcuts(self) -> None:
+        for i in range(len(NAV_ITEMS)):
+            shortcut = QShortcut(QKeySequence(f"Ctrl+{i + 1}"), self)
+            shortcut.activated.connect(lambda index=i: self._select_page(index))
+        new_project = QShortcut(QKeySequence.New, self)
+        new_project.activated.connect(self._new_project_shortcut)
+        find = QShortcut(QKeySequence.Find, self)
+        find.activated.connect(self._focus_search_shortcut)
+        refresh = QShortcut(QKeySequence.Refresh, self)
+        refresh.activated.connect(self.refresh_all)
+        palette = QShortcut(QKeySequence("Ctrl+K"), self)
+        palette.activated.connect(self._open_command_palette)
+
+    def _new_project_shortcut(self) -> None:
+        for i, (label, _icon) in enumerate(NAV_ITEMS):
+            if label == "Projects":
+                self._select_page(i)
+                break
+        page = self.pages.currentWidget()
+        if hasattr(page, "_new"):
+            page._new()
+
+    def _focus_search_shortcut(self) -> None:
+        page = self.pages.currentWidget()
+        search = getattr(page, "search", None)
+        if isinstance(search, QLineEdit):
+            search.setFocus()
+            search.selectAll()
+
+    def _open_command_palette(self) -> None:
+        commands = tuple(
+            Command(
+                title=label,
+                subtitle=f"Open {label}",
+                icon_label=label,
+                run=lambda index=i: self._select_page(index),
+            )
+            for i, (label, _icon) in enumerate(NAV_ITEMS)
+        ) + (
+            Command(
+                title="New project",
+                subtitle="Create a review protocol",
+                icon_label="Projects",
+                run=self._new_project_shortcut,
+            ),
+            Command(
+                title="Refresh workspace",
+                subtitle="Reload all pages from persisted state",
+                icon_label="Dashboard",
+                run=self.refresh_all,
+            ),
+        )
+        palette = CommandPalette(commands, self)
+        palette.show_centered_on(self)
 
     def _build_ui(self):
         root = QWidget()
@@ -980,7 +1059,7 @@ class MainWindow(QMainWindow):
             self.pages.removeWidget(widget)
             widget.deleteLater()
         for page in (
-            DashboardPage(self.data, self.refresh_all),
+            DashboardPage(self.data, self.refresh_all, self._new_project_shortcut),
             ProjectsPage(
                 self.data, self.workflow, self.refresh_all, self.open_project_workspace
             ),
@@ -1024,9 +1103,25 @@ class MainWindow(QMainWindow):
 
     def refresh_all(self):
         current = self.pages.currentIndex()
+        search_texts = self._capture_search_texts()
         self._build_pages()
+        self._restore_search_texts(search_texts)
         self._select_page(max(0, current))
         self.statusBar().showMessage("Workspace refreshed")
+
+    def _capture_search_texts(self) -> dict[int, str]:
+        texts: dict[int, str] = {}
+        for i in range(self.pages.count()):
+            search = getattr(self.pages.widget(i), "search", None)
+            if isinstance(search, QLineEdit) and search.text():
+                texts[i] = search.text()
+        return texts
+
+    def _restore_search_texts(self, texts: dict[int, str]) -> None:
+        for i, text in texts.items():
+            search = getattr(self.pages.widget(i), "search", None)
+            if isinstance(search, QLineEdit):
+                search.setText(text)
 
 
 def main() -> int:

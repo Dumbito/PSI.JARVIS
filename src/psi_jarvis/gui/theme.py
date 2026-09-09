@@ -87,6 +87,35 @@ QScrollBar::handle:horizontal { background: #29415b; border-radius: 5px; min-wid
 QScrollBar::handle:horizontal:hover { background: #3a5d7d; }
 QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page { background: transparent; border: 0; }
 QStatusBar { background: #08101a; color: #6f879f; border-top: 1px solid #1d3045; }
+QDialog#commandPalette {
+    background: #0f1c2c;
+    border: 1px solid #2f5578;
+    border-radius: 10px;
+}
+QLineEdit#paletteQuery {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #22374d;
+    border-radius: 0;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #eef6ff;
+}
+QListWidget#paletteList {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    outline: none;
+}
+QListWidget#paletteList::item {
+    padding: 9px 10px;
+    border-radius: 6px;
+    color: #cfe0f4;
+}
+QListWidget#paletteList::item:selected {
+    background: #1f3f5c;
+    color: #ffffff;
+}
 """
 
 
