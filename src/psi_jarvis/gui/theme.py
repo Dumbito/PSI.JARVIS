@@ -25,7 +25,7 @@ QWidget { background: #0a111c; color: #dce7f5; font-family: Inter, Noto Sans, sa
 QMainWindow { background: #08101a; }
 QLabel { background: transparent; }
 QFrame#sidebar { background: #091522; border-right: 1px solid #1d3044; }
-QLabel#brand { color: #f4f8ff; font-size: 19px; font-weight: 700; }
+QLabel#brand { font-family: Georgia, "Times New Roman", serif; color: #f4f8ff; font-size: 20px; font-weight: 700; letter-spacing: 0.3px; }
 QLabel#version { color: #66809b; font-size: 11px; }
 QLabel#tagline { color: #7188a4; font-size: 10px; }
 QLabel#sidebarFooter { color: #7188a4; font-size: 10px; line-height: 1.35; }
@@ -33,12 +33,12 @@ QPushButton#nav { text-align: left; border: 0; border-left: 3px solid transparen
 QPushButton#nav:hover { background: #12253a; color: #edf5ff; }
 QPushButton#nav[active="true"] { background: #15385d; color: #7fc0ff; border-left-color: #61b0ff; }
 QPushButton#nav[active="true"]:hover { background: #194367; color: #8bc9ff; }
-QLabel#pageTitle { font-size: 27px; font-weight: 700; color: #f1f6fc; }
+QLabel#pageTitle { font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 700; color: #f1f6fc; letter-spacing: 0.2px; }
 QLabel#pageSubtitle { color: #8095ad; }
 QLabel#dialogTitle { font-size: 20px; font-weight: 700; color: #f1f6fc; padding-bottom: 4px; }
 QFrame#card { background: #0f1c2b; border: 1px solid #21374d; border-radius: 10px; }
 QFrame#card:hover { background: #112235; border-color: #315776; }
-QLabel#metricValue { font-size: 25px; font-weight: 700; color: #eef6ff; }
+QLabel#metricValue { font-family: Georgia, "Times New Roman", serif; font-size: 27px; font-weight: 700; color: #eef6ff; }
 QLabel#metricLabel { color: #8da3bb; }
 QLabel#metricAccent { color: #61b0ff; font-size: 11px; }
 QLabel#sectionTitle { font-size: 15px; font-weight: 600; color: #eaf2fb; }

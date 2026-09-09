@@ -5,7 +5,7 @@ from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 from psi_jarvis.gui.audit_explorer import AuditExplorerView
 from psi_jarvis.gui.data import GuiDataService
 from psi_jarvis.gui.formatting import format_timestamp, format_timestamp_str
+from psi_jarvis.gui.nav_icons import nav_icon
 from psi_jarvis.gui.project_workspace import ProjectWorkspaceView
 from psi_jarvis.gui.theme import apply_theme
 from psi_jarvis.gui.tutorial import TutorialDialog
@@ -940,9 +941,11 @@ class MainWindow(QMainWindow):
         tagline.setWordWrap(True)
         side.addWidget(tagline)
         side.addSpacing(16)
-        for i, (label, icon) in enumerate(NAV_ITEMS):
-            button = QPushButton(f"  {icon}   {label}")
+        for i, (label, _glyph) in enumerate(NAV_ITEMS):
+            button = QPushButton(label)
             button.setObjectName("nav")
+            button.setIcon(nav_icon(label, "#dce7f5" if i == 0 else "#7c93ac"))
+            button.setIconSize(QSize(18, 18))
             button.setProperty("active", i == 0)
             button.setToolTip(f"Open {label}")
             button.clicked.connect(
@@ -1007,7 +1010,11 @@ class MainWindow(QMainWindow):
     def _select_page(self, index: int):
         self.pages.setCurrentIndex(index)
         for i, button in enumerate(self.nav_buttons):
-            button.setProperty("active", i == index)
+            is_active = i == index
+            button.setProperty("active", is_active)
+            button.setIcon(
+                nav_icon(NAV_ITEMS[i][0], "#dce7f5" if is_active else "#7c93ac")
+            )
             button.style().unpolish(button)
             button.style().polish(button)
         self.statusBar().showMessage(f"{NAV_ITEMS[index][0]} · ready")

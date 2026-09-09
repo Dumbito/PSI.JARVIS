@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from psi_jarvis.gui.i18n_manager import LANGUAGES, LanguageManager
+from psi_jarvis.gui.nav_icons import nav_icon
 
 
 def test_supported_languages_are_available(qapp):
@@ -58,14 +59,16 @@ def test_language_manager_translates_entire_widget_tree(qapp):
 
 
 def test_language_manager_translates_sidebar_nav_buttons_without_losing_icon(qapp):
-    """Regression test: nav buttons combine an icon and a label in one
-    string (e.g. "  ⌂   Dashboard"), which defeated LanguageManager's
-    exact-match catalog lookup and silently left the sidebar in English
-    while every other translated widget switched languages correctly.
+    """Regression test: nav buttons render a real QIcon plus a plain
+    text label (no icon glyph embedded in the string), so the generic
+    exact-match catalog lookup must translate them like any other
+    button while the icon itself is untouched.
     """
     window = QMainWindow()
-    nav_button = QPushButton("  ⌂   Dashboard", window)
+    nav_button = QPushButton("Dashboard", window)
     nav_button.setObjectName("nav")
+    icon = nav_icon("Dashboard", "#dce7f5")
+    nav_button.setIcon(icon)
     window.setCentralWidget(nav_button)
     window.show()
     qapp.processEvents()
@@ -73,8 +76,9 @@ def test_language_manager_translates_sidebar_nav_buttons_without_losing_icon(qap
     manager = LanguageManager(qapp)
     manager.set_language("es")
 
-    assert nav_button.text() == "  ⌂   Panel"
+    assert nav_button.text() == "Panel"
+    assert nav_button.icon().cacheKey() == icon.cacheKey()
 
     manager.set_language("en")
-    assert nav_button.text() == "  ⌂   Dashboard"
+    assert nav_button.text() == "Dashboard"
     window.close()
