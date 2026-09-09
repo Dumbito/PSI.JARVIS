@@ -170,7 +170,7 @@ class TranslationDialog(QDialog):
         self.progress.setValue(100)
         self.status.setText(f"Updated {count} translation entries for {dict(LANGUAGES)[language]}.")
         self.generate.setEnabled(True)
-        self.manager.reload_catalogs()
+        self.manager.set_language(self.manager.language)
 
     def _failed(self, message: str) -> None:
         self.status.setText(f"Translation generation failed: {message}")
