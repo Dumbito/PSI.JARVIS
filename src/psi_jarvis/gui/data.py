@@ -185,14 +185,9 @@ class GuiDataService:
                 pass
         screened = included + excluded
         return DashboardSnapshot(
-            projects=len(projects),
-            papers=len(papers),
-            screened=screened,
-            pending=max(0, len(papers) - screened),
-            included=included,
-            excluded=excluded,
-            conflicts=0,
-            source_counts=tuple(sorted(source_counts.items())),
+            projects=len(projects), papers=len(papers), screened=screened,
+            pending=max(0, len(papers) - screened), included=included,
+            excluded=excluded, conflicts=0, source_counts=tuple(sorted(source_counts.items())),
         )
 
     def projects(self):
@@ -211,6 +206,34 @@ class GuiDataService:
         except sqlite3.OperationalError:
             return ()
 
+    def sources(self) -> tuple[SourceSnapshot, ...]:
+        """Return source connection state without exposing credentials or mutating state."""
+        try:
+            environment = load_scopus_environment()
+            manager = ScopusConnectionManager(
+                environment.oauth,
+                default_scopus_token_store(),
+                oauth_client=ScopusOAuthClient(environment.oauth) if environment.oauth else None,
+                transport_config=environment.transport,
+            )
+            states = build_default_source_connection_registry(manager).inspect_all()
+            return tuple(
+                SourceSnapshot(
+                    state.source.key,
+                    state.source.display_name,
+                    state.status.value,
+                    state.detail or "",
+                )
+                for state in states
+            )
+        except Exception as exc:
+            return (
+                SourceSnapshot("pubmed", "PubMed", "available", "Public source without authentication."),
+                SourceSnapshot("scopus", "Scopus", "unavailable", f"Scopus configuration could not be inspected: {exc}"),
+                SourceSnapshot("web_of_science", "Web of Science", "unavailable", "Connector available, but no credential is configured."),
+                SourceSnapshot("zotero", "Zotero", "unavailable", "Connector available, but no credential is configured."),
+            )
+
     def screening_rows(self) -> tuple[ScreeningRow, ...]:
         if not self.database_path.exists():
             return ()
@@ -219,10 +242,7 @@ class GuiDataService:
                 rows = connection.execute("SELECT sr.paper_id, p.title, p.publication_year, sr.included, sr.reason, sr.run_id, sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id = sr.paper_id ORDER BY p.title COLLATE NOCASE").fetchall()
         except sqlite3.OperationalError:
             return ()
-        return tuple(
-            ScreeningRow(row["paper_id"], row["title"], row["publication_year"], "Included" if row["included"] else "Excluded", row["reason"], row["run_id"], row["criteria_version"])
-            for row in rows
-        )
+        return tuple(ScreeningRow(row["paper_id"], row["title"], row["publication_year"], "Included" if row["included"] else "Excluded", row["reason"], row["run_id"], row["criteria_version"]) for row in rows)
 
     def screening_runs(self, limit: int = 100) -> tuple[ScreeningRunSnapshot, ...]:
         if not self.database_path.exists():
@@ -232,10 +252,7 @@ class GuiDataService:
                 rows = connection.execute("SELECT run_id, project_id, criteria_version, started_at, total_input, unique_papers, duplicates_removed, screened_papers FROM screening_runs ORDER BY started_at DESC LIMIT ?", (max(1, int(limit)),)).fetchall()
         except (sqlite3.OperationalError, ValueError):
             return ()
-        return tuple(
-            ScreeningRunSnapshot(row["run_id"], row["project_id"], row["criteria_version"], row["started_at"], row["total_input"], row["unique_papers"], row["duplicates_removed"], row["screened_papers"])
-            for row in rows
-        )
+        return tuple(ScreeningRunSnapshot(row["run_id"], row["project_id"], row["criteria_version"], row["started_at"], row["total_input"], row["unique_papers"], row["duplicates_removed"], row["screened_papers"]) for row in rows)
 
     def metadata_quality(self) -> MetadataQualitySnapshot:
         papers = self.papers()
@@ -260,17 +277,7 @@ class GuiDataService:
                 return None
             with self._connect() as connection:
                 provenance_count = connection.execute("SELECT COUNT(*) FROM paper_provenances WHERE paper_id = ?", (paper_id,)).fetchone()[0]
-            return {
-                "paper_id": paper_id,
-                "title": paper.title,
-                "authors": ", ".join(paper.authors),
-                "abstract": paper.abstract or "",
-                "doi": paper.doi or "",
-                "pmid": paper.pmid or "",
-                "journal": paper.journal or "",
-                "year": paper.publication_year or "",
-                "provenance_count": int(provenance_count),
-            }
+            return {"paper_id": paper_id, "title": paper.title, "authors": ", ".join(paper.authors), "abstract": paper.abstract or "", "doi": paper.doi or "", "pmid": paper.pmid or "", "journal": paper.journal or "", "year": paper.publication_year or "", "provenance_count": int(provenance_count)}
         except (sqlite3.OperationalError, ValueError):
             return None
 
@@ -365,12 +372,12 @@ class GuiDataService:
         try:
             with self._connect() as connection:
                 if run_id:
-                    row = connection.execute("SELECT sr.paper_id,p.title,sr.included,sr.reason,sr.run_id,sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id WHERE sr.paper_id=? AND sr.run_id=? LIMIT 1", (paper_id, run_id)).fetchone()
+                    row = connection.execute("SELECT sr.paper_id,p.title,sr.included,sr.reason,sr.run_id,sr.criteria_version,sa.audit_key FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id LEFT JOIN screening_audits sa ON sa.paper_id=sr.paper_id AND sa.run_id=sr.run_id WHERE sr.paper_id=? AND sr.run_id=? LIMIT 1", (paper_id, run_id)).fetchone()
                 else:
-                    row = connection.execute("SELECT sr.paper_id,p.title,sr.included,sr.reason,sr.run_id,sr.criteria_version FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id WHERE sr.paper_id=? ORDER BY rowid DESC LIMIT 1", (paper_id,)).fetchone()
+                    row = connection.execute("SELECT sr.paper_id,p.title,sr.included,sr.reason,sr.run_id,sr.criteria_version,sa.audit_key FROM screening_results sr JOIN papers p ON p.paper_id=sr.paper_id LEFT JOIN screening_audits sa ON sa.paper_id=sr.paper_id AND sa.run_id=sr.run_id WHERE sr.paper_id=? ORDER BY rowid DESC LIMIT 1", (paper_id,)).fetchone()
             if row is None:
                 return None
             audit = SQLiteScreeningAuditRepository(self.database_path).get(UUID(paper_id), UUID(row["run_id"]) if row["run_id"] else None)
         except (sqlite3.OperationalError, ValueError):
             return None
-        return ScreeningDetail(row["paper_id"], row["title"], "Included" if row["included"] else "Excluded", row["reason"], row["run_id"], row["criteria_version"], tuple(audit.matched_rules) if audit else (), tuple(audit.failed_rules) if audit else (), str(audit.audit_id) if audit else None)
+        return ScreeningDetail(row["paper_id"], row["title"], "Included" if row["included"] else "Excluded", row["reason"], row["run_id"], row["criteria_version"], tuple(audit.matched_rules) if audit else (), tuple(audit.failed_rules) if audit else (), str(row["audit_key"]) if row["audit_key"] else None)
