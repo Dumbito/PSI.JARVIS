@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from psi_jarvis.gui import app
 from psi_jarvis.gui.ai_assistant import AIAssistantDialog
 from psi_jarvis.gui.empty_state import EmptyState
+from psi_jarvis.gui.i18n import apply_spanish_ui
 from psi_jarvis.gui.toast import Toast
 
 
@@ -24,14 +25,17 @@ class EnhancedPaperDialog(app.PaperDialog):
     def __init__(self, details: dict, parent: QWidget | None = None) -> None:
         self._details = details
         super().__init__(details, parent)
+        self.setWindowTitle("Detalles del artículo")
         layout = self.layout()
         if layout is None:
             return
-        assistant = QLabel("AI/NLP assistant")
+        assistant = QLabel("🤖 JARVIS · Agente IA")
         assistant.setObjectName("sectionTitle")
         layout.insertWidget(max(0, layout.count() - 1), assistant)
-        button = QPushButton("Ask local AI for auxiliary observations…")
-        button.setToolTip("Use a local Ollama model for auxiliary observations. This never changes the screening decision.")
+        button = QPushButton("🤖 Abrir JARVIS IA")
+        button.setToolTip(
+            "Analiza el artículo con un modelo local de Ollama. La IA solo proporciona observaciones y nunca cambia la decisión de screening."
+        )
         button.clicked.connect(self._open_assistant)
         layout.insertWidget(max(0, layout.count() - 1), button)
 
@@ -59,9 +63,9 @@ class EnhancedDashboardPage(app.DashboardPage):
         if self.data.snapshot().projects == 0:
             self.root.addWidget(
                 EmptyState(
-                    "No review projects yet",
-                    "Create your first review project to define a protocol before importing papers.",
-                    "Create your first project",
+                    "No hay proyectos de revisión",
+                    "Crea tu primer proyecto para definir el protocolo antes de importar artículos.",
+                    "Crear primer proyecto",
                     self._create_project,
                 )
             )
@@ -79,9 +83,9 @@ class EnhancedProjectsPage(app.ProjectsPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.empty_state = EmptyState(
-            "No review projects",
-            "Create a project to define your research question and screening criteria.",
-            "New project",
+            "No hay proyectos de revisión",
+            "Crea un proyecto para definir tu pregunta de investigación y los criterios de screening.",
+            "Nuevo proyecto",
             self._new,
             self,
         )
@@ -101,8 +105,8 @@ class EnhancedSourcesPage(app.SourcesPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.empty_state = EmptyState(
-            "No source status available",
-            "Bibliographic connection details will appear here when source adapters are available.",
+            "No hay fuentes disponibles",
+            "Los detalles de las conexiones bibliográficas aparecerán aquí cuando haya adaptadores disponibles.",
             parent=self,
         )
         self.layout().addWidget(self.empty_state)
@@ -121,8 +125,8 @@ class EnhancedScreeningPage(app.ScreeningPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.empty_state = EmptyState(
-            "No screening results",
-            "Import a bibliographic file and run the deterministic screening pipeline to populate this workspace.",
+            "No hay resultados de screening",
+            "Importa un archivo bibliográfico y ejecuta el pipeline determinista para poblar este espacio de trabajo.",
             parent=self,
         )
         self.layout().addWidget(self.empty_state)
@@ -141,8 +145,8 @@ class EnhancedAuditView(app.AuditExplorerView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.empty_state = EmptyState(
-            "No audit events",
-            "Metadata-change history will appear here after synchronized metadata changes are persisted.",
+            "No hay eventos de auditoría",
+            "El historial de cambios de metadatos aparecerá aquí después de sincronizar cambios persistidos.",
             parent=self,
         )
         self.layout().addWidget(self.empty_state)
@@ -162,33 +166,35 @@ class EnhancedReportsPage(app.ReportsPage):
         super().__init__(*args, **kwargs)
         for button in self.findChildren(QPushButton):
             if button.text().replace("&", "").strip().startswith("Refresh PRISMA"):
-                button.clicked.connect(lambda: Toast.show_message(self, "PRISMA view refreshed"))
+                button.setText("Actualizar PRISMA")
+                button.clicked.connect(lambda: Toast.show_message(self, "Vista PRISMA actualizada"))
 
     def _export(self):
         if not self.runs:
-            QMessageBox.warning(self, "No runs", "There are no persisted screening runs to export yet.")
+            QMessageBox.warning(self, "Sin ejecuciones", "Todavía no hay ejecuciones de screening persistidas para exportar.")
             return
-        directory = QFileDialog.getExistingDirectory(self, "Choose export folder", str(Path.home()))
+        directory = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta de exportación", str(Path.home()))
         if not directory:
             return
         try:
             paths = self.workflow.export_report(UUID(self.run_box.currentData()), directory)
         except Exception as exc:
-            QMessageBox.critical(self, "Export failed", str(exc))
+            QMessageBox.critical(self, "Error de exportación", str(exc))
             return
         if paths is None:
-            QMessageBox.warning(self, "Nothing to export", "No audit evidence was found for this run.")
+            QMessageBox.warning(self, "Nada para exportar", "No se encontró evidencia de auditoría para esta ejecución.")
             return
-        Toast.show_message(self, "Report exported successfully")
+        Toast.show_message(self, "Informe exportado correctamente")
 
 
 class EnhancedMainWindow(app.MainWindow):
-    """Existing scientific window with presentation-only UX enhancements."""
+    """Scientific window with Spanish presentation and JARVIS AI assistance."""
 
     def __init__(self, *args, **kwargs):
         self.session_search: dict[str, str] = {"papers": "", "screening": "", "audit": ""}
         super().__init__(*args, **kwargs)
         self._install_shortcuts()
+        apply_spanish_ui(self)
 
     def _install_shortcuts(self) -> None:
         self._shortcut_new = QShortcut(QKeySequence("Ctrl+N"), self)
@@ -213,11 +219,11 @@ class EnhancedMainWindow(app.MainWindow):
             search.setFocus()
             search.selectAll()
             return
-        Toast.show_message(self, "This view has no text search.")
+        Toast.show_message(self, "Esta vista no tiene búsqueda de texto.")
 
     def _refresh_with_toast(self) -> None:
         self.refresh_all()
-        Toast.show_message(self, "Workspace refreshed")
+        Toast.show_message(self, "Espacio de trabajo actualizado")
 
     def _close_active_dialog(self) -> None:
         for widget in QApplication.topLevelWidgets():
@@ -231,7 +237,8 @@ class EnhancedMainWindow(app.MainWindow):
         super().refresh_all()
         self._restore_session_state()
         self._select_page(max(0, current))
-        self.statusBar().showMessage("Workspace refreshed")
+        self.statusBar().showMessage("Espacio de trabajo actualizado")
+        apply_spanish_ui(self)
 
     def _capture_session_state(self) -> None:
         mapping = ((2, "papers"), (4, "screening"), (7, "audit"))
