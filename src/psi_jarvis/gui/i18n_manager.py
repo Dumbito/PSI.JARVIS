@@ -1,23 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 import weakref
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QLibraryInfo, QObject, QTranslator
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
-    QAbstractButton,
-    QComboBox,
-    QGroupBox,
-    QLabel,
-    QLineEdit,
-    QListWidget,
-    QTableWidget,
-    QTabWidget,
-    QTextEdit,
-    QWidget,
-)
+from PySide6.QtWidgets import QAbstractButton, QComboBox, QGroupBox, QLabel, QLineEdit, QListWidget, QTableWidget, QTabWidget, QTextEdit, QWidget
 
 LANGUAGES = (("en", "English"), ("es", "Español"), ("fr", "Français"), ("de", "Deutsch"), ("it", "Italiano"), ("pt", "Português"), ("ja", "日本語"), ("zh", "中文"), ("ko", "한국어"))
 BUILTIN = {"es": {"Dashboard":"Panel", "Projects":"Proyectos", "Papers":"Artículos", "Sources":"Fuentes", "Screening":"Screening", "Analysis":"Análisis", "Reports":"Informes", "Audit":"Auditoría", "Settings":"Configuración", "New project":"Nuevo proyecto", "Close":"Cerrar", "Cancel":"Cancelar", "OK":"Aceptar", "Refresh":"Actualizar", "Overview":"Resumen", "Rules":"Reglas", "Exclusions":"Exclusiones", "Deduplication":"Deduplicación", "Authors":"Autores", "Journals":"Revistas", "Years":"Años", "Language":"Idioma", "Research question":"Pregunta de investigación", "General observations":"Observaciones generales", "Methodology":"Metodología", "Population":"Población", "Relevant results":"Resultados relevantes", "Possible exclusion criteria":"Posibles criterios de exclusión", "Scientific summary":"Resumen científico"}}
@@ -49,8 +39,52 @@ class CatalogTranslator(QTranslator):
         return self.catalog.get(source_text, "")
 
 
+_PLACEHOLDER_RE = re.compile(r"\{[^{}]+\}")
+
+
+def _translate_dynamic(text: str, catalog: dict[str, str]) -> str:
+    """Translate full f-string templates while preserving runtime values."""
+    exact = catalog.get(text)
+    if exact is not None:
+        return exact
+    for source, target in sorted(catalog.items(), key=lambda pair: len(pair[0]), reverse=True):
+        if "{" not in source or "}" not in source:
+            continue
+        parts = _PLACEHOLDER_RE.split(source)
+        if not any(parts):
+            continue
+        pattern = re.escape(source)
+        for placeholder in _PLACEHOLDER_RE.findall(source):
+            pattern = pattern.replace(re.escape(placeholder), r"(?:.*?)")
+        match = re.fullmatch(pattern, text, flags=re.DOTALL)
+        if not match:
+            continue
+        target_parts = _PLACEHOLDER_RE.split(target)
+        source_placeholders = _PLACEHOLDER_RE.findall(source)
+        target_placeholders = _PLACEHOLDER_RE.findall(target)
+        if len(source_placeholders) != len(target_placeholders):
+            return target
+        values = []
+        cursor = 0
+        for part in parts[:-1]:
+            pos = text.find(part, cursor)
+            if pos < 0:
+                break
+            cursor = pos + len(part)
+            next_part = parts[len(values) + 1]
+            end = text.find(next_part, cursor) if next_part else len(text)
+            values.append(text[cursor:end])
+            cursor = end
+        else:
+            result = target_parts[0]
+            for i, value in enumerate(values):
+                result += value + (target_parts[i + 1] if i + 1 < len(target_parts) else "")
+            return result
+    return text
+
+
 class LanguageManager(QObject):
-    """Application-wide localization with automatic local catalog completion."""
+    """Application-wide localization for static and dynamic GUI text."""
 
     def __init__(self, application):
         super().__init__(application)
@@ -94,23 +128,7 @@ class LanguageManager(QObject):
     def translate(self, text):
         if self.language == "en" or not text:
             return text
-        catalog = _load_catalog(self.language)
-        exact = catalog.get(text)
-        if exact is not None:
-            return exact
-        # F-string/runtime text often contains scientific values. Translate only
-        # known UI fragments (not arbitrary data) so dynamic counters and metadata
-        # keep their values while surrounding explanatory copy changes language.
-        result = text
-        fragments = sorted(
-            ((key, value) for key, value in catalog.items() if len(key.strip()) >= 8 and not key.strip().isalnum()),
-            key=lambda pair: len(pair[0]),
-            reverse=True,
-        )
-        for source, target in fragments:
-            if source in result:
-                result = result.replace(source, target)
-        return result
+        return _translate_dynamic(text, _load_catalog(self.language))
 
     def _state(self, widget):
         return self._source_cache.setdefault(widget, {})
