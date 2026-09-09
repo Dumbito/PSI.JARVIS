@@ -6,7 +6,18 @@ from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, QEvent, QLibraryInfo, QObject, QTranslator
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QAbstractButton, QComboBox, QGroupBox, QLabel, QLineEdit, QListWidget, QTableWidget, QTabWidget, QTextEdit, QWidget
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QComboBox,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QTableWidget,
+    QTabWidget,
+    QTextEdit,
+    QWidget,
+)
 
 LANGUAGES = (("en", "English"), ("es", "Español"), ("fr", "Français"), ("de", "Deutsch"), ("it", "Italiano"), ("pt", "Português"), ("ja", "日本語"), ("zh", "中文"), ("ko", "한국어"))
 BUILTIN = {"es": {"Dashboard":"Panel", "Projects":"Proyectos", "Papers":"Artículos", "Sources":"Fuentes", "Screening":"Screening", "Analysis":"Análisis", "Reports":"Informes", "Audit":"Auditoría", "Settings":"Configuración", "New project":"Nuevo proyecto", "Close":"Cerrar", "Cancel":"Cancelar", "OK":"Aceptar", "Refresh":"Actualizar", "Overview":"Resumen", "Rules":"Reglas", "Exclusions":"Exclusiones", "Deduplication":"Deduplicación", "Authors":"Autores", "Journals":"Revistas", "Years":"Años", "Language":"Idioma", "Research question":"Pregunta de investigación", "General observations":"Observaciones generales", "Methodology":"Metodología", "Population":"Población", "Relevant results":"Resultados relevantes", "Possible exclusion criteria":"Posibles criterios de exclusión", "Scientific summary":"Resumen científico"}}
@@ -39,7 +50,7 @@ class CatalogTranslator(QTranslator):
 
 
 class LanguageManager(QObject):
-    """Single application-wide localization service for literal Qt UI text."""
+    """Application-wide localization service with automatic local catalog completion."""
 
     def __init__(self, application):
         super().__init__(application)
@@ -48,11 +59,14 @@ class LanguageManager(QObject):
         self._translator = None
         self._qt_translator = None
         self._source_cache = weakref.WeakKeyDictionary()
+        self._generation_running = False
         application.installEventFilter(self)
 
     def eventFilter(self, obj, event):
         if event.type() in (QEvent.Type.Show, QEvent.Type.LanguageChange) and isinstance(obj, QWidget):
             self.apply(obj)
+            if event.type() == QEvent.Type.Show and self.language != "en":
+                self._ensure_catalog()
         return False
 
     def set_language(self, language):
@@ -74,6 +88,8 @@ class LanguageManager(QObject):
             self.application.installTranslator(self._translator)
         for widget in self.application.topLevelWidgets():
             self.apply(widget)
+        if language != "en":
+            self._ensure_catalog()
 
     def translate(self, text):
         return text if self.language == "en" else _load_catalog(self.language).get(text, text)
@@ -86,6 +102,39 @@ class LanguageManager(QObject):
         if key not in state:
             state[key] = current
         return state[key]
+
+    def _ensure_catalog(self):
+        """Automatically fill the selected language catalog through local Ollama.
+
+        This is intentionally generic: pages, dialogs, tutorial copy, descriptions,
+        help text and future widgets are discovered by the existing AST generator;
+        no page-specific translation code is required.
+        """
+        if self._generation_running or self.language == "en":
+            return
+        try:
+            from psi_jarvis.gui.i18n_generator import TranslationWorker, DEFAULT_MODEL
+        except ImportError:
+            return
+        self._generation_running = True
+        self._generation_worker = TranslationWorker(self.language, DEFAULT_MODEL, parent=self)
+        self._generation_worker.completed.connect(self._generation_completed)
+        self._generation_worker.failed.connect(self._generation_failed)
+        self._generation_worker.start()
+
+    def _generation_completed(self, language: str, count: int):
+        self._generation_running = False
+        if language != self.language:
+            return
+        if self._translator:
+            self.application.removeTranslator(self._translator)
+        self._translator = CatalogTranslator(_load_catalog(language), self.application)
+        self.application.installTranslator(self._translator)
+        for widget in self.application.topLevelWidgets():
+            self.apply(widget)
+
+    def _generation_failed(self, _message: str):
+        self._generation_running = False
 
     def apply(self, root):
         self._translate_widget(root)
