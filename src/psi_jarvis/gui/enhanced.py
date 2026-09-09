@@ -19,11 +19,11 @@ class EnhancedPaperDialog(app.PaperDialog):
         layout = self.layout()
         if layout is None:
             return
-        assistant = QLabel("🤖 JARVIS · AI Agent")
+        assistant = QLabel("AI/NLP assistant")
         assistant.setObjectName("sectionTitle")
         layout.insertWidget(max(0, layout.count() - 1), assistant)
-        button = QPushButton("🤖 Open JARVIS AI")
-        button.setToolTip("Analyze the paper with a local Ollama model. AI provides observations only and never changes the screening decision.")
+        button = QPushButton("Ask local AI for auxiliary observations…")
+        button.setToolTip("Use a local Ollama model for auxiliary observations. This never changes the screening decision.")
         button.clicked.connect(self._open_assistant)
         layout.insertWidget(max(0, layout.count() - 1), button)
 
@@ -32,7 +32,6 @@ class EnhancedPaperDialog(app.PaperDialog):
 
 
 class EnhancedPapersPage(app.PapersPage):
-    """Papers page that supplies the stable paper identity to the assistant dialog."""
     def _open(self):
         row = self.table.currentRow()
         if row < 0:
@@ -48,7 +47,7 @@ class EnhancedDashboardPage(app.DashboardPage):
     def rebuild(self):
         super().rebuild()
         if self.data.snapshot().projects == 0:
-            self.root.addWidget(EmptyState("No review projects yet", "Create your first project to define the protocol before importing papers.", "Create first project", self._create_project))
+            self.root.addWidget(EmptyState("No review projects yet", "Create your first review project to define a protocol before importing papers.", "Create your first project", self._create_project))
 
     def _create_project(self) -> None:
         window = self.window()
@@ -149,7 +148,6 @@ class EnhancedReportsPage(app.ReportsPage):
 
 
 class EnhancedMainWindow(app.MainWindow):
-    """Scientific window with application-wide localization and JARVIS AI assistance."""
     def __init__(self, *args, **kwargs):
         self.session_search: dict[str, str] = {"papers": "", "screening": "", "audit": ""}
         super().__init__(*args, **kwargs)
@@ -225,14 +223,16 @@ class EnhancedMainWindow(app.MainWindow):
         self.statusBar().showMessage("Workspace refreshed")
 
     def _capture_session_state(self) -> None:
-        for index, key in ((2, "papers"), (4, "screening"), (7, "audit")):
+        mapping = ((2, "papers"), (4, "screening"), (7, "audit"))
+        for index, key in mapping:
             page = self.pages.widget(index)
             search = getattr(page, "search", None)
             if isinstance(search, QLineEdit):
                 self.session_search[key] = search.text()
 
     def _restore_session_state(self) -> None:
-        for index, key in ((2, "papers"), (4, "screening"), (7, "audit")):
+        mapping = ((2, "papers"), (4, "screening"), (7, "audit"))
+        for index, key in mapping:
             page = self.pages.widget(index)
             search = getattr(page, "search", None)
             if isinstance(search, QLineEdit):
@@ -240,7 +240,6 @@ class EnhancedMainWindow(app.MainWindow):
 
 
 def install_presentation_patches() -> None:
-    """Patch only GUI classes; deterministic/domain behavior remains untouched."""
     app.PaperDialog = EnhancedPaperDialog
     app.PapersPage = EnhancedPapersPage
     app.DashboardPage = EnhancedDashboardPage
