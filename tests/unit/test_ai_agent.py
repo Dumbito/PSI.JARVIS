@@ -16,7 +16,7 @@ def test_jarvis_agent_has_scientific_modes_and_spanish_prompt():
         "Incluir adultos",
     )
     assert "Respond in Spanish" in prompt
-    assert "No final inclusion/exclusion decision" in prompt
+    assert "Do not issue a final inclusion/exclusion decision" in prompt
     assert "Título de prueba" in prompt
     assert "Abstract de prueba" in prompt
     assert "Incluir adultos" in prompt
