@@ -194,7 +194,35 @@ class EnhancedMainWindow(app.MainWindow):
         self.session_search: dict[str, str] = {"papers": "", "screening": "", "audit": ""}
         super().__init__(*args, **kwargs)
         self._install_shortcuts()
+        self._install_ai_button()
         apply_spanish_ui(self)
+
+    def _install_ai_button(self) -> None:
+        self._ai_button = QPushButton("🤖 JARVIS IA")
+        self._ai_button.setToolTip(
+            "Abrir el agente IA local. Selecciona un artículo en la vista Artículos para analizarlo."
+        )
+        self._ai_button.clicked.connect(self._open_ai_from_workspace)
+        self.statusBar().addPermanentWidget(self._ai_button)
+
+    def _open_ai_from_workspace(self) -> None:
+        papers = self.pages.widget(2)
+        if not hasattr(papers, "table"):
+            self._select_page(2)
+            Toast.show_message(self, "Selecciona un artículo para abrir JARVIS IA.")
+            return
+        row = papers.table.currentRow()
+        if row < 0:
+            self._select_page(2)
+            Toast.show_message(self, "Selecciona un artículo y pulsa JARVIS IA de nuevo.")
+            return
+        paper_id = str(papers.table.item(row, 0).data(app.Qt.UserRole))
+        details = papers.data.paper_details(paper_id)
+        if not details:
+            Toast.show_message(self, "No se pudo recuperar el artículo seleccionado.")
+            return
+        details["paper_id"] = paper_id
+        AIAssistantDialog(details, self).exec()
 
     def _install_shortcuts(self) -> None:
         self._shortcut_new = QShortcut(QKeySequence("Ctrl+N"), self)
