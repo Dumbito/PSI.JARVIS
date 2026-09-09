@@ -7,29 +7,14 @@ from typing import Iterable
 
 from PySide6.QtCore import QCoreApplication, QEvent, QLibraryInfo, QObject, QTranslator
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
-    QAbstractButton,
-    QComboBox,
-    QGroupBox,
-    QLabel,
-    QLineEdit,
-    QListWidget,
-    QTableWidget,
-    QTabWidget,
-    QTextEdit,
-    QWidget,
-)
+from PySide6.QtWidgets import QAbstractButton, QComboBox, QGroupBox, QLabel, QLineEdit, QListWidget, QTableWidget, QTabWidget, QTextEdit, QWidget
 
-LANGUAGES: tuple[tuple[str, str], ...] = (
-    ("en", "English"), ("es", "Español"), ("fr", "Français"),
-    ("de", "Deutsch"), ("it", "Italiano"), ("pt", "Português"),
-    ("ja", "日本語"), ("zh", "中文"), ("ko", "한국어"),
-)
+LANGUAGES: tuple[tuple[str, str], ...] = (("en", "English"), ("es", "Español"), ("fr", "Français"), ("de", "Deutsch"), ("it", "Italiano"), ("pt", "Português"), ("ja", "日本語"), ("zh", "中文"), ("ko", "한국어"))
 
 BUILTIN: dict[str, dict[str, str]] = {
-    "es": {"Dashboard":"Panel", "Projects":"Proyectos", "Papers":"Artículos", "Sources":"Fuentes", "Screening":"Screening", "Analysis":"Análisis", "Reports":"Informes", "Audit":"Auditoría", "Settings":"Configuración", "New project":"Nuevo proyecto", "Paper details":"Detalles del artículo", "Screening evidence":"Evidencia del screening", "Decision":"Decisión", "Rule evidence":"Evidencia de reglas", "Close":"Cerrar", "Cancel":"Cancelar", "OK":"Aceptar", "Refresh":"Actualizar", "Overview":"Resumen", "Rules":"Reglas", "Exclusions":"Exclusiones", "Deduplication":"Deduplicación", "Authors":"Autores", "Journals":"Revistas", "Years":"Años", "Language":"Idioma", "Included":"Incluido", "Excluded":"Excluido", "All decisions":"Todas las decisiones", "All runs":"Todas las ejecuciones"},
-    "fr": {"Dashboard":"Tableau de bord", "Projects":"Projets", "Papers":"Articles", "Sources":"Sources", "Screening":"Sélection", "Analysis":"Analyse", "Reports":"Rapports", "Audit":"Audit", "Settings":"Paramètres", "New project":"Nouveau projet", "Paper details":"Détails de l'article", "Screening evidence":"Preuves de sélection", "Decision":"Décision", "Rule evidence":"Preuves des règles", "Close":"Fermer", "Cancel":"Annuler", "OK":"OK", "Refresh":"Actualiser", "Overview":"Vue d'ensemble", "Rules":"Règles", "Exclusions":"Exclusions", "Deduplication":"Déduplication", "Authors":"Auteurs", "Journals":"Revues", "Years":"Années", "Language":"Langue", "Included":"Inclus", "Excluded":"Exclus", "All decisions":"Toutes les décisions", "All runs":"Toutes les exécutions"},
-    "de": {"Dashboard":"Übersicht", "Projects":"Projekte", "Papers":"Artikel", "Sources":"Quellen", "Screening":"Screening", "Analysis":"Analyse", "Reports":"Berichte", "Audit":"Audit", "Settings":"Einstellungen", "New project":"Neues Projekt", "Paper details":"Artikeldetails", "Screening evidence":"Screening-Nachweise", "Decision":"Entscheidung", "Rule evidence":"Regelnachweise", "Close":"Schließen", "Cancel":"Abbrechen", "OK":"OK", "Refresh":"Aktualisieren", "Overview":"Übersicht", "Rules":"Regeln", "Exclusions":"Ausschlüsse", "Deduplication":"Duplikatbereinigung", "Authors":"Autoren", "Journals":"Zeitschriften", "Years":"Jahre", "Language":"Sprache", "Included":"Eingeschlossen", "Excluded":"Ausgeschlossen", "All decisions":"Alle Entscheidungen", "All runs":"Alle Ausführungen"},
+    "es": {"Dashboard":"Panel", "Projects":"Proyectos", "Papers":"Artículos", "Sources":"Fuentes", "Screening":"Screening", "Analysis":"Análisis", "Reports":"Informes", "Audit":"Auditoría", "Settings":"Configuración", "New project":"Nuevo proyecto", "Paper details":"Detalles del artículo", "Screening evidence":"Evidencia del screening", "Decision":"Decisión", "Rule evidence":"Evidencia de reglas", "Close":"Cerrar", "Cancel":"Cancelar", "OK":"Aceptar", "Refresh":"Actualizar", "Overview":"Resumen", "Rules":"Reglas", "Exclusions":"Exclusiones", "Deduplication":"Deduplicación", "Authors":"Autores", "Journals":"Revistas", "Years":"Años", "Language":"Idioma", "Included":"Incluido", "Excluded":"Excluido", "All decisions":"Todas las decisiones", "All runs":"Todas las ejecuciones", "Research question":"Pregunta de investigación"},
+    "fr": {"Dashboard":"Tableau de bord", "Projects":"Projets", "Papers":"Articles", "Sources":"Sources", "Screening":"Sélection", "Analysis":"Analyse", "Reports":"Rapports", "Audit":"Audit", "Settings":"Paramètres", "New project":"Nouveau projet", "Paper details":"Détails de l'article", "Screening evidence":"Preuves de sélection", "Decision":"Décision", "Rule evidence":"Preuves des règles", "Close":"Fermer", "Cancel":"Annuler", "OK":"OK", "Refresh":"Actualiser", "Overview":"Vue d'ensemble", "Rules":"Règles", "Exclusions":"Exclusions", "Deduplication":"Déduplication", "Authors":"Auteurs", "Journals":"Revues", "Years":"Années", "Language":"Langue", "Included":"Inclus", "Excluded":"Exclus", "All decisions":"Toutes les décisions", "All runs":"Toutes les exécutions", "Research question":"Question de recherche"},
+    "de": {"Dashboard":"Übersicht", "Projects":"Projekte", "Papers":"Artikel", "Sources":"Quellen", "Screening":"Screening", "Analysis":"Analyse", "Reports":"Berichte", "Audit":"Audit", "Settings":"Einstellungen", "New project":"Neues Projekt", "Paper details":"Artikeldetails", "Screening evidence":"Screening-Nachweise", "Decision":"Entscheidung", "Rule evidence":"Regelnachweise", "Close":"Schließen", "Cancel":"Abbrechen", "OK":"OK", "Refresh":"Aktualisieren", "Overview":"Übersicht", "Rules":"Regeln", "Exclusions":"Ausschlüsse", "Deduplication":"Duplikatbereinigung", "Authors":"Autoren", "Journals":"Zeitschriften", "Years":"Jahre", "Language":"Sprache", "Included":"Eingeschlossen", "Excluded":"Ausgeschlossen", "All decisions":"Alle Entscheidungen", "All runs":"Alle Ausführungen", "Research question":"Forschungsfrage"},
     "it": {"Dashboard":"Dashboard", "Projects":"Progetti", "Papers":"Articoli", "Sources":"Fonti", "Analysis":"Analisi", "Reports":"Rapporti", "Audit":"Audit", "Settings":"Impostazioni", "New project":"Nuovo progetto", "Close":"Chiudi", "Cancel":"Annulla", "Refresh":"Aggiorna", "Language":"Lingua"},
     "pt": {"Dashboard":"Painel", "Projects":"Projetos", "Papers":"Artigos", "Sources":"Fontes", "Analysis":"Análise", "Reports":"Relatórios", "Audit":"Auditoria", "Settings":"Configurações", "New project":"Novo projeto", "Close":"Fechar", "Cancel":"Cancelar", "Refresh":"Atualizar", "Language":"Idioma"},
     "ja": {"Dashboard":"ダッシュボード", "Projects":"プロジェクト", "Papers":"論文", "Sources":"情報源", "Analysis":"分析", "Reports":"レポート", "Audit":"監査", "Settings":"設定", "New project":"新規プロジェクト", "Close":"閉じる", "Cancel":"キャンセル", "Refresh":"更新", "Language":"言語"},
@@ -132,7 +117,6 @@ class LanguageManager(QObject):
         return str(state[source_key])
 
     def _remember_action(self, action: QAction, key: str, value: str) -> str:
-        # QAction is owned by a QWidget hierarchy but is not itself a QWidget.
         key_name = f"_psi_i18n_{key}"
         source = action.property(key_name)
         if source is None:
