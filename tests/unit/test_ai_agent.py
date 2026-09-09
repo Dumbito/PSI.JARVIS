@@ -6,9 +6,7 @@ from psi_jarvis.gui.i18n import tr
 
 def test_jarvis_agent_has_scientific_modes_and_spanish_prompt():
     names = [name for name, _ in MODES]
-    assert "PICO" in names
-    assert "Metodología" in names
-    assert "Posibles criterios de exclusión" in names
+    assert {"PICO", "Methodology", "Possible exclusion criteria"} <= set(names)
     assert PROMPT_VERSION == "jarvis-agent-v2-es"
     prompt = _build_prompt(
         "PICO",
