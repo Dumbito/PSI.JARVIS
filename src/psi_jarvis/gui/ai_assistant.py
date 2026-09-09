@@ -11,13 +11,13 @@ from psi_jarvis.infrastructure.ollama_client import OllamaClient, OllamaError
 PROMPT_VERSION = "jarvis-agent-v2-es"
 
 MODES: tuple[tuple[str, str], ...] = (
-    ("General observations", "Identify relevant observations from the paper without making a screening decision."),
+    ("Observaciones generales", "Identify relevant observations from the paper without making a screening decision."),
     ("PICO", "Extract Population/Problem, Intervention/Exposure, Comparator and Outcomes when explicit or reasonably identifiable. Mark information that is not reported."),
-    ("Methodology", "Summarize study design, population, methods, variables, intervention/exposure, comparator and statistical analysis when described."),
-    ("Population", "Characterize the study population, sample size, relevant criteria and context. Do not invent missing data."),
-    ("Relevant results", "Summarize only results present in the supplied text. Distinguish results from conclusions."),
-    ("Possible exclusion criteria", "Compare the paper orientatively with project criteria when available, explaining evidence supporting or contradicting each point. Do not decide to exclude it."),
-    ("Scientific summary", "Produce a structured, faithful summary of the title and abstract, noting information limitations."),
+    ("Metodología", "Summarize study design, population, methods, variables, intervention/exposure, comparator and statistical analysis when described."),
+    ("Población", "Characterize the study population, sample size, relevant criteria and context. Do not invent missing data."),
+    ("Resultados relevantes", "Summarize only results present in the supplied text. Distinguish results from conclusions."),
+    ("Posibles criterios de exclusión", "Compare the paper orientatively with project criteria when available, explaining evidence supporting or contradicting each point. Do not decide to exclude it."),
+    ("Resumen científico", "Produce a structured, faithful summary of the title and abstract, noting information limitations."),
 )
 
 
