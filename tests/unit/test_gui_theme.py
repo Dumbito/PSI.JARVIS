@@ -6,14 +6,13 @@ from PySide6.QtWidgets import QDialog, QStackedWidget, QTabWidget, QTableWidget,
 from psi_jarvis.gui.theme import _UiAnimationFilter
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def qt_app(qapp):
     # Keep these focused animation tests independent from Qt's global stylesheet
     # parser. The stylesheet is exercised by the application itself; these
     # tests only need the event-filter behavior under test.
     animation_filter = _UiAnimationFilter(qapp)
     qapp.installEventFilter(animation_filter)
-    qapp._psi_test_animation_filter = animation_filter
     return qapp
 
 
