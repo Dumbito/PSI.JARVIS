@@ -14,11 +14,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QPushButton,
     QTableWidget,
     QTabWidget,
     QTextEdit,
     QWidget,
 )
+
+from psi_jarvis.gui.nav_i18n import NAV_OBJECT_NAME, translate_navigation_buttons
 
 LANGUAGES: tuple[tuple[str, str], ...] = (
     ("en", "English"),
@@ -348,7 +351,13 @@ class LanguageManager(QObject):
     def apply(self, root: QWidget) -> None:
         widgets: Iterable[QWidget] = (root, *root.findChildren(QWidget))
         for widget in widgets:
+            if (
+                isinstance(widget, QPushButton)
+                and widget.objectName() == NAV_OBJECT_NAME
+            ):
+                continue
             self._translate_widget(widget)
+        translate_navigation_buttons(root, self.translate)
         for action in root.findChildren(QAction):
             source = self._remember_action(action, "text", action.text())
             action.setText(self.translate(source))
