@@ -4,7 +4,7 @@ import json
 import weakref
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication, QEvent, QLibraryInfo, QObject, QTranslator
+from PySide6.QtCore import QEvent, QLibraryInfo, QObject, QTranslator
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -50,7 +50,7 @@ class CatalogTranslator(QTranslator):
 
 
 class LanguageManager(QObject):
-    """Application-wide localization service with automatic local catalog completion."""
+    """Application-wide localization with automatic local catalog completion."""
 
     def __init__(self, application):
         super().__init__(application)
@@ -92,7 +92,25 @@ class LanguageManager(QObject):
             self._ensure_catalog()
 
     def translate(self, text):
-        return text if self.language == "en" else _load_catalog(self.language).get(text, text)
+        if self.language == "en" or not text:
+            return text
+        catalog = _load_catalog(self.language)
+        exact = catalog.get(text)
+        if exact is not None:
+            return exact
+        # F-string/runtime text often contains scientific values. Translate only
+        # known UI fragments (not arbitrary data) so dynamic counters and metadata
+        # keep their values while surrounding explanatory copy changes language.
+        result = text
+        fragments = sorted(
+            ((key, value) for key, value in catalog.items() if len(key.strip()) >= 8 and not key.strip().isalnum()),
+            key=lambda pair: len(pair[0]),
+            reverse=True,
+        )
+        for source, target in fragments:
+            if source in result:
+                result = result.replace(source, target)
+        return result
 
     def _state(self, widget):
         return self._source_cache.setdefault(widget, {})
@@ -104,12 +122,6 @@ class LanguageManager(QObject):
         return state[key]
 
     def _ensure_catalog(self):
-        """Automatically fill the selected language catalog through local Ollama.
-
-        This is intentionally generic: pages, dialogs, tutorial copy, descriptions,
-        help text and future widgets are discovered by the existing AST generator;
-        no page-specific translation code is required.
-        """
         if self._generation_running or self.language == "en":
             return
         try:
