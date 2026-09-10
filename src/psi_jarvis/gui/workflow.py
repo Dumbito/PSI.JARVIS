@@ -84,7 +84,7 @@ def _acquisition_port(path: Path):
     if suffix in {".xlsx", ".xls"}:
         return ExcelImporter()
     raise UnsupportedFileFormat(
-        f"Formato de archivo no soportado: {suffix or '(sin extensión)'}"
+        f"Unsupported file format: {suffix or '(no extension)'}"
     )
 
 
@@ -127,11 +127,11 @@ class GuiWorkflowService:
             message = (
                 acquisition.issues[0].message
                 if acquisition.issues
-                else "No se pudo importar el archivo."
+                else "The file could not be imported."
             )
             raise ValueError(message)
         if not acquisition.papers:
-            raise ValueError("El archivo no contiene artículos reconocibles.")
+            raise ValueError("The file does not contain any recognizable papers.")
 
         paper_repository = SQLitePaperRepository(self.database_path)
         for paper in acquisition.papers:
