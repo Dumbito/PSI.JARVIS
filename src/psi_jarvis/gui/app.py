@@ -100,7 +100,6 @@ def metric(label: str, value: int, accent: str) -> QFrame:
 def rate_table(headers: list[str], rows: list[tuple]) -> QTableWidget:
     table = QTableWidget(len(rows), len(headers))
     table.setHorizontalHeaderLabels(headers)
-    table.horizontalHeader().setStretchLastSection(True)
     table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
     table.setEditTriggers(QTableWidget.NoEditTriggers)
     table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -430,7 +429,6 @@ class ProjectsPage(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Project", "Topic", "Research question", "Created"]
         )
-        self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -504,7 +502,6 @@ class PapersPage(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Title", "Year", "Journal", "DOI", "PMID"]
         )
-        self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -648,7 +645,6 @@ class ScreeningPage(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Paper", "Year", "Decision", "Reason", "Criteria version"]
         )
-        self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setAlternatingRowColors(True)

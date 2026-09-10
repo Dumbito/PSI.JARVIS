@@ -96,7 +96,6 @@ class ProjectPaperDialog(QDialog):
     def _table(headers: list[str], rows: list[tuple]) -> QTableWidget:
         table = QTableWidget(len(rows), len(headers))
         table.setHorizontalHeaderLabels(headers)
-        table.horizontalHeader().setStretchLastSection(True)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -292,7 +291,6 @@ class ScreeningRunDialog(QDialog):
         table.setHorizontalHeaderLabels(
             ["Paper", "Year", "Decision", "Reason", "Criteria version"]
         )
-        table.horizontalHeader().setStretchLastSection(True)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -402,7 +400,6 @@ class ProjectWorkspaceView(QWidget):
     def _table(headers: list[str], rows: list[tuple]) -> QTableWidget:
         table = QTableWidget(len(rows), len(headers))
         table.setHorizontalHeaderLabels(headers)
-        table.horizontalHeader().setStretchLastSection(True)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)

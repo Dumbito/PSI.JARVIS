@@ -65,7 +65,6 @@ class AuditExplorerDialog(QDialog):
         table.setHorizontalHeaderLabels(
             ["Source", "Record ID", "Batch", "Ordinal", "Format", "Raw SHA-256"]
         )
-        table.horizontalHeader().setStretchLastSection(True)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.setSelectionBehavior(QTableWidget.SelectRows)
         table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -109,7 +108,6 @@ class AuditExplorerView(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Changed at", "Paper ID", "Source", "Source record", "Changed fields"]
         )
-        self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)

@@ -83,9 +83,19 @@ class SQLitePaperRepository:
                         format_name, format_version, mapping_version,
                         raw_record_sha256, source_record_id
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(paper_id, batch_id, record_ordinal, raw_record_sha256)
-                    DO NOTHING
+                    ON CONFLICT(provenance_key)
+                    DO UPDATE SET paper_id = excluded.paper_id
                     """,
+                    # provenance_key is content-derived (batch + record
+                    # ordinal + raw record hash), so it stays identical
+                    # across a deduplication merge even though the
+                    # surviving Paper's id changes. Re-pointing paper_id
+                    # on conflict (instead of relying on the narrower
+                    # (paper_id, batch_id, record_ordinal, raw_record_sha256)
+                    # unique index) keeps every original record's
+                    # provenance attached to the merged paper without
+                    # ever raising a raw IntegrityError when a duplicate
+                    # bibliographic record is merged during import.
                     (
                         provenance.key,
                         str(paper.id),
