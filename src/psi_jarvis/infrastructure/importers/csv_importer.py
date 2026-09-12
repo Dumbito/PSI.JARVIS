@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from io import StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ from psi_jarvis.application.acquisition.contracts import (
 from psi_jarvis.core.result import Result
 from psi_jarvis.domain.bibliography.provenance import AcquisitionReceipt
 from psi_jarvis.infrastructure.importers.tabular import TabularImporter
+from psi_jarvis.infrastructure.text_encoding import read_text_with_encoding_fallback
 
 
 class CSVImporter:
@@ -38,7 +40,7 @@ class CSVImporter:
                 receipt=None,
                 issues=(AcquisitionIssue("invalid_format", "Expected a CSV file"),),
             )
-        content = file_path.read_text(encoding="utf-8")
+        content = read_text_with_encoding_fallback(file_path)
         receipt = AcquisitionReceipt.create(
             source_key=self.source_key,
             adapter_key=self.adapter_key,
@@ -49,7 +51,12 @@ class CSVImporter:
             source_locator=str(file_path),
         )
         try:
-            dataframe = pd.read_csv(file_path)
+            dataframe = pd.read_csv(StringIO(content))
+        except pd.errors.EmptyDataError:
+            return AcquisitionResult(
+                receipt=receipt,
+                issues=(AcquisitionIssue("invalid_format", "The file is empty."),),
+            )
         except (ValueError, pd.errors.ParserError) as exc:
             return AcquisitionResult(
                 receipt=receipt, issues=(AcquisitionIssue("invalid_format", str(exc)),)
@@ -68,7 +75,7 @@ class CSVImporter:
         if file_path.suffix.lower() != ".csv":
             raise ValueError("Expected a CSV file")
 
-        content = file_path.read_text(encoding="utf-8")
+        content = read_text_with_encoding_fallback(file_path)
         receipt = AcquisitionReceipt.create(
             source_key="csv",
             adapter_key="local-csv",
@@ -78,7 +85,7 @@ class CSVImporter:
             input_content=content,
             source_locator=str(file_path),
         )
-        dataframe = pd.read_csv(file_path)
+        dataframe = pd.read_csv(StringIO(content))
         papers = TabularImporter.dataframe_to_papers(dataframe, receipt, "CSV")
 
         return Result.ok(data=papers)

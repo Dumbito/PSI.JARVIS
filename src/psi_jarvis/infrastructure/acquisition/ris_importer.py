@@ -13,6 +13,7 @@ from psi_jarvis.domain.bibliography.provenance import (
     sha256_text,
 )
 from psi_jarvis.domain.paper import Paper
+from psi_jarvis.infrastructure.text_encoding import read_text_with_encoding_fallback
 
 
 class RISImporter:
@@ -45,7 +46,7 @@ class RISImporter:
                 issues=(AcquisitionIssue("invalid_format", "Expected a RIS file"),),
             )
 
-        content = path.read_text(encoding="utf-8")
+        content = read_text_with_encoding_fallback(path)
         receipt = AcquisitionReceipt.create(
             source_key=self.source_key,
             adapter_key=self.adapter_key,

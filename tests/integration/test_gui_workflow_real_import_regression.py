@@ -15,6 +15,8 @@ to be found by hand again.
 from pathlib import Path
 from uuid import UUID
 
+import pytest
+
 from psi_jarvis.domain.criteria.screening import ScreeningCriteria
 from psi_jarvis.domain.project import ReviewProject
 from psi_jarvis.gui.data import GuiDataService
@@ -114,3 +116,50 @@ def test_export_report_after_real_import_reads_correctly(tmp_path: Path):
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "Inclusion rate: 50.00%" in markdown
     assert "0.5" not in markdown.split("Inclusion rate:")[1].split("\n")[0]
+
+
+def test_importing_a_legacy_encoded_csv_does_not_crash(tmp_path: Path):
+    """Pins a real crash: reference-manager exports (EndNote, older
+    Web of Science/Zotero exports) are frequently written in a legacy
+    Windows codepage rather than UTF-8, especially when a title or
+    author name has an accented character. A hardcoded
+    encoding="utf-8" read turned this into an unhandled
+    UnicodeDecodeError instead of importing normally.
+    """
+    database_path = tmp_path / "psi.db"
+    csv_path = tmp_path / "papers.csv"
+    csv_path.write_bytes(
+        (
+            "title,authors,abstract,doi,pmid,publication_year,journal\n"
+            "\u00c9tude sur la cognition,M\u00fcller H,"
+            "Abstract with caf\u00e9 and na\u00efve w\u00f6rds,"
+            "10.1234/y,,2019,Revue Fran\u00e7aise\n"
+        ).encode("latin-1")
+    )
+
+    project = _new_project(database_path)
+    workflow = GuiWorkflowService(database_path)
+
+    outcome = workflow.import_and_screen(project.project_id, csv_path)
+
+    assert outcome.total_input == 1
+    data = GuiDataService(database_path)
+    paper = data.papers()[0]
+    assert paper.title == "\u00c9tude sur la cognition"
+    assert paper.authors == ("M\u00fcller H",)
+
+
+def test_importing_a_blank_csv_raises_a_friendly_error(tmp_path: Path):
+    """Pins a UX fix: an empty file used to surface pandas' raw
+    "No columns to parse from file" message straight to the user
+    instead of a message the app's own error dialogs are meant to show.
+    """
+    database_path = tmp_path / "psi.db"
+    csv_path = tmp_path / "papers.csv"
+    csv_path.write_text("", encoding="utf-8")
+
+    project = _new_project(database_path)
+    workflow = GuiWorkflowService(database_path)
+
+    with pytest.raises(ValueError, match="The file is empty."):
+        workflow.import_and_screen(project.project_id, csv_path)
