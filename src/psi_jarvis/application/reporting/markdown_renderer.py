@@ -3,6 +3,16 @@ from dataclasses import dataclass
 from psi_jarvis.domain.reporting import Report
 
 
+def _pct(value: float) -> str:
+    """Render a 0-1 rate as a percentage string for human-readable Markdown.
+
+    Display-only: the underlying Report/JSON export keeps full float
+    precision for programmatic reuse. This never rounds or changes any
+    persisted or computed value - only how a rate reads on the page.
+    """
+    return f"{value * 100:.2f}%"
+
+
 @dataclass(frozen=True)
 class MarkdownRenderer:
     def render(self, report: Report) -> str:
@@ -17,9 +27,9 @@ class MarkdownRenderer:
             f"- Screened papers: {report.statistics.screened_papers}",
             f"- Included papers: {report.statistics.included_papers}",
             f"- Excluded papers: {report.statistics.excluded_papers}",
-            f"- Inclusion rate: {report.statistics.inclusion_rate}",
-            f"- Exclusion rate: {report.statistics.exclusion_rate}",
-            f"- Deduplication rate: {report.statistics.deduplication_rate}",
+            f"- Inclusion rate: {_pct(report.statistics.inclusion_rate)}",
+            f"- Exclusion rate: {_pct(report.statistics.exclusion_rate)}",
+            f"- Deduplication rate: {_pct(report.statistics.deduplication_rate)}",
             "",
             "## Screening Metrics",
             "",
@@ -30,30 +40,30 @@ class MarkdownRenderer:
             f"- Duplicates removed: {report.screening_metrics.duplicates_removed}",
             f"- Total matched rules: {report.screening_metrics.total_matched_rules}",
             f"- Total failed rules: {report.screening_metrics.total_failed_rules}",
-            f"- Screening completion rate: {report.screening_metrics.screening_completion_rate}",
-            f"- Screening yield: {report.screening_metrics.screening_yield}",
-            f"- Exclusion yield: {report.screening_metrics.exclusion_yield}",
-            f"- Average matched rules: {report.screening_metrics.average_matched_rules}",
-            f"- Average failed rules: {report.screening_metrics.average_failed_rules}",
+            f"- Screening completion rate: {_pct(report.screening_metrics.screening_completion_rate)}",
+            f"- Screening yield: {_pct(report.screening_metrics.screening_yield)}",
+            f"- Exclusion yield: {_pct(report.screening_metrics.exclusion_yield)}",
+            f"- Average matched rules: {report.screening_metrics.average_matched_rules:.2f}",
+            f"- Average failed rules: {report.screening_metrics.average_failed_rules:.2f}",
             "",
             "## Decision Distribution",
             "",
             "| Decision | Count | Rate |",
             "|---|---:|---:|",
-            f"| Included | {report.decision_distribution.included} | {report.decision_distribution.inclusion_rate} |",
-            f"| Excluded | {report.decision_distribution.excluded} | {report.decision_distribution.exclusion_rate} |",
+            f"| Included | {report.decision_distribution.included} | {_pct(report.decision_distribution.inclusion_rate)} |",
+            f"| Excluded | {report.decision_distribution.excluded} | {_pct(report.decision_distribution.exclusion_rate)} |",
             "",
             "## Deduplication",
             "",
             f"- Total input: {report.deduplication_analysis.total_input}",
             f"- Unique papers: {report.deduplication_analysis.unique_papers}",
             f"- Duplicate papers: {report.deduplication_analysis.duplicate_papers}",
-            f"- Duplicate rate: {report.deduplication_analysis.duplicate_rate}",
+            f"- Duplicate rate: {_pct(report.deduplication_analysis.duplicate_rate)}",
             "",
             "## Metadata Quality",
             "",
             f"- Total papers: {report.metadata_quality.total_papers}",
-            f"- Overall completeness rate: {report.metadata_quality.overall_completeness_rate}",
+            f"- Overall completeness rate: {_pct(report.metadata_quality.overall_completeness_rate)}",
             "",
             "| Field | Present | Missing | Total | Completeness rate |",
             "|---|---:|---:|---:|---:|",
@@ -61,7 +71,7 @@ class MarkdownRenderer:
 
         lines.extend(
             f"| {field.field} | {field.present} | {field.missing} | "
-            f"{field.total} | {field.completeness_rate} |"
+            f"{field.total} | {_pct(field.completeness_rate)} |"
             for field in report.metadata_quality.fields
         )
 
@@ -74,7 +84,7 @@ class MarkdownRenderer:
                 f"- Papers with authors: {report.author_analysis.papers_with_authors}",
                 f"- Papers without authors: {report.author_analysis.papers_without_authors}",
                 f"- Unique authors: {report.author_analysis.unique_authors}",
-                f"- Author coverage rate: {report.author_analysis.author_coverage_rate}",
+                f"- Author coverage rate: {_pct(report.author_analysis.author_coverage_rate)}",
                 "",
                 "| Author | Count |",
                 "|---|---:|",
@@ -95,7 +105,7 @@ class MarkdownRenderer:
                 f"- Papers with journal: {report.journal_analysis.papers_with_journal}",
                 f"- Papers without journal: {report.journal_analysis.papers_without_journal}",
                 f"- Unique journals: {report.journal_analysis.unique_journals}",
-                f"- Journal coverage rate: {report.journal_analysis.journal_coverage_rate}",
+                f"- Journal coverage rate: {_pct(report.journal_analysis.journal_coverage_rate)}",
                 "",
                 "| Journal | Count |",
                 "|---|---:|",
@@ -117,7 +127,7 @@ class MarkdownRenderer:
                 f"- Papers without year: {report.publication_year_analysis.papers_without_year}",
                 f"- Minimum year: {report.publication_year_analysis.year_min}",
                 f"- Maximum year: {report.publication_year_analysis.year_max}",
-                f"- Year coverage rate: {report.publication_year_analysis.year_coverage_rate}",
+                f"- Year coverage rate: {_pct(report.publication_year_analysis.year_coverage_rate)}",
                 "",
                 "| Year | Count |",
                 "|---:|---:|",
@@ -141,7 +151,7 @@ class MarkdownRenderer:
 
         lines.extend(
             f"| {rule.rule_id} | {rule.matched} | {rule.failed} | {rule.evaluated} | "
-            f"{rule.match_rate} | {rule.failure_rate} |"
+            f"{_pct(rule.match_rate)} | {_pct(rule.failure_rate)} |"
             for rule in report.rule_analysis.rules
         )
 
@@ -157,7 +167,7 @@ class MarkdownRenderer:
 
         lines.extend(
             f"| {criterion.criterion_id} | {criterion.matched} | {criterion.failed} | "
-            f"{criterion.evaluated} | {criterion.match_rate} | {criterion.failure_rate} |"
+            f"{criterion.evaluated} | {_pct(criterion.match_rate)} | {_pct(criterion.failure_rate)} |"
             for criterion in report.criteria_analysis.criteria
         )
 
@@ -172,7 +182,7 @@ class MarkdownRenderer:
         )
 
         lines.extend(
-            f"| {reason.reason} | {reason.count} | {reason.total_excluded} | {reason.rate} |"
+            f"| {reason.reason} | {reason.count} | {reason.total_excluded} | {_pct(reason.rate)} |"
             for reason in report.exclusion_reason_analysis.reasons
         )
 
